@@ -3,6 +3,9 @@
 use Airtime\CcShowHostsQuery;
 use Airtime\CcShowInstancesQuery;
 
+use Airtime\CcShowHostsQuery;
+use Airtime\CcShowInstancesQuery;
+
 class Application_Model_ShowBuilder
 {
     private $timezone;

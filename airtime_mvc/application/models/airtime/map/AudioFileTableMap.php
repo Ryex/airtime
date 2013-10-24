@@ -7,7 +7,7 @@ use \TableMap;
 
 
 /**
- * This class defines the structure of the 'media_audiofile' table.
+ * This class defines the structure of the 'audio_file' table.
  *
  *
  *
@@ -36,12 +36,13 @@ class AudioFileTableMap extends TableMap
     public function initialize()
     {
         // attributes
-        $this->setName('media_audiofile');
+        $this->setName('audio_file');
         $this->setPhpName('AudioFile');
         $this->setClassname('Airtime\\MediaItem\\AudioFile');
         $this->setPackage('airtime');
         $this->setUseIdGenerator(false);
         // columns
+        $this->addColumn('mime', 'Mime', 'VARCHAR', false, null, null);
         $this->addForeignKey('directory', 'Directory', 'INTEGER', 'cc_music_dirs', 'id', false, null, null);
         $this->addColumn('filepath', 'Filepath', 'LONGVARCHAR', false, null, '');
         $this->addColumn('md5', 'Md5', 'CHAR', false, 32, null);
@@ -52,16 +53,16 @@ class AudioFileTableMap extends TableMap
         $this->addColumn('album_title', 'AlbumTitle', 'VARCHAR', false, 512, null);
         $this->addColumn('genre', 'Genre', 'VARCHAR', false, 64, null);
         $this->addColumn('comments', 'Comments', 'LONGVARCHAR', false, null, null);
-        $this->addColumn('year', 'Year', 'INTEGER', false, null, null);
+        $this->addColumn('year', 'Year', 'VARCHAR', false, 16, null);
         $this->addColumn('track_number', 'TrackNumber', 'INTEGER', false, null, null);
         $this->addColumn('channels', 'Channels', 'INTEGER', false, null, null);
+        $this->addColumn('url', 'Url', 'VARCHAR', false, 1024, null);
         $this->addColumn('bpm', 'Bpm', 'INTEGER', false, null, null);
         $this->addColumn('encoded_by', 'EncodedBy', 'VARCHAR', false, 255, null);
         $this->addColumn('mood', 'Mood', 'VARCHAR', false, 64, null);
         $this->addColumn('label', 'Label', 'VARCHAR', false, 512, null);
         $this->addColumn('composer', 'Composer', 'VARCHAR', false, 512, null);
         $this->addColumn('copyright', 'Copyright', 'VARCHAR', false, 512, null);
-        $this->addColumn('conductor', 'Conductor', 'VARCHAR', false, 512, null);
         $this->addColumn('isrc_number', 'IsrcNumber', 'VARCHAR', false, 512, null);
         $this->addColumn('info_url', 'InfoUrl', 'VARCHAR', false, 512, null);
         $this->addColumn('language', 'Language', 'VARCHAR', false, 512, null);
@@ -70,17 +71,16 @@ class AudioFileTableMap extends TableMap
         $this->addColumn('cueout', 'Cueout', 'VARCHAR', false, null, '00:00:00');
         $this->addColumn('silan_check', 'IsSilanChecked', 'BOOLEAN', false, null, false);
         $this->addColumn('file_exists', 'FileExists', 'BOOLEAN', false, null, true);
-        $this->addColumn('hidden', 'FileHidden', 'BOOLEAN', false, null, false);
+        $this->addColumn('hidden', 'IsHidden', 'BOOLEAN', false, null, false);
+        $this->addColumn('is_scheduled', 'IsScheduled', 'BOOLEAN', false, null, false);
+        $this->addColumn('is_playlist', 'IsPlaylist', 'BOOLEAN', false, null, false);
         $this->addForeignPrimaryKey('id', 'Id', 'INTEGER' , 'media_item', 'id', true, null, null);
-        $this->addColumn('name', 'Name', 'VARCHAR', false, 512, null);
-        $this->addColumn('creator', 'Creator', 'VARCHAR', false, 512, null);
-        $this->addColumn('source', 'Source', 'VARCHAR', false, 512, null);
+        $this->addColumn('name', 'Name', 'VARCHAR', true, 128, null);
         $this->addForeignKey('owner_id', 'OwnerId', 'INTEGER', 'cc_subjs', 'id', false, null, null);
         $this->addColumn('description', 'Description', 'VARCHAR', false, 512, null);
         $this->addColumn('last_played', 'LastPlayedTime', 'TIMESTAMP', false, 6, null);
         $this->addColumn('play_count', 'PlayCount', 'INTEGER', false, null, 0);
         $this->addColumn('length', 'Length', 'VARCHAR', false, null, '00:00:00');
-        $this->addColumn('mime', 'Mime', 'VARCHAR', false, null, null);
         $this->addColumn('created_at', 'CreatedAt', 'TIMESTAMP', false, null, null);
         $this->addColumn('updated_at', 'UpdatedAt', 'TIMESTAMP', false, null, null);
         // validators

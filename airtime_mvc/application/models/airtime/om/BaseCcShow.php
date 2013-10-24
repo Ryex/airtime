@@ -1992,10 +1992,10 @@ abstract class BaseCcShow extends BaseObject implements Persistent
      * @param string $join_behavior optional join type to use (defaults to Criteria::LEFT_JOIN)
      * @return PropelObjectCollection|CcShowInstances[] List of CcShowInstances objects
      */
-    public function getCcShowInstancessJoinMediaItem($criteria = null, $con = null, $join_behavior = Criteria::LEFT_JOIN)
+    public function getCcShowInstancessJoinCcFiles($criteria = null, $con = null, $join_behavior = Criteria::LEFT_JOIN)
     {
         $query = CcShowInstancesQuery::create(null, $criteria);
-        $query->joinWith('MediaItem', $join_behavior);
+        $query->joinWith('CcFiles', $join_behavior);
 
         return $this->getCcShowInstancess($query, $con);
     }

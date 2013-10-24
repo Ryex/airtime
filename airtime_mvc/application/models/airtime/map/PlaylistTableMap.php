@@ -7,7 +7,7 @@ use \TableMap;
 
 
 /**
- * This class defines the structure of the 'media_playlist' table.
+ * This class defines the structure of the 'playlist' table.
  *
  *
  *
@@ -36,27 +36,22 @@ class PlaylistTableMap extends TableMap
     public function initialize()
     {
         // attributes
-        $this->setName('media_playlist');
+        $this->setName('playlist');
         $this->setPhpName('Playlist');
         $this->setClassname('Airtime\\MediaItem\\Playlist');
         $this->setPackage('airtime');
         $this->setUseIdGenerator(false);
-        $this->setSingleTableInheritance(true);
         // columns
-        $this->addColumn('class_key', 'ClassKey', 'INTEGER', false, null, null);
-        $this->addColumn('rules', 'Rules', 'LONGVARCHAR', true, null, '');
         $this->addForeignPrimaryKey('id', 'Id', 'INTEGER' , 'media_item', 'id', true, null, null);
-        $this->addColumn('name', 'Name', 'VARCHAR', false, 512, null);
-        $this->addColumn('creator', 'Creator', 'VARCHAR', false, 512, null);
-        $this->addColumn('source', 'Source', 'VARCHAR', false, 512, null);
+        $this->addColumn('name', 'Name', 'VARCHAR', true, 128, null);
         $this->addForeignKey('owner_id', 'OwnerId', 'INTEGER', 'cc_subjs', 'id', false, null, null);
         $this->addColumn('description', 'Description', 'VARCHAR', false, 512, null);
         $this->addColumn('last_played', 'LastPlayedTime', 'TIMESTAMP', false, 6, null);
         $this->addColumn('play_count', 'PlayCount', 'INTEGER', false, null, 0);
         $this->addColumn('length', 'Length', 'VARCHAR', false, null, '00:00:00');
-        $this->addColumn('mime', 'Mime', 'VARCHAR', false, null, null);
         $this->addColumn('created_at', 'CreatedAt', 'TIMESTAMP', false, null, null);
         $this->addColumn('updated_at', 'UpdatedAt', 'TIMESTAMP', false, null, null);
+        $this->addColumn('descendant_class', 'DescendantClass', 'VARCHAR', false, 100, null);
         // validators
     } // initialize()
 
@@ -67,7 +62,7 @@ class PlaylistTableMap extends TableMap
     {
         $this->addRelation('MediaItem', 'Airtime\\MediaItem', RelationMap::MANY_TO_ONE, array('id' => 'id', ), 'CASCADE', null);
         $this->addRelation('CcSubjs', 'Airtime\\CcSubjs', RelationMap::MANY_TO_ONE, array('owner_id' => 'id', ), null, null);
-        $this->addRelation('MediaContent', 'Airtime\\MediaItem\\MediaContent', RelationMap::ONE_TO_MANY, array('id' => 'playlist_id', ), 'CASCADE', null, 'MediaContents');
+        $this->addRelation('Block', 'Airtime\\MediaItem\\Block', RelationMap::ONE_TO_ONE, array('id' => 'id', ), 'CASCADE', null);
     } // buildRelations()
 
     /**
@@ -90,6 +85,9 @@ class PlaylistTableMap extends TableMap
   'create_column' => 'created_at',
   'update_column' => 'updated_at',
   'disable_updated_at' => 'false',
+),
+            'concrete_inheritance_parent' =>  array (
+  'descendant_column' => 'descendant_class',
 ),
         );
     } // getBehaviors()

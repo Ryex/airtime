@@ -18,5 +18,4 @@ use Airtime\om\BaseCcScheduleQuery;
  */
 class CcScheduleQuery extends BaseCcScheduleQuery
 {
-	
 }

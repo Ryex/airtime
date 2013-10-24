@@ -1,19 +1,21 @@
 <?php
 
-use Airtime\MediaItem\AudioFileQuery;
+use Airtime\CcFilesPeer;
 use Airtime\CcShowQuery;
+use Airtime\CcWebstreamMetadata;
+use Airtime\CcWebstreamMetadataQuery;
 
 class ApiController extends Zend_Controller_Action
 {
 
     public function init()
     {
-        $ignoreAuth = array("live-info",
-            "live-info-v2",
-            "week-info",
-            "station-metadata",
+        $ignoreAuth = array("live-info", 
+            "live-info-v2", 
+            "week-info", 
+            "station-metadata", 
             "station-logo",
-            "show-history-feed",
+            "show-history-feed", 
             "item-history-feed",
             "shows",
             "show-tracks",
@@ -90,20 +92,26 @@ class ApiController extends Zend_Controller_Action
      */
     public function getMediaAction()
     {
-        //close the session to avoid this long request from blocking.
-        session_write_close();
+        $fileId = $this->_getParam("file");
 
-        $info = $this->_getParam("file");
-        list($id, $ext) = explode(".", $info);
-
-        $media = AudioFileQuery::create()->findPK($id);
+        $media = Application_Model_StoredFile::RecallById($fileId);
         if ($media != null) {
 
-            $filepath = $media->getFilepath();
+            $filepath = $media->getFilePath();
             // Make sure we don't have some wrong result beecause of caching
             clearstatcache();
-
             if (is_file($filepath)) {
+                $full_path = $media->getPropelOrm()->getDbFilepath();
+
+                $file_base_name = strrchr($full_path, '/');
+                /* If $full_path does not contain a '/', strrchr will return false,
+                 * in which case we can use $full_path as the base name.
+                 */
+                if (!$file_base_name) {
+                    $file_base_name = $full_path;
+                } else {
+                    $file_base_name = substr($file_base_name, 1);
+                }
 
                 //Download user left clicks a track and selects Download.
                 if ("true" == $this->_getParam('download')) {
@@ -111,14 +119,13 @@ class ApiController extends Zend_Controller_Action
                     //We just want the basename which is the file name with the path
                     //information stripped away. We are using Content-Disposition to specify
                     //to the browser what name the file should be saved as.
-                	$filename = basename($filepath);
-                    header('Content-Disposition: attachment; filename="'.$filename.'"');
+                    header('Content-Disposition: attachment; filename="'.$file_base_name.'"');
                 } else {
                     //user clicks play button for track and downloads it.
-                    header('Content-Disposition: signal; filename="'.$info.'"');
+                    header('Content-Disposition: inline; filename="'.$file_base_name.'"');
                 }
 
-                $this->smartReadFile($filepath, $media->getMime());
+                $this->smartReadFile($filepath, $media->getPropelOrm()->getDbMime());
                 exit;
             } else {
                 header ("HTTP/1.1 404 Not Found");
@@ -142,13 +149,6 @@ class ApiController extends Zend_Controller_Action
     */
     public function smartReadFile($location, $mimeType = 'audio/mp3')
     {
-    	Logging::info($location);
-
-    	//We can have multiple levels of output buffering. Need to
-    	//keep looping until all have been disabled!!!
-    	//http://www.php.net/manual/en/function.ob-end-flush.php
-    	while (@ob_end_flush());
-
         $size= filesize($location);
         $time= date('r', filemtime($location));
 
@@ -164,46 +164,26 @@ class ApiController extends Zend_Controller_Action
 
         if (isset($_SERVER['HTTP_RANGE'])) {
             if (preg_match('/bytes=\h*(\d+)-(\d*)[\D.*]?/i', $_SERVER['HTTP_RANGE'], $matches)) {
-            	Logging::info("byte range is matched");
-                $rangeBegin = intval($matches[1]);
-                Logging::info($rangeBegin);
+                $begin = intval($matches[1]);
                 if (!empty($matches[2])) {
-                    $rangeEnd = intval($matches[2]);
-                    Logging::info($rangeEnd);
+                    $end = intval($matches[2]);
                 }
             }
         }
 
-        //this check is performed to stop Chrome from hanging on a request
-        // with "Range:bytes=0-"
-        //http://stackoverflow.com/questions/12801192/client-closes-connection-when-streaming-m4v-from-apache-to-chrome-with-jplayer
-        $sendPartialContent = false;
-        if (isset($rangeBegin)) {
-        //if (isset($rangeBegin) && $rangeBegin > 0) {
-        	$sendPartialContent = true;
-        	$begin = $rangeBegin;
-        	$end = isset($rangeEnd) ? $rangeEnd : $end;
+        if (isset($_SERVER['HTTP_RANGE'])) {
+            header('HTTP/1.1 206 Partial Content');
+        } else {
+            header('HTTP/1.1 200 OK');
         }
-
-        Logging::info("Range: {$begin} - {$end}");
-
-        if ($sendPartialContent) {
-        	header('HTTP/1.1 206 Partial Content');
-        }
-        else {
-        	header('HTTP/1.1 200 OK');
-        }
-
         header("Content-Type: $mimeType");
         header('Cache-Control: public, must-revalidate, max-age=0');
         header('Pragma: no-cache');
         header('Accept-Ranges: bytes');
         header('Content-Length:' . (($end - $begin) + 1));
-
-        if ($sendPartialContent) {
-        	header("Content-Range: bytes $begin-$end/$size");
+        if (isset($_SERVER['HTTP_RANGE'])) {
+            header("Content-Range: bytes $begin-$end/$size");
         }
-
         header("Content-Transfer-Encoding: binary");
         header("Last-Modified: $time");
 
@@ -216,7 +196,7 @@ class ApiController extends Zend_Controller_Action
         fseek($fm, $begin, 0);
 
         while (!feof($fm) && $cur <= $end && (connection_status() == 0)) {
-            echo fread($fm, min(1024 * 16, ($end - $cur) + 1));
+            echo  fread($fm, min(1024 * 16, ($end - $cur) + 1));
             $cur += 1024 * 16;
         }
     }
@@ -232,7 +212,7 @@ class ApiController extends Zend_Controller_Action
         $result["on_air_light_expected_status"] = false;
         $result["station_down"] = false;
 
-        $range = Application_Model_Schedule::getDashboardInfo();
+        $range = Application_Model_Schedule::GetPlayOrderRange();
 
         $isItemCurrentlyScheduled = !is_null($range["current"]) && count($range["currentShow"]) > 0 ? true : false;
 
@@ -280,17 +260,18 @@ class ApiController extends Zend_Controller_Action
             // disable the view and the layout
             $this->view->layout()->disableLayout();
             $this->_helper->viewRenderer->setNoRender(true);
+    
             $request = $this->getRequest();
-
+    
             $utcTimeNow = gmdate("Y-m-d H:i:s");
             $utcTimeEnd = "";   // if empty, getNextShows will use interval instead of end of day
-
+    
             // default to the station timezone
             $timezone = Application_Model_Preference::GetDefaultTimezone();
             $userDefinedTimezone = strtolower($request->getParam('timezone'));
             $upcase = false; // only upcase the timezone abbreviations
             $this->checkTimezone($userDefinedTimezone, $timezone, $upcase);
-
+    
             $type = $request->getParam('type');
             $limit = $request->getParam('limit');
             if ($limit == "" || !is_numeric($limit)) {
@@ -300,12 +281,12 @@ class ApiController extends Zend_Controller_Action
              * we are using two entirely different codepaths for very similar functionality (type = endofday
              * vs type = interval). Needs to be fixed for 2.3 - MK */
             if ($type == "endofday") {
-
+    
                 // make getNextShows use end of day
                 $end = Application_Common_DateHelper::getTodayStationEndDateTime();
                 $end->setTimezone(new DateTimeZone("UTC"));
                 $utcTimeEnd = $end->format("Y-m-d H:i:s");
-
+                
                 $result = array(
                     "env" => APPLICATION_ENV,
                     "schedulerTime" => $utcTimeNow,
@@ -315,7 +296,7 @@ class ApiController extends Zend_Controller_Action
             } else {
                 $result = Application_Model_Schedule::GetPlayOrderRangeOld($limit);
             }
-
+    
             // XSS exploit prevention
             $this->convertSpecialChars($result, array("name", "url"));
             // apply user-defined timezone, or default to station
@@ -329,15 +310,16 @@ class ApiController extends Zend_Controller_Action
                 array("starts", "ends", "start_timestamp","end_timestamp"),
                 $timezone
             );
-
+            
             //Convert the UTC scheduler time ("now") to the user-defined timezone.
             $result["schedulerTime"] = Application_Common_DateHelper::UTCStringToTimezoneString($result["schedulerTime"], $timezone);
             $result["timezone"] = $upcase ? strtoupper($timezone) : $timezone;
             $result["timezoneOffset"] = Application_Common_DateHelper::getTimezoneOffset($timezone);
-
+    
+            // used by caller to determine if the airtime they are running or widgets in use is out of date.
             $result['AIRTIME_API_VERSION'] = AIRTIME_API_VERSION;
             header("Content-Type: application/json");
-
+    
             if (version_compare(phpversion(), '5.4.0', '<')) {
                 $js = json_encode($result);
             } else {
@@ -351,7 +333,7 @@ class ApiController extends Zend_Controller_Action
             exit;
         }
     }
-
+    
     /**
      * Retrieve the currently playing show as well as upcoming shows.
      * Number of shows returned and the time interval in which to
@@ -371,18 +353,18 @@ class ApiController extends Zend_Controller_Action
             // disable the view and the layout
             $this->view->layout()->disableLayout();
             $this->_helper->viewRenderer->setNoRender(true);
-
+    
             $request = $this->getRequest();
-
+    
             $utcTimeNow = gmdate("Y-m-d H:i:s");
             $utcTimeEnd = "";   // if empty, getNextShows will use interval instead of end of day
-
+    
             // default to the station timezone
             $timezone = Application_Model_Preference::GetDefaultTimezone();
             $userDefinedTimezone = strtolower($request->getParam('timezone'));
             $upcase = false; // only upcase the timezone abbreviations
             $this->checkTimezone($userDefinedTimezone, $timezone, $upcase);
-
+    
             $daysToRetrieve = $request->getParam('days');
             $showsToRetrieve = $request->getParam('shows');
             if ($daysToRetrieve == "" || !is_numeric($daysToRetrieve)) {
@@ -391,25 +373,25 @@ class ApiController extends Zend_Controller_Action
             if ($showsToRetrieve == "" || !is_numeric($showsToRetrieve)) {
                 $showsToRetrieve = "5";
             }
-
+    
             // set the end time to the day's start n days from now.
             // days=1 will return shows until the end of the current day,
             // days=2 will return shows until the end of tomorrow, etc.
             $end = Application_Common_DateHelper::getEndDateTime($timezone, $daysToRetrieve);
             $end->setTimezone(new DateTimeZone("UTC"));
             $utcTimeEnd = $end->format("Y-m-d H:i:s");
-
+    
             $result = Application_Model_Schedule::GetPlayOrderRange($utcTimeEnd, $showsToRetrieve);
-
+    
             // XSS exploit prevention
             $this->convertSpecialChars($result, array("name", "url"));
             // apply user-defined timezone, or default to station
             $this->applyLiveTimezoneAdjustments($result, $timezone, $upcase);
-
+    
             // used by caller to determine if the airtime they are running or widgets in use is out of date.
             $result["station"]["AIRTIME_API_VERSION"] = AIRTIME_API_VERSION;
             header("Content-Type: application/json");
-
+    
             if (version_compare(phpversion(), '5.4.0', '<')) {
                 $js = json_encode($result);
             } else {
@@ -423,7 +405,7 @@ class ApiController extends Zend_Controller_Action
             exit;
         }
     }
-
+    
     /**
      * Check that the value for the timezone the user gave is valid.
      * If it is, override the default (station) timezone.
@@ -449,7 +431,7 @@ class ApiController extends Zend_Controller_Action
             $timezone = $userDefinedTimezone;
         }
     }
-
+    
     /**
      * If the user passed in a timezone parameter, adjust timezone-dependent
      * variables in the result to reflect the given timezone.
@@ -465,7 +447,7 @@ class ApiController extends Zend_Controller_Action
         array("starts", "ends", "start_timestamp","end_timestamp"),
         $timezone
         );
-
+    
         //Convert the UTC scheduler time ("now") to the user-defined timezone.
         $result["station"]["schedulerTime"] = Application_Common_DateHelper::UTCStringToTimezoneString($result["station"]["schedulerTime"], $timezone);
         $result["station"]["timezone"] = $upcase ? strtoupper($timezone) : $timezone;
@@ -480,37 +462,37 @@ class ApiController extends Zend_Controller_Action
 
             //weekStart is in station time.
             $weekStartDateTime = Application_Common_DateHelper::getWeekStartDateTime();
-
+            
             $dow = array("monday", "tuesday", "wednesday", "thursday", "friday",
                         "saturday", "sunday", "nextmonday", "nexttuesday", "nextwednesday",
                         "nextthursday", "nextfriday", "nextsaturday", "nextsunday");
 
             $result = array();
-
+            
             // default to the station timezone
             $timezone = Application_Model_Preference::GetDefaultTimezone();
             $userDefinedTimezone = strtolower($this->getRequest()->getParam("timezone"));
             // if the timezone defined by the user exists, use that
             if (array_key_exists($userDefinedTimezone, timezone_abbreviations_list())) {
                 $timezone = $userDefinedTimezone;
-            }
+            }            
             $utcTimezone = new DateTimeZone("UTC");
-
+            
             $weekStartDateTime->setTimezone($utcTimezone);
             $utcDayStart = $weekStartDateTime->format("Y-m-d H:i:s");
             for ($i = 0; $i < 14; $i++) {
-
+                
                 //have to be in station timezone when adding 1 day for daylight savings.
                 $weekStartDateTime->setTimezone(new DateTimeZone($timezone));
                 $weekStartDateTime->add(new DateInterval('P1D'));
-
+                
                 //convert back to UTC to get the actual timestamp used for search.
                 $weekStartDateTime->setTimezone($utcTimezone);
-
+                
                 $utcDayEnd = $weekStartDateTime->format("Y-m-d H:i:s");
                 $shows = Application_Model_Show::getNextShows($utcDayStart, "ALL", $utcDayEnd);
                 $utcDayStart = $utcDayEnd;
-
+                
                 // convert to user-defined timezone, or default to station
                 Application_Common_DateHelper::convertTimestampsToTimezone(
                     $shows,
@@ -523,11 +505,11 @@ class ApiController extends Zend_Controller_Action
 
             // XSS exploit prevention
             $this->convertSpecialChars($result, array("name", "url"));
-
+            
             //used by caller to determine if the airtime they are running or widgets in use is out of date.
             $result['AIRTIME_API_VERSION'] = AIRTIME_API_VERSION;
             header("Content-type: text/javascript");
-
+            
             $js = json_encode($result, JSON_PRETTY_PRINT);
             // If a callback is not given, then just provide the raw JSON.
             echo isset($_GET['callback']) ? $_GET['callback'].'('.$js.')' : $js;
@@ -552,15 +534,41 @@ class ApiController extends Zend_Controller_Action
 
     public function notifyMediaItemStartPlayAction()
     {
-        $scheduleId = $this->_getParam("media_id");
-        Logging::debug("Received notification of new schedule item start: $scheduleId");
+        $media_id = $this->_getParam("media_id");
+        Logging::debug("Received notification of new media item start: $media_id");
+        Application_Model_Schedule::UpdateMediaPlayedStatus($media_id);
 
-        $historyService = new Application_Service_HistoryService();
-        $historyService->insertHistoryItem($scheduleId);
+        try {
+            $historyService = new Application_Service_HistoryService();
+            $historyService->insertPlayedItem($media_id);
+
+            //set a 'last played' timestamp for media item
+            //needed for smart blocks
+            $mediaType = Application_Model_Schedule::GetType($media_id);
+            if ($mediaType == 'file') {
+                $file_id = Application_Model_Schedule::GetFileId($media_id);
+                if (!is_null($file_id)) {
+                    //we are dealing with a file not a stream
+                    $file = Application_Model_StoredFile::RecallById($file_id);
+                    $now = new DateTime("now", new DateTimeZone("UTC"));
+                    $file->setLastPlayedTime($now);
+                }
+            } else {
+                // webstream
+                $stream_id = Application_Model_Schedule::GetStreamId($media_id);
+                if (!is_null($stream_id)) {
+                    $webStream = new Application_Model_Webstream($stream_id);
+                    $now = new DateTime("now", new DateTimeZone("UTC"));
+                    $webStream->setLastPlayed($now);
+                }
+            }
+        } catch (Exception $e) {
+            Logging::info($e);
+        }
 
         $this->_helper->json->sendJson(array("status"=>1, "message"=>""));
     }
-
+    
     /**
      * Go through a given array and sanitize any potentially exploitable fields
      * by passing them through htmlspecialchars
@@ -581,7 +589,7 @@ class ApiController extends Zend_Controller_Action
             }
         }
     }
-
+    
     /**
      * API endpoint to provide station metadata
      */
@@ -591,21 +599,21 @@ class ApiController extends Zend_Controller_Action
             // disable the view and the layout
             $this->view->layout()->disableLayout();
             $this->_helper->viewRenderer->setNoRender(true);
-
+    
             $CC_CONFIG = Config::getConfig();
             $baseDir = Application_Common_OsPath::formatDirectoryWithDirectorySeparators($CC_CONFIG['baseDir']);
             $path = 'http://'.$_SERVER['HTTP_HOST'].$baseDir."api/station-logo";
-
+    
             $result["name"] = Application_Model_Preference::GetStationName();
             $result["logo"] = $path;
             $result["description"] = Application_Model_Preference::GetStationDescription();
             $result["timezone"] = Application_Model_Preference::GetDefaultTimezone();
             $result["locale"] = Application_Model_Preference::GetDefaultLocale();
-
+    
             // used by caller to determine if the airtime they are running or widgets in use is out of date.
             $result['AIRTIME_API_VERSION'] = AIRTIME_API_VERSION;
             header("Content-type: text/javascript");
-
+    
             $js = json_encode($result, JSON_PRETTY_PRINT);
             // If a callback is not given, then just provide the raw JSON.
             echo isset($_GET['callback']) ? $_GET['callback'].'('.$js.')' : $js;
@@ -615,7 +623,7 @@ class ApiController extends Zend_Controller_Action
             exit;
         }
     }
-
+    
     /**
      * API endpoint to display the current station logo
      */
@@ -625,21 +633,21 @@ class ApiController extends Zend_Controller_Action
             // disable the view and the layout
             $this->view->layout()->disableLayout();
             $this->_helper->viewRenderer->setNoRender(true);
-
+    
             $logo = Application_Model_Preference::GetStationLogo();
             // if there's no logo, just die - redirects to a 404
             if (!$logo || $logo === '') {
                 return;
             }
-
+    
             // we're passing this as an image instead of using it in a data uri, so decode it
             $blob = base64_decode($logo);
-
+    
             // use finfo to get the mimetype from the decoded blob
             $f = finfo_open();
             $mime_type = finfo_buffer($f, $blob, FILEINFO_MIME_TYPE);
             finfo_close($f);
-
+    
             header("Content-type: " . $mime_type);
             echo $blob;
         } else {
@@ -666,7 +674,7 @@ class ApiController extends Zend_Controller_Action
         $this->view->server_timezone = Application_Model_Preference::GetDefaultTimezone();
 
         $rows = Application_Model_Show::getCurrentShow();
-
+        
         if (count($rows) > 0) {
             $this->view->is_recording = ($rows[0]['record'] == 1);
         }
@@ -709,7 +717,7 @@ class ApiController extends Zend_Controller_Action
         try {
             $show_inst = new Application_Model_ShowInstance($show_instance_id);
             $show_inst->setRecordedFile($file_id);
-        }
+        } 
         catch (Exception $e) {
             //we've reached here probably because the show was
             //cancelled, and therefore the show instance does not exist
@@ -767,7 +775,7 @@ class ApiController extends Zend_Controller_Action
                 if ($md['is_record'] != 0) {
                     $this->uploadRecordedActionParam($md['MDATA_KEY_TRACKNUMBER'], $file->getId());
                 }
-
+                
             } elseif ($mode == "modify") {
                 $filepath = $md['MDATA_KEY_FILEPATH'];
                 $file = Application_Model_StoredFile::RecallByFilepath($filepath, $con);
@@ -836,7 +844,6 @@ class ApiController extends Zend_Controller_Action
         return $return_hash;
     }
 
-
     public function reloadMetadataGroupAction()
     {
         // extract all file metadata params from the request.
@@ -847,7 +854,6 @@ class ApiController extends Zend_Controller_Action
         $responses   = array();
         $params      = $request->getParams();
         $valid_modes = array('delete_dir', 'delete', 'moved', 'modify', 'create');
-
         foreach ($params as $k => $raw_json) {
             // Valid requests must start with mdXXX where XXX represents at
             // least 1 digit
@@ -878,18 +884,16 @@ class ApiController extends Zend_Controller_Action
             $mode = $info_json['mode'];
             unset( $info_json['mode'] );
             try {
-                $audiofile_service = new Application_Service_AudioFileService();
-                $audiofile_service->mediaMonitorTask($info_json, $mode);
+                $response = $this->dispatchMetadata($info_json, $mode);
             } catch (Exception $e) {
                 Logging::warn($e->getMessage());
                 Logging::warn(gettype($e));
-            }
+            } 
             // We tack on the 'key' back to every request in case the would like to associate
             // his requests with particular responses
             $response['key'] = $k;
             array_push($responses, $response);
         }
-
         $this->_helper->json->sendJson($responses);
     }
 
@@ -897,11 +901,10 @@ class ApiController extends Zend_Controller_Action
     {
         $request = $this->getRequest();
         $dir_id = $request->getParam('dir_id');
+        $all    = $request->getParam('all');
 
-        $service = new Application_Service_AudioFileService();
-        $rows = $service->listAllFiles($dir_id);
-
-        $this->view->files = $rows;
+        $this->view->files =
+            Application_Model_StoredFile::listAllFiles($dir_id, $all);
     }
 
     public function listAllWatchedDirsAction()
@@ -1068,11 +1071,8 @@ class ApiController extends Zend_Controller_Action
 
                     $watchDir = Application_Model_MusicDir::getDirByPath($rd);
                     // get all the files that is under $dirPath
-
-                    //TODO fix this file stuff up, make sure delete can work here.
-                    $service = new Application_Service_AudioFileService();
-                    $files = $service->listAllFiles($dir->getId(), false);
-
+                    $files = Application_Model_StoredFile::listAllFiles(
+                        $dir->getId(),$all=false);
                     foreach ($files as $f) {
                         // if the file is from this mount
                         if (substr($f->getFilePath(), 0, strlen($rd)) === $rd) {
@@ -1188,17 +1188,17 @@ class ApiController extends Zend_Controller_Action
     {
         $dir_id = $this->_getParam('dir_id');
 
-        $service = new Application_Service_AudioFileService();
-        $rows = $service->getAllFilesWithoutReplayGain($dir_id);
+        //connect to db and get get sql
+        $rows = Application_Model_StoredFile::listAllFiles2($dir_id, 100);
 
         $this->_helper->json->sendJson($rows);
     }
-
+    
     public function getFilesWithoutSilanValueAction()
     {
-    	$service = new Application_Service_AudioFileService();
-    	$rows = $service->getAllFilesWithoutSilan();
-
+        //connect to db and get get sql
+        $rows = Application_Model_StoredFile::getAllFilesWithoutSilan();
+    
         $this->_helper->json->sendJson($rows);
     }
 
@@ -1207,70 +1207,57 @@ class ApiController extends Zend_Controller_Action
         $request = $this->getRequest();
         $data = json_decode($request->getParam('data'));
 
-        $con = Propel::getConnection();
-        $con->beginTransaction();
-
-        try {
-        	foreach ($data as $pair) {
-        		list($id, $gain) = $pair;
-
-        		$file = AudioFileQuery::create()->findPk($id, $con);
-        		$file->setReplayGain($gain);
-        		$file->save($con);
-        	}
-
-        	$con->commit();
-        }
-        catch (Exception $e) {
-        	$con->rollBack();
-        	Logging::error($e->getMessage());
+        foreach ($data as $pair) {
+            list($id, $gain) = $pair;
+            // TODO : move this code into model -- RG
+            $file = Application_Model_StoredFile::RecallById($p_id = $id)->getPropelOrm();
+            $file->setDbReplayGain($gain);
+            $file->save();
         }
 
         $this->_helper->json->sendJson(array());
     }
-
+    
     public function updateCueValuesBySilanAction()
     {
         $request = $this->getRequest();
         $data = json_decode($request->getParam('data'), $assoc = true);
 
-        $con = Propel::getConnection();
-        $con->beginTransaction();
+        foreach ($data as $pair) {
+            list($id, $info) = $pair;
+            // TODO : move this code into model -- RG
+            $file = Application_Model_StoredFile::RecallById($p_id = $id)->getPropelOrm();
 
-        try {
-        	foreach ($data as $pair) {
-        		list($id, $info) = $pair;
+            //What we are doing here is setting a more accurate length that was
+            //calculated with silan by actually scanning the entire file. This
+            //process takes a really long time, and so we only do it in the background
+            //after the file has already been imported -MK
+            try {
+                $length = $file->getDbLength();
+                if (isset($info['length'])) {
+                    $length = $info['length'];
+                    //length decimal number in seconds. Need to convert it to format
+                    //HH:mm:ss to get around silly PHP limitations.
+                    $length = Application_Common_DateHelper::secondsToPlaylistTime($length);
+                    $file->setDbLength($length);
+                }
 
-        		$file = AudioFileQuery::create()->findPk($id, $con);
+                $cuein = isset($info['cuein']) ? $info['cuein'] : 0;
+                $cueout = isset($info['cueout']) ? $info['cueout'] : $length;
 
-        		$length = $file->getLength();
-        		if (isset($info['length'])) {
-        			$length = $info['length'];
-        			//length decimal number in seconds. Need to convert it to format
-        			//HH:mm:ss
-        			$length = Application_Common_DateHelper::secondsToPlaylistTime($length);
-        			$file->setLength($length);
-        		}
-
-        		$cuein = isset($info['cuein']) ? $info['cuein'] : 0;
-        		$cueout = isset($info['cueout']) ? $info['cueout'] : $length;
-
-        		$file->setCuein($cuein);
-        		$file->setCueout($cueout);
-        		$file->setIsSilanChecked(true);
-        		$file->save($con);
-        	}
+                $file->setDbCuein($cuein);
+                $file->setDbCueout($cueout);
+                $file->setDbSilanCheck(true);
+                $file->save();
+            } catch (Exception $e) {
+                Logging::info("Failed to update silan values for ".$file->getDbTrackTitle());
+                Logging::info("File length analyzed by Silan is: ".$length);
+                //set silan_check to true so we don't attempt to re-anaylze again
+                $file->setDbSilanCheck(true);
+                $file->save();
+            }
         }
-        catch (Exception $e) {
-        	Logging::error($e->getMessage());
-        	Logging::info("Failed to update silan values for ".$file->getTrackTitle());
-        	Logging::info("File length analyzed by Silan is: ".$length);
-        	//set silan_check to true so we don't attempt to re-anaylze again
-        	$file->setIsSilanChecked(true);
-        	$file->save($con);
-        }
 
-        $con->commit();
         $this->_helper->json->sendJson(array());
     }
 
@@ -1280,12 +1267,12 @@ class ApiController extends Zend_Controller_Action
         $data = $request->getParam("data");
         $media_id = intval($request->getParam("media_id"));
         $data_arr = json_decode($data);
-
+        
         //$media_id is -1 sometimes when a stream has stopped playing
         if (!is_null($media_id) && $media_id > 0) {
 
             if (isset($data_arr->title)) {
-
+                
                 $data_title = substr($data_arr->title, 0, 1024);
 
                 $previous_metadata = CcWebstreamMetadataQuery::create()
@@ -1302,20 +1289,20 @@ class ApiController extends Zend_Controller_Action
                 }
 
                 if ($do_insert) {
-
+                    
                     $startDT = new DateTime("now", new DateTimeZone("UTC"));
-
+                    
                     $webstream_metadata = new CcWebstreamMetadata();
                     $webstream_metadata->setDbInstanceId($media_id);
                     $webstream_metadata->setDbStartTime($startDT);
                     $webstream_metadata->setDbLiquidsoapData($data_title);
                     $webstream_metadata->save();
-
+                    
                     $historyService = new Application_Service_HistoryService();
                     $historyService->insertWebstreamMetadata($media_id, $startDT, $data_arr);
                 }
             }
-        }
+        } 
 
         $this->view->response = $data;
         $this->view->media_id = $media_id;
@@ -1338,11 +1325,11 @@ class ApiController extends Zend_Controller_Action
         Application_Model_ListenerStat::insertDataPoints($data);
         $this->view->data = $data;
     }
-
+    
     public function updateStreamSettingTableAction() {
         $request = $this->getRequest();
         $data = json_decode($request->getParam("data"), true);
-
+        
         foreach ($data as $k=>$v) {
             Application_Model_StreamSetting::SetListenerStatError($k, $v);
         }
@@ -1384,9 +1371,9 @@ class ApiController extends Zend_Controller_Action
             $request = $this->getRequest();
             $params = $request->getParams();
             $userId = $request->getParam("user_id", null);
-
+ 
             list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
-
+            
             $historyService = new Application_Service_HistoryService();
             $shows = $historyService->getShowList($startsDT, $endsDT, $userId);
 
@@ -1410,8 +1397,8 @@ class ApiController extends Zend_Controller_Action
             $params = $request->getParams();
             $showId = $request->getParam("show_id", null);
             $results = array();
-
-            if (empty($showId)) {
+ 
+            if (empty($showId)) {            
                 $shows = CcShowQuery::create()->find();
                 foreach($shows as $show) {
                     $results[] = $show->getShowInfo();
@@ -1428,19 +1415,19 @@ class ApiController extends Zend_Controller_Action
             Logging::info($e->getMessage());
         }
     }
-
+   
     /**
      * display show schedule for given show_id
      *
      * @return json array
      */
-    public function showSchedulesAction()
+    public function showSchedulesAction() 
     {
         try {
             $request = $this->getRequest();
             $params = $request->getParams();
             $showId = $request->getParam("show_id", null);
-
+ 
             list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
 
             if ((!isset($showId)) || (!is_numeric($showId))) {
@@ -1449,7 +1436,7 @@ class ApiController extends Zend_Controller_Action
                     array("jsonrpc" => "2.0", "error" => array("code" => 400, "message" => "missing invalid type for required show_id parameter. use type int.".$showId))
                 );
             }
-
+            
             $shows = Application_Model_Show::getShows($startsDT, $endsDT, FALSE, $showId);
 
             // is this a valid show?
@@ -1467,7 +1454,7 @@ class ApiController extends Zend_Controller_Action
         }
 
     }
-
+    
     /**
      * displays track listing for given instance_id
      *
@@ -1488,7 +1475,7 @@ class ApiController extends Zend_Controller_Action
 
         $showInstance = new Application_Model_ShowInstance($instanceId);
         $showInstanceContent = $showInstance->getShowListContent($prefTimezone);
-
+        
         // is this a valid show instance with content?
         if (empty($showInstanceContent)) {
             $this->_helper->json->sendJson(
@@ -1517,5 +1504,5 @@ class ApiController extends Zend_Controller_Action
         $this->_helper->json($result);
 
     }
-
+    
 }

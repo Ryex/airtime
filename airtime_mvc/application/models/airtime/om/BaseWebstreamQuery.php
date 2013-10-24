@@ -19,35 +19,31 @@ use Airtime\MediaItem\WebstreamPeer;
 use Airtime\MediaItem\WebstreamQuery;
 
 /**
- * Base class that represents a query for the 'media_webstream' table.
+ * Base class that represents a query for the 'webstream' table.
  *
  *
  *
+ * @method WebstreamQuery orderByMime($order = Criteria::ASC) Order by the mime column
  * @method WebstreamQuery orderByUrl($order = Criteria::ASC) Order by the url column
  * @method WebstreamQuery orderById($order = Criteria::ASC) Order by the id column
  * @method WebstreamQuery orderByName($order = Criteria::ASC) Order by the name column
- * @method WebstreamQuery orderByCreator($order = Criteria::ASC) Order by the creator column
- * @method WebstreamQuery orderBySource($order = Criteria::ASC) Order by the source column
  * @method WebstreamQuery orderByOwnerId($order = Criteria::ASC) Order by the owner_id column
  * @method WebstreamQuery orderByDescription($order = Criteria::ASC) Order by the description column
  * @method WebstreamQuery orderByLastPlayedTime($order = Criteria::ASC) Order by the last_played column
  * @method WebstreamQuery orderByPlayCount($order = Criteria::ASC) Order by the play_count column
  * @method WebstreamQuery orderByLength($order = Criteria::ASC) Order by the length column
- * @method WebstreamQuery orderByMime($order = Criteria::ASC) Order by the mime column
  * @method WebstreamQuery orderByCreatedAt($order = Criteria::ASC) Order by the created_at column
  * @method WebstreamQuery orderByUpdatedAt($order = Criteria::ASC) Order by the updated_at column
  *
+ * @method WebstreamQuery groupByMime() Group by the mime column
  * @method WebstreamQuery groupByUrl() Group by the url column
  * @method WebstreamQuery groupById() Group by the id column
  * @method WebstreamQuery groupByName() Group by the name column
- * @method WebstreamQuery groupByCreator() Group by the creator column
- * @method WebstreamQuery groupBySource() Group by the source column
  * @method WebstreamQuery groupByOwnerId() Group by the owner_id column
  * @method WebstreamQuery groupByDescription() Group by the description column
  * @method WebstreamQuery groupByLastPlayedTime() Group by the last_played column
  * @method WebstreamQuery groupByPlayCount() Group by the play_count column
  * @method WebstreamQuery groupByLength() Group by the length column
- * @method WebstreamQuery groupByMime() Group by the mime column
  * @method WebstreamQuery groupByCreatedAt() Group by the created_at column
  * @method WebstreamQuery groupByUpdatedAt() Group by the updated_at column
  *
@@ -66,30 +62,26 @@ use Airtime\MediaItem\WebstreamQuery;
  * @method Webstream findOne(PropelPDO $con = null) Return the first Webstream matching the query
  * @method Webstream findOneOrCreate(PropelPDO $con = null) Return the first Webstream matching the query, or a new Webstream object populated from the query conditions when no match is found
  *
+ * @method Webstream findOneByMime(string $mime) Return the first Webstream filtered by the mime column
  * @method Webstream findOneByUrl(string $url) Return the first Webstream filtered by the url column
  * @method Webstream findOneByName(string $name) Return the first Webstream filtered by the name column
- * @method Webstream findOneByCreator(string $creator) Return the first Webstream filtered by the creator column
- * @method Webstream findOneBySource(string $source) Return the first Webstream filtered by the source column
  * @method Webstream findOneByOwnerId(int $owner_id) Return the first Webstream filtered by the owner_id column
  * @method Webstream findOneByDescription(string $description) Return the first Webstream filtered by the description column
  * @method Webstream findOneByLastPlayedTime(string $last_played) Return the first Webstream filtered by the last_played column
  * @method Webstream findOneByPlayCount(int $play_count) Return the first Webstream filtered by the play_count column
  * @method Webstream findOneByLength(string $length) Return the first Webstream filtered by the length column
- * @method Webstream findOneByMime(string $mime) Return the first Webstream filtered by the mime column
  * @method Webstream findOneByCreatedAt(string $created_at) Return the first Webstream filtered by the created_at column
  * @method Webstream findOneByUpdatedAt(string $updated_at) Return the first Webstream filtered by the updated_at column
  *
+ * @method array findByMime(string $mime) Return Webstream objects filtered by the mime column
  * @method array findByUrl(string $url) Return Webstream objects filtered by the url column
  * @method array findById(int $id) Return Webstream objects filtered by the id column
  * @method array findByName(string $name) Return Webstream objects filtered by the name column
- * @method array findByCreator(string $creator) Return Webstream objects filtered by the creator column
- * @method array findBySource(string $source) Return Webstream objects filtered by the source column
  * @method array findByOwnerId(int $owner_id) Return Webstream objects filtered by the owner_id column
  * @method array findByDescription(string $description) Return Webstream objects filtered by the description column
  * @method array findByLastPlayedTime(string $last_played) Return Webstream objects filtered by the last_played column
  * @method array findByPlayCount(int $play_count) Return Webstream objects filtered by the play_count column
  * @method array findByLength(string $length) Return Webstream objects filtered by the length column
- * @method array findByMime(string $mime) Return Webstream objects filtered by the mime column
  * @method array findByCreatedAt(string $created_at) Return Webstream objects filtered by the created_at column
  * @method array findByUpdatedAt(string $updated_at) Return Webstream objects filtered by the updated_at column
  *
@@ -199,7 +191,7 @@ abstract class BaseWebstreamQuery extends MediaItemQuery
      */
     protected function findPkSimple($key, $con)
     {
-        $sql = 'SELECT "url", "id", "name", "creator", "source", "owner_id", "description", "last_played", "play_count", "length", "mime", "created_at", "updated_at" FROM "media_webstream" WHERE "id" = :p0';
+        $sql = 'SELECT "mime", "url", "id", "name", "owner_id", "description", "last_played", "play_count", "length", "created_at", "updated_at" FROM "webstream" WHERE "id" = :p0';
         try {
             $stmt = $con->prepare($sql);
             $stmt->bindValue(':p0', $key, PDO::PARAM_INT);
@@ -286,6 +278,35 @@ abstract class BaseWebstreamQuery extends MediaItemQuery
     {
 
         return $this->addUsingAlias(WebstreamPeer::ID, $keys, Criteria::IN);
+    }
+
+    /**
+     * Filter the query on the mime column
+     *
+     * Example usage:
+     * <code>
+     * $query->filterByMime('fooValue');   // WHERE mime = 'fooValue'
+     * $query->filterByMime('%fooValue%'); // WHERE mime LIKE '%fooValue%'
+     * </code>
+     *
+     * @param     string $mime The value to use as filter.
+     *              Accepts wildcards (* and % trigger a LIKE)
+     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return WebstreamQuery The current query, for fluid interface
+     */
+    public function filterByMime($mime = null, $comparison = null)
+    {
+        if (null === $comparison) {
+            if (is_array($mime)) {
+                $comparison = Criteria::IN;
+            } elseif (preg_match('/[\%\*]/', $mime)) {
+                $mime = str_replace('*', '%', $mime);
+                $comparison = Criteria::LIKE;
+            }
+        }
+
+        return $this->addUsingAlias(WebstreamPeer::MIME, $mime, $comparison);
     }
 
     /**
@@ -388,64 +409,6 @@ abstract class BaseWebstreamQuery extends MediaItemQuery
         }
 
         return $this->addUsingAlias(WebstreamPeer::NAME, $name, $comparison);
-    }
-
-    /**
-     * Filter the query on the creator column
-     *
-     * Example usage:
-     * <code>
-     * $query->filterByCreator('fooValue');   // WHERE creator = 'fooValue'
-     * $query->filterByCreator('%fooValue%'); // WHERE creator LIKE '%fooValue%'
-     * </code>
-     *
-     * @param     string $creator The value to use as filter.
-     *              Accepts wildcards (* and % trigger a LIKE)
-     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
-     *
-     * @return WebstreamQuery The current query, for fluid interface
-     */
-    public function filterByCreator($creator = null, $comparison = null)
-    {
-        if (null === $comparison) {
-            if (is_array($creator)) {
-                $comparison = Criteria::IN;
-            } elseif (preg_match('/[\%\*]/', $creator)) {
-                $creator = str_replace('*', '%', $creator);
-                $comparison = Criteria::LIKE;
-            }
-        }
-
-        return $this->addUsingAlias(WebstreamPeer::CREATOR, $creator, $comparison);
-    }
-
-    /**
-     * Filter the query on the source column
-     *
-     * Example usage:
-     * <code>
-     * $query->filterBySource('fooValue');   // WHERE source = 'fooValue'
-     * $query->filterBySource('%fooValue%'); // WHERE source LIKE '%fooValue%'
-     * </code>
-     *
-     * @param     string $source The value to use as filter.
-     *              Accepts wildcards (* and % trigger a LIKE)
-     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
-     *
-     * @return WebstreamQuery The current query, for fluid interface
-     */
-    public function filterBySource($source = null, $comparison = null)
-    {
-        if (null === $comparison) {
-            if (is_array($source)) {
-                $comparison = Criteria::IN;
-            } elseif (preg_match('/[\%\*]/', $source)) {
-                $source = str_replace('*', '%', $source);
-                $comparison = Criteria::LIKE;
-            }
-        }
-
-        return $this->addUsingAlias(WebstreamPeer::SOURCE, $source, $comparison);
     }
 
     /**
@@ -633,35 +596,6 @@ abstract class BaseWebstreamQuery extends MediaItemQuery
         }
 
         return $this->addUsingAlias(WebstreamPeer::LENGTH, $length, $comparison);
-    }
-
-    /**
-     * Filter the query on the mime column
-     *
-     * Example usage:
-     * <code>
-     * $query->filterByMime('fooValue');   // WHERE mime = 'fooValue'
-     * $query->filterByMime('%fooValue%'); // WHERE mime LIKE '%fooValue%'
-     * </code>
-     *
-     * @param     string $mime The value to use as filter.
-     *              Accepts wildcards (* and % trigger a LIKE)
-     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
-     *
-     * @return WebstreamQuery The current query, for fluid interface
-     */
-    public function filterByMime($mime = null, $comparison = null)
-    {
-        if (null === $comparison) {
-            if (is_array($mime)) {
-                $comparison = Criteria::IN;
-            } elseif (preg_match('/[\%\*]/', $mime)) {
-                $mime = str_replace('*', '%', $mime);
-                $comparison = Criteria::LIKE;
-            }
-        }
-
-        return $this->addUsingAlias(WebstreamPeer::MIME, $mime, $comparison);
     }
 
     /**

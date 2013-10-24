@@ -14,45 +14,37 @@ use \PropelPDO;
 use Airtime\CcSubjs;
 use Airtime\MediaItem;
 use Airtime\MediaItemQuery;
-use Airtime\MediaItem\MediaContent;
+use Airtime\MediaItem\Block;
 use Airtime\MediaItem\Playlist;
 use Airtime\MediaItem\PlaylistPeer;
 use Airtime\MediaItem\PlaylistQuery;
 
 /**
- * Base class that represents a query for the 'media_playlist' table.
+ * Base class that represents a query for the 'playlist' table.
  *
  *
  *
- * @method PlaylistQuery orderByClassKey($order = Criteria::ASC) Order by the class_key column
- * @method PlaylistQuery orderByRules($order = Criteria::ASC) Order by the rules column
  * @method PlaylistQuery orderById($order = Criteria::ASC) Order by the id column
  * @method PlaylistQuery orderByName($order = Criteria::ASC) Order by the name column
- * @method PlaylistQuery orderByCreator($order = Criteria::ASC) Order by the creator column
- * @method PlaylistQuery orderBySource($order = Criteria::ASC) Order by the source column
  * @method PlaylistQuery orderByOwnerId($order = Criteria::ASC) Order by the owner_id column
  * @method PlaylistQuery orderByDescription($order = Criteria::ASC) Order by the description column
  * @method PlaylistQuery orderByLastPlayedTime($order = Criteria::ASC) Order by the last_played column
  * @method PlaylistQuery orderByPlayCount($order = Criteria::ASC) Order by the play_count column
  * @method PlaylistQuery orderByLength($order = Criteria::ASC) Order by the length column
- * @method PlaylistQuery orderByMime($order = Criteria::ASC) Order by the mime column
  * @method PlaylistQuery orderByCreatedAt($order = Criteria::ASC) Order by the created_at column
  * @method PlaylistQuery orderByUpdatedAt($order = Criteria::ASC) Order by the updated_at column
+ * @method PlaylistQuery orderByDescendantClass($order = Criteria::ASC) Order by the descendant_class column
  *
- * @method PlaylistQuery groupByClassKey() Group by the class_key column
- * @method PlaylistQuery groupByRules() Group by the rules column
  * @method PlaylistQuery groupById() Group by the id column
  * @method PlaylistQuery groupByName() Group by the name column
- * @method PlaylistQuery groupByCreator() Group by the creator column
- * @method PlaylistQuery groupBySource() Group by the source column
  * @method PlaylistQuery groupByOwnerId() Group by the owner_id column
  * @method PlaylistQuery groupByDescription() Group by the description column
  * @method PlaylistQuery groupByLastPlayedTime() Group by the last_played column
  * @method PlaylistQuery groupByPlayCount() Group by the play_count column
  * @method PlaylistQuery groupByLength() Group by the length column
- * @method PlaylistQuery groupByMime() Group by the mime column
  * @method PlaylistQuery groupByCreatedAt() Group by the created_at column
  * @method PlaylistQuery groupByUpdatedAt() Group by the updated_at column
+ * @method PlaylistQuery groupByDescendantClass() Group by the descendant_class column
  *
  * @method PlaylistQuery leftJoin($relation) Adds a LEFT JOIN clause to the query
  * @method PlaylistQuery rightJoin($relation) Adds a RIGHT JOIN clause to the query
@@ -66,41 +58,33 @@ use Airtime\MediaItem\PlaylistQuery;
  * @method PlaylistQuery rightJoinCcSubjs($relationAlias = null) Adds a RIGHT JOIN clause to the query using the CcSubjs relation
  * @method PlaylistQuery innerJoinCcSubjs($relationAlias = null) Adds a INNER JOIN clause to the query using the CcSubjs relation
  *
- * @method PlaylistQuery leftJoinMediaContent($relationAlias = null) Adds a LEFT JOIN clause to the query using the MediaContent relation
- * @method PlaylistQuery rightJoinMediaContent($relationAlias = null) Adds a RIGHT JOIN clause to the query using the MediaContent relation
- * @method PlaylistQuery innerJoinMediaContent($relationAlias = null) Adds a INNER JOIN clause to the query using the MediaContent relation
+ * @method PlaylistQuery leftJoinBlock($relationAlias = null) Adds a LEFT JOIN clause to the query using the Block relation
+ * @method PlaylistQuery rightJoinBlock($relationAlias = null) Adds a RIGHT JOIN clause to the query using the Block relation
+ * @method PlaylistQuery innerJoinBlock($relationAlias = null) Adds a INNER JOIN clause to the query using the Block relation
  *
  * @method Playlist findOne(PropelPDO $con = null) Return the first Playlist matching the query
  * @method Playlist findOneOrCreate(PropelPDO $con = null) Return the first Playlist matching the query, or a new Playlist object populated from the query conditions when no match is found
  *
- * @method Playlist findOneByClassKey(int $class_key) Return the first Playlist filtered by the class_key column
- * @method Playlist findOneByRules(string $rules) Return the first Playlist filtered by the rules column
  * @method Playlist findOneByName(string $name) Return the first Playlist filtered by the name column
- * @method Playlist findOneByCreator(string $creator) Return the first Playlist filtered by the creator column
- * @method Playlist findOneBySource(string $source) Return the first Playlist filtered by the source column
  * @method Playlist findOneByOwnerId(int $owner_id) Return the first Playlist filtered by the owner_id column
  * @method Playlist findOneByDescription(string $description) Return the first Playlist filtered by the description column
  * @method Playlist findOneByLastPlayedTime(string $last_played) Return the first Playlist filtered by the last_played column
  * @method Playlist findOneByPlayCount(int $play_count) Return the first Playlist filtered by the play_count column
  * @method Playlist findOneByLength(string $length) Return the first Playlist filtered by the length column
- * @method Playlist findOneByMime(string $mime) Return the first Playlist filtered by the mime column
  * @method Playlist findOneByCreatedAt(string $created_at) Return the first Playlist filtered by the created_at column
  * @method Playlist findOneByUpdatedAt(string $updated_at) Return the first Playlist filtered by the updated_at column
+ * @method Playlist findOneByDescendantClass(string $descendant_class) Return the first Playlist filtered by the descendant_class column
  *
- * @method array findByClassKey(int $class_key) Return Playlist objects filtered by the class_key column
- * @method array findByRules(string $rules) Return Playlist objects filtered by the rules column
  * @method array findById(int $id) Return Playlist objects filtered by the id column
  * @method array findByName(string $name) Return Playlist objects filtered by the name column
- * @method array findByCreator(string $creator) Return Playlist objects filtered by the creator column
- * @method array findBySource(string $source) Return Playlist objects filtered by the source column
  * @method array findByOwnerId(int $owner_id) Return Playlist objects filtered by the owner_id column
  * @method array findByDescription(string $description) Return Playlist objects filtered by the description column
  * @method array findByLastPlayedTime(string $last_played) Return Playlist objects filtered by the last_played column
  * @method array findByPlayCount(int $play_count) Return Playlist objects filtered by the play_count column
  * @method array findByLength(string $length) Return Playlist objects filtered by the length column
- * @method array findByMime(string $mime) Return Playlist objects filtered by the mime column
  * @method array findByCreatedAt(string $created_at) Return Playlist objects filtered by the created_at column
  * @method array findByUpdatedAt(string $updated_at) Return Playlist objects filtered by the updated_at column
+ * @method array findByDescendantClass(string $descendant_class) Return Playlist objects filtered by the descendant_class column
  *
  * @package    propel.generator.airtime.om
  */
@@ -208,7 +192,7 @@ abstract class BasePlaylistQuery extends MediaItemQuery
      */
     protected function findPkSimple($key, $con)
     {
-        $sql = 'SELECT "class_key", "rules", "id", "name", "creator", "source", "owner_id", "description", "last_played", "play_count", "length", "mime", "created_at", "updated_at" FROM "media_playlist" WHERE "id" = :p0';
+        $sql = 'SELECT "id", "name", "owner_id", "description", "last_played", "play_count", "length", "created_at", "updated_at", "descendant_class" FROM "playlist" WHERE "id" = :p0';
         try {
             $stmt = $con->prepare($sql);
             $stmt->bindValue(':p0', $key, PDO::PARAM_INT);
@@ -219,8 +203,7 @@ abstract class BasePlaylistQuery extends MediaItemQuery
         }
         $obj = null;
         if ($row = $stmt->fetch(PDO::FETCH_NUM)) {
-            $cls = PlaylistPeer::getOMClass($row, 0);
-            $obj = new $cls();
+            $obj = new Playlist();
             $obj->hydrate($row);
             PlaylistPeer::addInstanceToPool($obj, (string) $key);
         }
@@ -299,77 +282,6 @@ abstract class BasePlaylistQuery extends MediaItemQuery
     }
 
     /**
-     * Filter the query on the class_key column
-     *
-     * Example usage:
-     * <code>
-     * $query->filterByClassKey(1234); // WHERE class_key = 1234
-     * $query->filterByClassKey(array(12, 34)); // WHERE class_key IN (12, 34)
-     * $query->filterByClassKey(array('min' => 12)); // WHERE class_key >= 12
-     * $query->filterByClassKey(array('max' => 12)); // WHERE class_key <= 12
-     * </code>
-     *
-     * @param     mixed $classKey The value to use as filter.
-     *              Use scalar values for equality.
-     *              Use array values for in_array() equivalent.
-     *              Use associative array('min' => $minValue, 'max' => $maxValue) for intervals.
-     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
-     *
-     * @return PlaylistQuery The current query, for fluid interface
-     */
-    public function filterByClassKey($classKey = null, $comparison = null)
-    {
-        if (is_array($classKey)) {
-            $useMinMax = false;
-            if (isset($classKey['min'])) {
-                $this->addUsingAlias(PlaylistPeer::CLASS_KEY, $classKey['min'], Criteria::GREATER_EQUAL);
-                $useMinMax = true;
-            }
-            if (isset($classKey['max'])) {
-                $this->addUsingAlias(PlaylistPeer::CLASS_KEY, $classKey['max'], Criteria::LESS_EQUAL);
-                $useMinMax = true;
-            }
-            if ($useMinMax) {
-                return $this;
-            }
-            if (null === $comparison) {
-                $comparison = Criteria::IN;
-            }
-        }
-
-        return $this->addUsingAlias(PlaylistPeer::CLASS_KEY, $classKey, $comparison);
-    }
-
-    /**
-     * Filter the query on the rules column
-     *
-     * Example usage:
-     * <code>
-     * $query->filterByRules('fooValue');   // WHERE rules = 'fooValue'
-     * $query->filterByRules('%fooValue%'); // WHERE rules LIKE '%fooValue%'
-     * </code>
-     *
-     * @param     string $rules The value to use as filter.
-     *              Accepts wildcards (* and % trigger a LIKE)
-     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
-     *
-     * @return PlaylistQuery The current query, for fluid interface
-     */
-    public function filterByRules($rules = null, $comparison = null)
-    {
-        if (null === $comparison) {
-            if (is_array($rules)) {
-                $comparison = Criteria::IN;
-            } elseif (preg_match('/[\%\*]/', $rules)) {
-                $rules = str_replace('*', '%', $rules);
-                $comparison = Criteria::LIKE;
-            }
-        }
-
-        return $this->addUsingAlias(PlaylistPeer::RULES, $rules, $comparison);
-    }
-
-    /**
      * Filter the query on the id column
      *
      * Example usage:
@@ -440,64 +352,6 @@ abstract class BasePlaylistQuery extends MediaItemQuery
         }
 
         return $this->addUsingAlias(PlaylistPeer::NAME, $name, $comparison);
-    }
-
-    /**
-     * Filter the query on the creator column
-     *
-     * Example usage:
-     * <code>
-     * $query->filterByCreator('fooValue');   // WHERE creator = 'fooValue'
-     * $query->filterByCreator('%fooValue%'); // WHERE creator LIKE '%fooValue%'
-     * </code>
-     *
-     * @param     string $creator The value to use as filter.
-     *              Accepts wildcards (* and % trigger a LIKE)
-     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
-     *
-     * @return PlaylistQuery The current query, for fluid interface
-     */
-    public function filterByCreator($creator = null, $comparison = null)
-    {
-        if (null === $comparison) {
-            if (is_array($creator)) {
-                $comparison = Criteria::IN;
-            } elseif (preg_match('/[\%\*]/', $creator)) {
-                $creator = str_replace('*', '%', $creator);
-                $comparison = Criteria::LIKE;
-            }
-        }
-
-        return $this->addUsingAlias(PlaylistPeer::CREATOR, $creator, $comparison);
-    }
-
-    /**
-     * Filter the query on the source column
-     *
-     * Example usage:
-     * <code>
-     * $query->filterBySource('fooValue');   // WHERE source = 'fooValue'
-     * $query->filterBySource('%fooValue%'); // WHERE source LIKE '%fooValue%'
-     * </code>
-     *
-     * @param     string $source The value to use as filter.
-     *              Accepts wildcards (* and % trigger a LIKE)
-     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
-     *
-     * @return PlaylistQuery The current query, for fluid interface
-     */
-    public function filterBySource($source = null, $comparison = null)
-    {
-        if (null === $comparison) {
-            if (is_array($source)) {
-                $comparison = Criteria::IN;
-            } elseif (preg_match('/[\%\*]/', $source)) {
-                $source = str_replace('*', '%', $source);
-                $comparison = Criteria::LIKE;
-            }
-        }
-
-        return $this->addUsingAlias(PlaylistPeer::SOURCE, $source, $comparison);
     }
 
     /**
@@ -688,35 +542,6 @@ abstract class BasePlaylistQuery extends MediaItemQuery
     }
 
     /**
-     * Filter the query on the mime column
-     *
-     * Example usage:
-     * <code>
-     * $query->filterByMime('fooValue');   // WHERE mime = 'fooValue'
-     * $query->filterByMime('%fooValue%'); // WHERE mime LIKE '%fooValue%'
-     * </code>
-     *
-     * @param     string $mime The value to use as filter.
-     *              Accepts wildcards (* and % trigger a LIKE)
-     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
-     *
-     * @return PlaylistQuery The current query, for fluid interface
-     */
-    public function filterByMime($mime = null, $comparison = null)
-    {
-        if (null === $comparison) {
-            if (is_array($mime)) {
-                $comparison = Criteria::IN;
-            } elseif (preg_match('/[\%\*]/', $mime)) {
-                $mime = str_replace('*', '%', $mime);
-                $comparison = Criteria::LIKE;
-            }
-        }
-
-        return $this->addUsingAlias(PlaylistPeer::MIME, $mime, $comparison);
-    }
-
-    /**
      * Filter the query on the created_at column
      *
      * Example usage:
@@ -800,6 +625,35 @@ abstract class BasePlaylistQuery extends MediaItemQuery
         }
 
         return $this->addUsingAlias(PlaylistPeer::UPDATED_AT, $updatedAt, $comparison);
+    }
+
+    /**
+     * Filter the query on the descendant_class column
+     *
+     * Example usage:
+     * <code>
+     * $query->filterByDescendantClass('fooValue');   // WHERE descendant_class = 'fooValue'
+     * $query->filterByDescendantClass('%fooValue%'); // WHERE descendant_class LIKE '%fooValue%'
+     * </code>
+     *
+     * @param     string $descendantClass The value to use as filter.
+     *              Accepts wildcards (* and % trigger a LIKE)
+     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return PlaylistQuery The current query, for fluid interface
+     */
+    public function filterByDescendantClass($descendantClass = null, $comparison = null)
+    {
+        if (null === $comparison) {
+            if (is_array($descendantClass)) {
+                $comparison = Criteria::IN;
+            } elseif (preg_match('/[\%\*]/', $descendantClass)) {
+                $descendantClass = str_replace('*', '%', $descendantClass);
+                $comparison = Criteria::LIKE;
+            }
+        }
+
+        return $this->addUsingAlias(PlaylistPeer::DESCENDANT_CLASS, $descendantClass, $comparison);
     }
 
     /**
@@ -955,41 +809,41 @@ abstract class BasePlaylistQuery extends MediaItemQuery
     }
 
     /**
-     * Filter the query by a related MediaContent object
+     * Filter the query by a related Block object
      *
-     * @param   MediaContent|PropelObjectCollection $mediaContent  the related object to use as filter
+     * @param   Block|PropelObjectCollection $block  the related object to use as filter
      * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
      *
      * @return                 PlaylistQuery The current query, for fluid interface
      * @throws PropelException - if the provided filter is invalid.
      */
-    public function filterByMediaContent($mediaContent, $comparison = null)
+    public function filterByBlock($block, $comparison = null)
     {
-        if ($mediaContent instanceof MediaContent) {
+        if ($block instanceof Block) {
             return $this
-                ->addUsingAlias(PlaylistPeer::ID, $mediaContent->getPlaylistId(), $comparison);
-        } elseif ($mediaContent instanceof PropelObjectCollection) {
+                ->addUsingAlias(PlaylistPeer::ID, $block->getId(), $comparison);
+        } elseif ($block instanceof PropelObjectCollection) {
             return $this
-                ->useMediaContentQuery()
-                ->filterByPrimaryKeys($mediaContent->getPrimaryKeys())
+                ->useBlockQuery()
+                ->filterByPrimaryKeys($block->getPrimaryKeys())
                 ->endUse();
         } else {
-            throw new PropelException('filterByMediaContent() only accepts arguments of type MediaContent or PropelCollection');
+            throw new PropelException('filterByBlock() only accepts arguments of type Block or PropelCollection');
         }
     }
 
     /**
-     * Adds a JOIN clause to the query using the MediaContent relation
+     * Adds a JOIN clause to the query using the Block relation
      *
      * @param     string $relationAlias optional alias for the relation
      * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
      *
      * @return PlaylistQuery The current query, for fluid interface
      */
-    public function joinMediaContent($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
+    public function joinBlock($relationAlias = null, $joinType = Criteria::INNER_JOIN)
     {
         $tableMap = $this->getTableMap();
-        $relationMap = $tableMap->getRelation('MediaContent');
+        $relationMap = $tableMap->getRelation('Block');
 
         // create a ModelJoin object for this join
         $join = new ModelJoin();
@@ -1004,14 +858,14 @@ abstract class BasePlaylistQuery extends MediaItemQuery
             $this->addAlias($relationAlias, $relationMap->getRightTable()->getName());
             $this->addJoinObject($join, $relationAlias);
         } else {
-            $this->addJoinObject($join, 'MediaContent');
+            $this->addJoinObject($join, 'Block');
         }
 
         return $this;
     }
 
     /**
-     * Use the MediaContent relation MediaContent object
+     * Use the Block relation Block object
      *
      * @see       useQuery()
      *
@@ -1019,13 +873,13 @@ abstract class BasePlaylistQuery extends MediaItemQuery
      *                                   to be used as main alias in the secondary query
      * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
      *
-     * @return   \Airtime\MediaItem\MediaContentQuery A secondary query class using the current class as primary query
+     * @return   \Airtime\MediaItem\BlockQuery A secondary query class using the current class as primary query
      */
-    public function useMediaContentQuery($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
+    public function useBlockQuery($relationAlias = null, $joinType = Criteria::INNER_JOIN)
     {
         return $this
-            ->joinMediaContent($relationAlias, $joinType)
-            ->useQuery($relationAlias ? $relationAlias : 'MediaContent', '\Airtime\MediaItem\MediaContentQuery');
+            ->joinBlock($relationAlias, $joinType)
+            ->useQuery($relationAlias ? $relationAlias : 'Block', '\Airtime\MediaItem\BlockQuery');
     }
 
     /**

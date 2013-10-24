@@ -7,7 +7,7 @@ use \TableMap;
 
 
 /**
- * This class defines the structure of the 'media_webstream' table.
+ * This class defines the structure of the 'webstream' table.
  *
  *
  *
@@ -36,23 +36,21 @@ class WebstreamTableMap extends TableMap
     public function initialize()
     {
         // attributes
-        $this->setName('media_webstream');
+        $this->setName('webstream');
         $this->setPhpName('Webstream');
         $this->setClassname('Airtime\\MediaItem\\Webstream');
         $this->setPackage('airtime');
         $this->setUseIdGenerator(false);
         // columns
+        $this->addColumn('mime', 'Mime', 'VARCHAR', false, null, null);
         $this->addColumn('url', 'Url', 'VARCHAR', true, 512, null);
         $this->addForeignPrimaryKey('id', 'Id', 'INTEGER' , 'media_item', 'id', true, null, null);
-        $this->addColumn('name', 'Name', 'VARCHAR', false, 512, null);
-        $this->addColumn('creator', 'Creator', 'VARCHAR', false, 512, null);
-        $this->addColumn('source', 'Source', 'VARCHAR', false, 512, null);
+        $this->addColumn('name', 'Name', 'VARCHAR', true, 128, null);
         $this->addForeignKey('owner_id', 'OwnerId', 'INTEGER', 'cc_subjs', 'id', false, null, null);
         $this->addColumn('description', 'Description', 'VARCHAR', false, 512, null);
         $this->addColumn('last_played', 'LastPlayedTime', 'TIMESTAMP', false, 6, null);
         $this->addColumn('play_count', 'PlayCount', 'INTEGER', false, null, 0);
         $this->addColumn('length', 'Length', 'VARCHAR', false, null, '00:00:00');
-        $this->addColumn('mime', 'Mime', 'VARCHAR', false, null, null);
         $this->addColumn('created_at', 'CreatedAt', 'TIMESTAMP', false, null, null);
         $this->addColumn('updated_at', 'UpdatedAt', 'TIMESTAMP', false, null, null);
         // validators

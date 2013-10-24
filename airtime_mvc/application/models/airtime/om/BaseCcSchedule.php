@@ -10,16 +10,22 @@ use \Exception;
 use \PDO;
 use \Persistent;
 use \Propel;
+use \PropelCollection;
 use \PropelDateTime;
 use \PropelException;
+use \PropelObjectCollection;
 use \PropelPDO;
+use Airtime\CcFiles;
+use Airtime\CcFilesQuery;
 use Airtime\CcSchedule;
 use Airtime\CcSchedulePeer;
 use Airtime\CcScheduleQuery;
 use Airtime\CcShowInstances;
 use Airtime\CcShowInstancesQuery;
-use Airtime\MediaItem;
-use Airtime\MediaItemQuery;
+use Airtime\CcWebstream;
+use Airtime\CcWebstreamMetadata;
+use Airtime\CcWebstreamMetadataQuery;
+use Airtime\CcWebstreamQuery;
 
 /**
  * Base class that represents a row from the 'cc_schedule' table.
@@ -68,10 +74,16 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     protected $ends;
 
     /**
-     * The value for the media_id field.
+     * The value for the file_id field.
      * @var        int
      */
-    protected $media_id;
+    protected $file_id;
+
+    /**
+     * The value for the stream_id field.
+     * @var        int
+     */
+    protected $stream_id;
 
     /**
      * The value for the clip_length field.
@@ -82,14 +94,14 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
 
     /**
      * The value for the fade_in field.
-     * Note: this column has a database default value of: '0'
+     * Note: this column has a database default value of: '00:00:00'
      * @var        string
      */
     protected $fade_in;
 
     /**
      * The value for the fade_out field.
-     * Note: this column has a database default value of: '0'
+     * Note: this column has a database default value of: '00:00:00'
      * @var        string
      */
     protected $fade_out;
@@ -146,9 +158,20 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     protected $aCcShowInstances;
 
     /**
-     * @var        MediaItem
+     * @var        CcFiles
      */
-    protected $aMediaItem;
+    protected $aCcFiles;
+
+    /**
+     * @var        CcWebstream
+     */
+    protected $aCcWebstream;
+
+    /**
+     * @var        PropelObjectCollection|CcWebstreamMetadata[] Collection to store aggregation of CcWebstreamMetadata objects.
+     */
+    protected $collCcWebstreamMetadatas;
+    protected $collCcWebstreamMetadatasPartial;
 
     /**
      * Flag to prevent endless save loop, if this object is referenced
@@ -171,6 +194,12 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     protected $alreadyInClearAllReferencesDeep = false;
 
     /**
+     * An array of objects scheduled for deletion.
+     * @var		PropelObjectCollection
+     */
+    protected $ccWebstreamMetadatasScheduledForDeletion = null;
+
+    /**
      * Applies default values to this object.
      * This method should be called from the object's constructor (or
      * equivalent initialization method).
@@ -179,8 +208,8 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     public function applyDefaultValues()
     {
         $this->clip_length = '00:00:00';
-        $this->fade_in = '0';
-        $this->fade_out = '0';
+        $this->fade_in = '00:00:00';
+        $this->fade_out = '00:00:00';
         $this->media_item_played = false;
         $this->playout_status = 1;
         $this->broadcasted = 0;
@@ -214,7 +243,7 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
      *
      * @param string $format The date/time format string (either date()-style or strftime()-style).
      *				 If format is null, then the raw DateTime object will be returned.
-     * @return mixed Formatted date/time value as string or \DateTime object (if format is null), null if column is null
+     * @return mixed Formatted date/time value as string or DateTime object (if format is null), null if column is null
      * @throws PropelException - if unable to parse/validate the date/time value.
      */
     public function getDbStarts($format = 'Y-m-d H:i:s')
@@ -225,13 +254,13 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
 
 
         try {
-            $dt = new \DateTime($this->starts);
+            $dt = new DateTime($this->starts);
         } catch (Exception $x) {
-            throw new PropelException("Internally stored date/time/timestamp value could not be converted to \DateTime: " . var_export($this->starts, true), $x);
+            throw new PropelException("Internally stored date/time/timestamp value could not be converted to DateTime: " . var_export($this->starts, true), $x);
         }
 
         if ($format === null) {
-            // Because propel.useDateTimeClass is true, we return a \DateTime object.
+            // Because propel.useDateTimeClass is true, we return a DateTime object.
             return $dt;
         }
 
@@ -249,7 +278,7 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
      *
      * @param string $format The date/time format string (either date()-style or strftime()-style).
      *				 If format is null, then the raw DateTime object will be returned.
-     * @return mixed Formatted date/time value as string or \DateTime object (if format is null), null if column is null
+     * @return mixed Formatted date/time value as string or DateTime object (if format is null), null if column is null
      * @throws PropelException - if unable to parse/validate the date/time value.
      */
     public function getDbEnds($format = 'Y-m-d H:i:s')
@@ -260,13 +289,13 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
 
 
         try {
-            $dt = new \DateTime($this->ends);
+            $dt = new DateTime($this->ends);
         } catch (Exception $x) {
-            throw new PropelException("Internally stored date/time/timestamp value could not be converted to \DateTime: " . var_export($this->ends, true), $x);
+            throw new PropelException("Internally stored date/time/timestamp value could not be converted to DateTime: " . var_export($this->ends, true), $x);
         }
 
         if ($format === null) {
-            // Because propel.useDateTimeClass is true, we return a \DateTime object.
+            // Because propel.useDateTimeClass is true, we return a DateTime object.
             return $dt;
         }
 
@@ -279,14 +308,25 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     }
 
     /**
-     * Get the [media_id] column value.
+     * Get the [file_id] column value.
      *
      * @return int
      */
-    public function getDbMediaId()
+    public function getDbFileId()
     {
 
-        return $this->media_id;
+        return $this->file_id;
+    }
+
+    /**
+     * Get the [stream_id] column value.
+     *
+     * @return int
+     */
+    public function getDbStreamId()
+    {
+
+        return $this->stream_id;
     }
 
     /**
@@ -301,25 +341,73 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     }
 
     /**
-     * Get the [fade_in] column value.
+     * Get the [optionally formatted] temporal [fade_in] column value.
      *
-     * @return string
+     *
+     * @param string $format The date/time format string (either date()-style or strftime()-style).
+     *				 If format is null, then the raw DateTime object will be returned.
+     * @return mixed Formatted date/time value as string or DateTime object (if format is null), null if column is null
+     * @throws PropelException - if unable to parse/validate the date/time value.
      */
-    public function getDbFadeIn()
+    public function getDbFadeIn($format = '%X')
     {
+        if ($this->fade_in === null) {
+            return null;
+        }
 
-        return $this->fade_in;
+
+        try {
+            $dt = new DateTime($this->fade_in);
+        } catch (Exception $x) {
+            throw new PropelException("Internally stored date/time/timestamp value could not be converted to DateTime: " . var_export($this->fade_in, true), $x);
+        }
+
+        if ($format === null) {
+            // Because propel.useDateTimeClass is true, we return a DateTime object.
+            return $dt;
+        }
+
+        if (strpos($format, '%') !== false) {
+            return strftime($format, $dt->format('U'));
+        }
+
+        return $dt->format($format);
+
     }
 
     /**
-     * Get the [fade_out] column value.
+     * Get the [optionally formatted] temporal [fade_out] column value.
      *
-     * @return string
+     *
+     * @param string $format The date/time format string (either date()-style or strftime()-style).
+     *				 If format is null, then the raw DateTime object will be returned.
+     * @return mixed Formatted date/time value as string or DateTime object (if format is null), null if column is null
+     * @throws PropelException - if unable to parse/validate the date/time value.
      */
-    public function getDbFadeOut()
+    public function getDbFadeOut($format = '%X')
     {
+        if ($this->fade_out === null) {
+            return null;
+        }
 
-        return $this->fade_out;
+
+        try {
+            $dt = new DateTime($this->fade_out);
+        } catch (Exception $x) {
+            throw new PropelException("Internally stored date/time/timestamp value could not be converted to DateTime: " . var_export($this->fade_out, true), $x);
+        }
+
+        if ($format === null) {
+            // Because propel.useDateTimeClass is true, we return a DateTime object.
+            return $dt;
+        }
+
+        if (strpos($format, '%') !== false) {
+            return strftime($format, $dt->format('U'));
+        }
+
+        return $dt->format($format);
+
     }
 
     /**
@@ -429,9 +517,9 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
      */
     public function setDbStarts($v)
     {
-        $dt = PropelDateTime::newInstance($v, null, '\DateTime');
+        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
         if ($this->starts !== null || $dt !== null) {
-            $currentDateAsString = ($this->starts !== null && $tmpDt = new \DateTime($this->starts)) ? $tmpDt->format('Y-m-d H:i:s') : null;
+            $currentDateAsString = ($this->starts !== null && $tmpDt = new DateTime($this->starts)) ? $tmpDt->format('Y-m-d H:i:s') : null;
             $newDateAsString = $dt ? $dt->format('Y-m-d H:i:s') : null;
             if ($currentDateAsString !== $newDateAsString) {
                 $this->starts = $newDateAsString;
@@ -452,9 +540,9 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
      */
     public function setDbEnds($v)
     {
-        $dt = PropelDateTime::newInstance($v, null, '\DateTime');
+        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
         if ($this->ends !== null || $dt !== null) {
-            $currentDateAsString = ($this->ends !== null && $tmpDt = new \DateTime($this->ends)) ? $tmpDt->format('Y-m-d H:i:s') : null;
+            $currentDateAsString = ($this->ends !== null && $tmpDt = new DateTime($this->ends)) ? $tmpDt->format('Y-m-d H:i:s') : null;
             $newDateAsString = $dt ? $dt->format('Y-m-d H:i:s') : null;
             if ($currentDateAsString !== $newDateAsString) {
                 $this->ends = $newDateAsString;
@@ -467,29 +555,54 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     } // setDbEnds()
 
     /**
-     * Set the value of [media_id] column.
+     * Set the value of [file_id] column.
      *
      * @param  int $v new value
      * @return CcSchedule The current object (for fluent API support)
      */
-    public function setDbMediaId($v)
+    public function setDbFileId($v)
     {
         if ($v !== null && is_numeric($v)) {
             $v = (int) $v;
         }
 
-        if ($this->media_id !== $v) {
-            $this->media_id = $v;
-            $this->modifiedColumns[] = CcSchedulePeer::MEDIA_ID;
+        if ($this->file_id !== $v) {
+            $this->file_id = $v;
+            $this->modifiedColumns[] = CcSchedulePeer::FILE_ID;
         }
 
-        if ($this->aMediaItem !== null && $this->aMediaItem->getId() !== $v) {
-            $this->aMediaItem = null;
+        if ($this->aCcFiles !== null && $this->aCcFiles->getDbId() !== $v) {
+            $this->aCcFiles = null;
         }
 
 
         return $this;
-    } // setDbMediaId()
+    } // setDbFileId()
+
+    /**
+     * Set the value of [stream_id] column.
+     *
+     * @param  int $v new value
+     * @return CcSchedule The current object (for fluent API support)
+     */
+    public function setDbStreamId($v)
+    {
+        if ($v !== null && is_numeric($v)) {
+            $v = (int) $v;
+        }
+
+        if ($this->stream_id !== $v) {
+            $this->stream_id = $v;
+            $this->modifiedColumns[] = CcSchedulePeer::STREAM_ID;
+        }
+
+        if ($this->aCcWebstream !== null && $this->aCcWebstream->getDbId() !== $v) {
+            $this->aCcWebstream = null;
+        }
+
+
+        return $this;
+    } // setDbStreamId()
 
     /**
      * Set the value of [clip_length] column.
@@ -513,42 +626,50 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     } // setDbClipLength()
 
     /**
-     * Set the value of [fade_in] column.
+     * Sets the value of [fade_in] column to a normalized version of the date/time value specified.
      *
-     * @param  string $v new value
+     * @param mixed $v string, integer (timestamp), or DateTime value.
+     *               Empty strings are treated as null.
      * @return CcSchedule The current object (for fluent API support)
      */
     public function setDbFadeIn($v)
     {
-        if ($v !== null && is_numeric($v)) {
-            $v = (string) $v;
-        }
-
-        if ($this->fade_in !== $v) {
-            $this->fade_in = $v;
-            $this->modifiedColumns[] = CcSchedulePeer::FADE_IN;
-        }
+        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
+        if ($this->fade_in !== null || $dt !== null) {
+            $currentDateAsString = ($this->fade_in !== null && $tmpDt = new DateTime($this->fade_in)) ? $tmpDt->format('H:i:s') : null;
+            $newDateAsString = $dt ? $dt->format('H:i:s') : null;
+            if ( ($currentDateAsString !== $newDateAsString) // normalized values don't match
+                || ($dt->format('H:i:s') === '00:00:00') // or the entered value matches the default
+                 ) {
+                $this->fade_in = $newDateAsString;
+                $this->modifiedColumns[] = CcSchedulePeer::FADE_IN;
+            }
+        } // if either are not null
 
 
         return $this;
     } // setDbFadeIn()
 
     /**
-     * Set the value of [fade_out] column.
+     * Sets the value of [fade_out] column to a normalized version of the date/time value specified.
      *
-     * @param  string $v new value
+     * @param mixed $v string, integer (timestamp), or DateTime value.
+     *               Empty strings are treated as null.
      * @return CcSchedule The current object (for fluent API support)
      */
     public function setDbFadeOut($v)
     {
-        if ($v !== null && is_numeric($v)) {
-            $v = (string) $v;
-        }
-
-        if ($this->fade_out !== $v) {
-            $this->fade_out = $v;
-            $this->modifiedColumns[] = CcSchedulePeer::FADE_OUT;
-        }
+        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
+        if ($this->fade_out !== null || $dt !== null) {
+            $currentDateAsString = ($this->fade_out !== null && $tmpDt = new DateTime($this->fade_out)) ? $tmpDt->format('H:i:s') : null;
+            $newDateAsString = $dt ? $dt->format('H:i:s') : null;
+            if ( ($currentDateAsString !== $newDateAsString) // normalized values don't match
+                || ($dt->format('H:i:s') === '00:00:00') // or the entered value matches the default
+                 ) {
+                $this->fade_out = $newDateAsString;
+                $this->modifiedColumns[] = CcSchedulePeer::FADE_OUT;
+            }
+        } // if either are not null
 
 
         return $this;
@@ -727,11 +848,11 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
                 return false;
             }
 
-            if ($this->fade_in !== '0') {
+            if ($this->fade_in !== '00:00:00') {
                 return false;
             }
 
-            if ($this->fade_out !== '0') {
+            if ($this->fade_out !== '00:00:00') {
                 return false;
             }
 
@@ -776,17 +897,18 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
             $this->id = ($row[$startcol + 0] !== null) ? (int) $row[$startcol + 0] : null;
             $this->starts = ($row[$startcol + 1] !== null) ? (string) $row[$startcol + 1] : null;
             $this->ends = ($row[$startcol + 2] !== null) ? (string) $row[$startcol + 2] : null;
-            $this->media_id = ($row[$startcol + 3] !== null) ? (int) $row[$startcol + 3] : null;
-            $this->clip_length = ($row[$startcol + 4] !== null) ? (string) $row[$startcol + 4] : null;
-            $this->fade_in = ($row[$startcol + 5] !== null) ? (string) $row[$startcol + 5] : null;
-            $this->fade_out = ($row[$startcol + 6] !== null) ? (string) $row[$startcol + 6] : null;
-            $this->cue_in = ($row[$startcol + 7] !== null) ? (string) $row[$startcol + 7] : null;
-            $this->cue_out = ($row[$startcol + 8] !== null) ? (string) $row[$startcol + 8] : null;
-            $this->media_item_played = ($row[$startcol + 9] !== null) ? (boolean) $row[$startcol + 9] : null;
-            $this->instance_id = ($row[$startcol + 10] !== null) ? (int) $row[$startcol + 10] : null;
-            $this->playout_status = ($row[$startcol + 11] !== null) ? (int) $row[$startcol + 11] : null;
-            $this->broadcasted = ($row[$startcol + 12] !== null) ? (int) $row[$startcol + 12] : null;
-            $this->position = ($row[$startcol + 13] !== null) ? (int) $row[$startcol + 13] : null;
+            $this->file_id = ($row[$startcol + 3] !== null) ? (int) $row[$startcol + 3] : null;
+            $this->stream_id = ($row[$startcol + 4] !== null) ? (int) $row[$startcol + 4] : null;
+            $this->clip_length = ($row[$startcol + 5] !== null) ? (string) $row[$startcol + 5] : null;
+            $this->fade_in = ($row[$startcol + 6] !== null) ? (string) $row[$startcol + 6] : null;
+            $this->fade_out = ($row[$startcol + 7] !== null) ? (string) $row[$startcol + 7] : null;
+            $this->cue_in = ($row[$startcol + 8] !== null) ? (string) $row[$startcol + 8] : null;
+            $this->cue_out = ($row[$startcol + 9] !== null) ? (string) $row[$startcol + 9] : null;
+            $this->media_item_played = ($row[$startcol + 10] !== null) ? (boolean) $row[$startcol + 10] : null;
+            $this->instance_id = ($row[$startcol + 11] !== null) ? (int) $row[$startcol + 11] : null;
+            $this->playout_status = ($row[$startcol + 12] !== null) ? (int) $row[$startcol + 12] : null;
+            $this->broadcasted = ($row[$startcol + 13] !== null) ? (int) $row[$startcol + 13] : null;
+            $this->position = ($row[$startcol + 14] !== null) ? (int) $row[$startcol + 14] : null;
             $this->resetModified();
 
             $this->setNew(false);
@@ -796,7 +918,7 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
             }
             $this->postHydrate($row, $startcol, $rehydrate);
 
-            return $startcol + 14; // 14 = CcSchedulePeer::NUM_HYDRATE_COLUMNS.
+            return $startcol + 15; // 15 = CcSchedulePeer::NUM_HYDRATE_COLUMNS.
 
         } catch (Exception $e) {
             throw new PropelException("Error populating CcSchedule object", $e);
@@ -819,8 +941,11 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     public function ensureConsistency()
     {
 
-        if ($this->aMediaItem !== null && $this->media_id !== $this->aMediaItem->getId()) {
-            $this->aMediaItem = null;
+        if ($this->aCcFiles !== null && $this->file_id !== $this->aCcFiles->getDbId()) {
+            $this->aCcFiles = null;
+        }
+        if ($this->aCcWebstream !== null && $this->stream_id !== $this->aCcWebstream->getDbId()) {
+            $this->aCcWebstream = null;
         }
         if ($this->aCcShowInstances !== null && $this->instance_id !== $this->aCcShowInstances->getDbId()) {
             $this->aCcShowInstances = null;
@@ -865,7 +990,10 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
         if ($deep) {  // also de-associate any related objects?
 
             $this->aCcShowInstances = null;
-            $this->aMediaItem = null;
+            $this->aCcFiles = null;
+            $this->aCcWebstream = null;
+            $this->collCcWebstreamMetadatas = null;
+
         } // if (deep)
     }
 
@@ -991,11 +1119,18 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
                 $this->setCcShowInstances($this->aCcShowInstances);
             }
 
-            if ($this->aMediaItem !== null) {
-                if ($this->aMediaItem->isModified() || $this->aMediaItem->isNew()) {
-                    $affectedRows += $this->aMediaItem->save($con);
+            if ($this->aCcFiles !== null) {
+                if ($this->aCcFiles->isModified() || $this->aCcFiles->isNew()) {
+                    $affectedRows += $this->aCcFiles->save($con);
                 }
-                $this->setMediaItem($this->aMediaItem);
+                $this->setCcFiles($this->aCcFiles);
+            }
+
+            if ($this->aCcWebstream !== null) {
+                if ($this->aCcWebstream->isModified() || $this->aCcWebstream->isNew()) {
+                    $affectedRows += $this->aCcWebstream->save($con);
+                }
+                $this->setCcWebstream($this->aCcWebstream);
             }
 
             if ($this->isNew() || $this->isModified()) {
@@ -1007,6 +1142,23 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
                 }
                 $affectedRows += 1;
                 $this->resetModified();
+            }
+
+            if ($this->ccWebstreamMetadatasScheduledForDeletion !== null) {
+                if (!$this->ccWebstreamMetadatasScheduledForDeletion->isEmpty()) {
+                    CcWebstreamMetadataQuery::create()
+                        ->filterByPrimaryKeys($this->ccWebstreamMetadatasScheduledForDeletion->getPrimaryKeys(false))
+                        ->delete($con);
+                    $this->ccWebstreamMetadatasScheduledForDeletion = null;
+                }
+            }
+
+            if ($this->collCcWebstreamMetadatas !== null) {
+                foreach ($this->collCcWebstreamMetadatas as $referrerFK) {
+                    if (!$referrerFK->isDeleted() && ($referrerFK->isNew() || $referrerFK->isModified())) {
+                        $affectedRows += $referrerFK->save($con);
+                    }
+                }
             }
 
             $this->alreadyInSave = false;
@@ -1054,8 +1206,11 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
         if ($this->isColumnModified(CcSchedulePeer::ENDS)) {
             $modifiedColumns[':p' . $index++]  = '"ends"';
         }
-        if ($this->isColumnModified(CcSchedulePeer::MEDIA_ID)) {
-            $modifiedColumns[':p' . $index++]  = '"media_id"';
+        if ($this->isColumnModified(CcSchedulePeer::FILE_ID)) {
+            $modifiedColumns[':p' . $index++]  = '"file_id"';
+        }
+        if ($this->isColumnModified(CcSchedulePeer::STREAM_ID)) {
+            $modifiedColumns[':p' . $index++]  = '"stream_id"';
         }
         if ($this->isColumnModified(CcSchedulePeer::CLIP_LENGTH)) {
             $modifiedColumns[':p' . $index++]  = '"clip_length"';
@@ -1107,8 +1262,11 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
                     case '"ends"':
                         $stmt->bindValue($identifier, $this->ends, PDO::PARAM_STR);
                         break;
-                    case '"media_id"':
-                        $stmt->bindValue($identifier, $this->media_id, PDO::PARAM_INT);
+                    case '"file_id"':
+                        $stmt->bindValue($identifier, $this->file_id, PDO::PARAM_INT);
+                        break;
+                    case '"stream_id"':
+                        $stmt->bindValue($identifier, $this->stream_id, PDO::PARAM_INT);
                         break;
                     case '"clip_length"':
                         $stmt->bindValue($identifier, $this->clip_length, PDO::PARAM_STR);
@@ -1238,9 +1396,15 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
                 }
             }
 
-            if ($this->aMediaItem !== null) {
-                if (!$this->aMediaItem->validate($columns)) {
-                    $failureMap = array_merge($failureMap, $this->aMediaItem->getValidationFailures());
+            if ($this->aCcFiles !== null) {
+                if (!$this->aCcFiles->validate($columns)) {
+                    $failureMap = array_merge($failureMap, $this->aCcFiles->getValidationFailures());
+                }
+            }
+
+            if ($this->aCcWebstream !== null) {
+                if (!$this->aCcWebstream->validate($columns)) {
+                    $failureMap = array_merge($failureMap, $this->aCcWebstream->getValidationFailures());
                 }
             }
 
@@ -1249,6 +1413,14 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
                 $failureMap = array_merge($failureMap, $retval);
             }
 
+
+                if ($this->collCcWebstreamMetadatas !== null) {
+                    foreach ($this->collCcWebstreamMetadatas as $referrerFK) {
+                        if (!$referrerFK->validate($columns)) {
+                            $failureMap = array_merge($failureMap, $referrerFK->getValidationFailures());
+                        }
+                    }
+                }
 
 
             $this->alreadyInValidation = false;
@@ -1295,36 +1467,39 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
                 return $this->getDbEnds();
                 break;
             case 3:
-                return $this->getDbMediaId();
+                return $this->getDbFileId();
                 break;
             case 4:
-                return $this->getDbClipLength();
+                return $this->getDbStreamId();
                 break;
             case 5:
-                return $this->getDbFadeIn();
+                return $this->getDbClipLength();
                 break;
             case 6:
-                return $this->getDbFadeOut();
+                return $this->getDbFadeIn();
                 break;
             case 7:
-                return $this->getDbCueIn();
+                return $this->getDbFadeOut();
                 break;
             case 8:
-                return $this->getDbCueOut();
+                return $this->getDbCueIn();
                 break;
             case 9:
-                return $this->getDbMediaItemPlayed();
+                return $this->getDbCueOut();
                 break;
             case 10:
-                return $this->getDbInstanceId();
+                return $this->getDbMediaItemPlayed();
                 break;
             case 11:
-                return $this->getDbPlayoutStatus();
+                return $this->getDbInstanceId();
                 break;
             case 12:
-                return $this->getDbBroadcasted();
+                return $this->getDbPlayoutStatus();
                 break;
             case 13:
+                return $this->getDbBroadcasted();
+                break;
+            case 14:
                 return $this->getDbPosition();
                 break;
             default:
@@ -1359,17 +1534,18 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
             $keys[0] => $this->getDbId(),
             $keys[1] => $this->getDbStarts(),
             $keys[2] => $this->getDbEnds(),
-            $keys[3] => $this->getDbMediaId(),
-            $keys[4] => $this->getDbClipLength(),
-            $keys[5] => $this->getDbFadeIn(),
-            $keys[6] => $this->getDbFadeOut(),
-            $keys[7] => $this->getDbCueIn(),
-            $keys[8] => $this->getDbCueOut(),
-            $keys[9] => $this->getDbMediaItemPlayed(),
-            $keys[10] => $this->getDbInstanceId(),
-            $keys[11] => $this->getDbPlayoutStatus(),
-            $keys[12] => $this->getDbBroadcasted(),
-            $keys[13] => $this->getDbPosition(),
+            $keys[3] => $this->getDbFileId(),
+            $keys[4] => $this->getDbStreamId(),
+            $keys[5] => $this->getDbClipLength(),
+            $keys[6] => $this->getDbFadeIn(),
+            $keys[7] => $this->getDbFadeOut(),
+            $keys[8] => $this->getDbCueIn(),
+            $keys[9] => $this->getDbCueOut(),
+            $keys[10] => $this->getDbMediaItemPlayed(),
+            $keys[11] => $this->getDbInstanceId(),
+            $keys[12] => $this->getDbPlayoutStatus(),
+            $keys[13] => $this->getDbBroadcasted(),
+            $keys[14] => $this->getDbPosition(),
         );
         $virtualColumns = $this->virtualColumns;
         foreach ($virtualColumns as $key => $virtualColumn) {
@@ -1380,8 +1556,14 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
             if (null !== $this->aCcShowInstances) {
                 $result['CcShowInstances'] = $this->aCcShowInstances->toArray($keyType, $includeLazyLoadColumns,  $alreadyDumpedObjects, true);
             }
-            if (null !== $this->aMediaItem) {
-                $result['MediaItem'] = $this->aMediaItem->toArray($keyType, $includeLazyLoadColumns,  $alreadyDumpedObjects, true);
+            if (null !== $this->aCcFiles) {
+                $result['CcFiles'] = $this->aCcFiles->toArray($keyType, $includeLazyLoadColumns,  $alreadyDumpedObjects, true);
+            }
+            if (null !== $this->aCcWebstream) {
+                $result['CcWebstream'] = $this->aCcWebstream->toArray($keyType, $includeLazyLoadColumns,  $alreadyDumpedObjects, true);
+            }
+            if (null !== $this->collCcWebstreamMetadatas) {
+                $result['CcWebstreamMetadatas'] = $this->collCcWebstreamMetadatas->toArray(null, true, $keyType, $includeLazyLoadColumns, $alreadyDumpedObjects);
             }
         }
 
@@ -1427,36 +1609,39 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
                 $this->setDbEnds($value);
                 break;
             case 3:
-                $this->setDbMediaId($value);
+                $this->setDbFileId($value);
                 break;
             case 4:
-                $this->setDbClipLength($value);
+                $this->setDbStreamId($value);
                 break;
             case 5:
-                $this->setDbFadeIn($value);
+                $this->setDbClipLength($value);
                 break;
             case 6:
-                $this->setDbFadeOut($value);
+                $this->setDbFadeIn($value);
                 break;
             case 7:
-                $this->setDbCueIn($value);
+                $this->setDbFadeOut($value);
                 break;
             case 8:
-                $this->setDbCueOut($value);
+                $this->setDbCueIn($value);
                 break;
             case 9:
-                $this->setDbMediaItemPlayed($value);
+                $this->setDbCueOut($value);
                 break;
             case 10:
-                $this->setDbInstanceId($value);
+                $this->setDbMediaItemPlayed($value);
                 break;
             case 11:
-                $this->setDbPlayoutStatus($value);
+                $this->setDbInstanceId($value);
                 break;
             case 12:
-                $this->setDbBroadcasted($value);
+                $this->setDbPlayoutStatus($value);
                 break;
             case 13:
+                $this->setDbBroadcasted($value);
+                break;
+            case 14:
                 $this->setDbPosition($value);
                 break;
         } // switch()
@@ -1486,17 +1671,18 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
         if (array_key_exists($keys[0], $arr)) $this->setDbId($arr[$keys[0]]);
         if (array_key_exists($keys[1], $arr)) $this->setDbStarts($arr[$keys[1]]);
         if (array_key_exists($keys[2], $arr)) $this->setDbEnds($arr[$keys[2]]);
-        if (array_key_exists($keys[3], $arr)) $this->setDbMediaId($arr[$keys[3]]);
-        if (array_key_exists($keys[4], $arr)) $this->setDbClipLength($arr[$keys[4]]);
-        if (array_key_exists($keys[5], $arr)) $this->setDbFadeIn($arr[$keys[5]]);
-        if (array_key_exists($keys[6], $arr)) $this->setDbFadeOut($arr[$keys[6]]);
-        if (array_key_exists($keys[7], $arr)) $this->setDbCueIn($arr[$keys[7]]);
-        if (array_key_exists($keys[8], $arr)) $this->setDbCueOut($arr[$keys[8]]);
-        if (array_key_exists($keys[9], $arr)) $this->setDbMediaItemPlayed($arr[$keys[9]]);
-        if (array_key_exists($keys[10], $arr)) $this->setDbInstanceId($arr[$keys[10]]);
-        if (array_key_exists($keys[11], $arr)) $this->setDbPlayoutStatus($arr[$keys[11]]);
-        if (array_key_exists($keys[12], $arr)) $this->setDbBroadcasted($arr[$keys[12]]);
-        if (array_key_exists($keys[13], $arr)) $this->setDbPosition($arr[$keys[13]]);
+        if (array_key_exists($keys[3], $arr)) $this->setDbFileId($arr[$keys[3]]);
+        if (array_key_exists($keys[4], $arr)) $this->setDbStreamId($arr[$keys[4]]);
+        if (array_key_exists($keys[5], $arr)) $this->setDbClipLength($arr[$keys[5]]);
+        if (array_key_exists($keys[6], $arr)) $this->setDbFadeIn($arr[$keys[6]]);
+        if (array_key_exists($keys[7], $arr)) $this->setDbFadeOut($arr[$keys[7]]);
+        if (array_key_exists($keys[8], $arr)) $this->setDbCueIn($arr[$keys[8]]);
+        if (array_key_exists($keys[9], $arr)) $this->setDbCueOut($arr[$keys[9]]);
+        if (array_key_exists($keys[10], $arr)) $this->setDbMediaItemPlayed($arr[$keys[10]]);
+        if (array_key_exists($keys[11], $arr)) $this->setDbInstanceId($arr[$keys[11]]);
+        if (array_key_exists($keys[12], $arr)) $this->setDbPlayoutStatus($arr[$keys[12]]);
+        if (array_key_exists($keys[13], $arr)) $this->setDbBroadcasted($arr[$keys[13]]);
+        if (array_key_exists($keys[14], $arr)) $this->setDbPosition($arr[$keys[14]]);
     }
 
     /**
@@ -1511,7 +1697,8 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
         if ($this->isColumnModified(CcSchedulePeer::ID)) $criteria->add(CcSchedulePeer::ID, $this->id);
         if ($this->isColumnModified(CcSchedulePeer::STARTS)) $criteria->add(CcSchedulePeer::STARTS, $this->starts);
         if ($this->isColumnModified(CcSchedulePeer::ENDS)) $criteria->add(CcSchedulePeer::ENDS, $this->ends);
-        if ($this->isColumnModified(CcSchedulePeer::MEDIA_ID)) $criteria->add(CcSchedulePeer::MEDIA_ID, $this->media_id);
+        if ($this->isColumnModified(CcSchedulePeer::FILE_ID)) $criteria->add(CcSchedulePeer::FILE_ID, $this->file_id);
+        if ($this->isColumnModified(CcSchedulePeer::STREAM_ID)) $criteria->add(CcSchedulePeer::STREAM_ID, $this->stream_id);
         if ($this->isColumnModified(CcSchedulePeer::CLIP_LENGTH)) $criteria->add(CcSchedulePeer::CLIP_LENGTH, $this->clip_length);
         if ($this->isColumnModified(CcSchedulePeer::FADE_IN)) $criteria->add(CcSchedulePeer::FADE_IN, $this->fade_in);
         if ($this->isColumnModified(CcSchedulePeer::FADE_OUT)) $criteria->add(CcSchedulePeer::FADE_OUT, $this->fade_out);
@@ -1587,7 +1774,8 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     {
         $copyObj->setDbStarts($this->getDbStarts());
         $copyObj->setDbEnds($this->getDbEnds());
-        $copyObj->setDbMediaId($this->getDbMediaId());
+        $copyObj->setDbFileId($this->getDbFileId());
+        $copyObj->setDbStreamId($this->getDbStreamId());
         $copyObj->setDbClipLength($this->getDbClipLength());
         $copyObj->setDbFadeIn($this->getDbFadeIn());
         $copyObj->setDbFadeOut($this->getDbFadeOut());
@@ -1605,6 +1793,12 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
             $copyObj->setNew(false);
             // store object hash to prevent cycle
             $this->startCopy = true;
+
+            foreach ($this->getCcWebstreamMetadatas() as $relObj) {
+                if ($relObj !== $this) {  // ensure that we don't try to copy a reference to ourselves
+                    $copyObj->addCcWebstreamMetadata($relObj->copy($deepCopy));
+                }
+            }
 
             //unflag object copy
             $this->startCopy = false;
@@ -1709,24 +1903,24 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     }
 
     /**
-     * Declares an association between this object and a MediaItem object.
+     * Declares an association between this object and a CcFiles object.
      *
-     * @param                  MediaItem $v
+     * @param                  CcFiles $v
      * @return CcSchedule The current object (for fluent API support)
      * @throws PropelException
      */
-    public function setMediaItem(MediaItem $v = null)
+    public function setCcFiles(CcFiles $v = null)
     {
         if ($v === null) {
-            $this->setDbMediaId(NULL);
+            $this->setDbFileId(NULL);
         } else {
-            $this->setDbMediaId($v->getId());
+            $this->setDbFileId($v->getDbId());
         }
 
-        $this->aMediaItem = $v;
+        $this->aCcFiles = $v;
 
         // Add binding for other direction of this n:n relationship.
-        // If this object has already been added to the MediaItem object, it will not be re-added.
+        // If this object has already been added to the CcFiles object, it will not be re-added.
         if ($v !== null) {
             $v->addCcSchedule($this);
         }
@@ -1737,27 +1931,320 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
 
 
     /**
-     * Get the associated MediaItem object
+     * Get the associated CcFiles object
      *
      * @param PropelPDO $con Optional Connection object.
      * @param $doQuery Executes a query to get the object if required
-     * @return MediaItem The associated MediaItem object.
+     * @return CcFiles The associated CcFiles object.
      * @throws PropelException
      */
-    public function getMediaItem(PropelPDO $con = null, $doQuery = true)
+    public function getCcFiles(PropelPDO $con = null, $doQuery = true)
     {
-        if ($this->aMediaItem === null && ($this->media_id !== null) && $doQuery) {
-            $this->aMediaItem = MediaItemQuery::create()->findPk($this->media_id, $con);
+        if ($this->aCcFiles === null && ($this->file_id !== null) && $doQuery) {
+            $this->aCcFiles = CcFilesQuery::create()->findPk($this->file_id, $con);
             /* The following can be used additionally to
                 guarantee the related object contains a reference
                 to this object.  This level of coupling may, however, be
                 undesirable since it could result in an only partially populated collection
                 in the referenced object.
-                $this->aMediaItem->addCcSchedules($this);
+                $this->aCcFiles->addCcSchedules($this);
              */
         }
 
-        return $this->aMediaItem;
+        return $this->aCcFiles;
+    }
+
+    /**
+     * Declares an association between this object and a CcWebstream object.
+     *
+     * @param                  CcWebstream $v
+     * @return CcSchedule The current object (for fluent API support)
+     * @throws PropelException
+     */
+    public function setCcWebstream(CcWebstream $v = null)
+    {
+        if ($v === null) {
+            $this->setDbStreamId(NULL);
+        } else {
+            $this->setDbStreamId($v->getDbId());
+        }
+
+        $this->aCcWebstream = $v;
+
+        // Add binding for other direction of this n:n relationship.
+        // If this object has already been added to the CcWebstream object, it will not be re-added.
+        if ($v !== null) {
+            $v->addCcSchedule($this);
+        }
+
+
+        return $this;
+    }
+
+
+    /**
+     * Get the associated CcWebstream object
+     *
+     * @param PropelPDO $con Optional Connection object.
+     * @param $doQuery Executes a query to get the object if required
+     * @return CcWebstream The associated CcWebstream object.
+     * @throws PropelException
+     */
+    public function getCcWebstream(PropelPDO $con = null, $doQuery = true)
+    {
+        if ($this->aCcWebstream === null && ($this->stream_id !== null) && $doQuery) {
+            $this->aCcWebstream = CcWebstreamQuery::create()->findPk($this->stream_id, $con);
+            /* The following can be used additionally to
+                guarantee the related object contains a reference
+                to this object.  This level of coupling may, however, be
+                undesirable since it could result in an only partially populated collection
+                in the referenced object.
+                $this->aCcWebstream->addCcSchedules($this);
+             */
+        }
+
+        return $this->aCcWebstream;
+    }
+
+
+    /**
+     * Initializes a collection based on the name of a relation.
+     * Avoids crafting an 'init[$relationName]s' method name
+     * that wouldn't work when StandardEnglishPluralizer is used.
+     *
+     * @param string $relationName The name of the relation to initialize
+     * @return void
+     */
+    public function initRelation($relationName)
+    {
+        if ('CcWebstreamMetadata' == $relationName) {
+            $this->initCcWebstreamMetadatas();
+        }
+    }
+
+    /**
+     * Clears out the collCcWebstreamMetadatas collection
+     *
+     * This does not modify the database; however, it will remove any associated objects, causing
+     * them to be refetched by subsequent calls to accessor method.
+     *
+     * @return CcSchedule The current object (for fluent API support)
+     * @see        addCcWebstreamMetadatas()
+     */
+    public function clearCcWebstreamMetadatas()
+    {
+        $this->collCcWebstreamMetadatas = null; // important to set this to null since that means it is uninitialized
+        $this->collCcWebstreamMetadatasPartial = null;
+
+        return $this;
+    }
+
+    /**
+     * reset is the collCcWebstreamMetadatas collection loaded partially
+     *
+     * @return void
+     */
+    public function resetPartialCcWebstreamMetadatas($v = true)
+    {
+        $this->collCcWebstreamMetadatasPartial = $v;
+    }
+
+    /**
+     * Initializes the collCcWebstreamMetadatas collection.
+     *
+     * By default this just sets the collCcWebstreamMetadatas collection to an empty array (like clearcollCcWebstreamMetadatas());
+     * however, you may wish to override this method in your stub class to provide setting appropriate
+     * to your application -- for example, setting the initial array to the values stored in database.
+     *
+     * @param boolean $overrideExisting If set to true, the method call initializes
+     *                                        the collection even if it is not empty
+     *
+     * @return void
+     */
+    public function initCcWebstreamMetadatas($overrideExisting = true)
+    {
+        if (null !== $this->collCcWebstreamMetadatas && !$overrideExisting) {
+            return;
+        }
+        $this->collCcWebstreamMetadatas = new PropelObjectCollection();
+        $this->collCcWebstreamMetadatas->setModel('CcWebstreamMetadata');
+    }
+
+    /**
+     * Gets an array of CcWebstreamMetadata objects which contain a foreign key that references this object.
+     *
+     * If the $criteria is not null, it is used to always fetch the results from the database.
+     * Otherwise the results are fetched from the database the first time, then cached.
+     * Next time the same method is called without $criteria, the cached collection is returned.
+     * If this CcSchedule is new, it will return
+     * an empty collection or the current collection; the criteria is ignored on a new object.
+     *
+     * @param Criteria $criteria optional Criteria object to narrow the query
+     * @param PropelPDO $con optional connection object
+     * @return PropelObjectCollection|CcWebstreamMetadata[] List of CcWebstreamMetadata objects
+     * @throws PropelException
+     */
+    public function getCcWebstreamMetadatas($criteria = null, PropelPDO $con = null)
+    {
+        $partial = $this->collCcWebstreamMetadatasPartial && !$this->isNew();
+        if (null === $this->collCcWebstreamMetadatas || null !== $criteria  || $partial) {
+            if ($this->isNew() && null === $this->collCcWebstreamMetadatas) {
+                // return empty collection
+                $this->initCcWebstreamMetadatas();
+            } else {
+                $collCcWebstreamMetadatas = CcWebstreamMetadataQuery::create(null, $criteria)
+                    ->filterByCcSchedule($this)
+                    ->find($con);
+                if (null !== $criteria) {
+                    if (false !== $this->collCcWebstreamMetadatasPartial && count($collCcWebstreamMetadatas)) {
+                      $this->initCcWebstreamMetadatas(false);
+
+                      foreach ($collCcWebstreamMetadatas as $obj) {
+                        if (false == $this->collCcWebstreamMetadatas->contains($obj)) {
+                          $this->collCcWebstreamMetadatas->append($obj);
+                        }
+                      }
+
+                      $this->collCcWebstreamMetadatasPartial = true;
+                    }
+
+                    $collCcWebstreamMetadatas->getInternalIterator()->rewind();
+
+                    return $collCcWebstreamMetadatas;
+                }
+
+                if ($partial && $this->collCcWebstreamMetadatas) {
+                    foreach ($this->collCcWebstreamMetadatas as $obj) {
+                        if ($obj->isNew()) {
+                            $collCcWebstreamMetadatas[] = $obj;
+                        }
+                    }
+                }
+
+                $this->collCcWebstreamMetadatas = $collCcWebstreamMetadatas;
+                $this->collCcWebstreamMetadatasPartial = false;
+            }
+        }
+
+        return $this->collCcWebstreamMetadatas;
+    }
+
+    /**
+     * Sets a collection of CcWebstreamMetadata objects related by a one-to-many relationship
+     * to the current object.
+     * It will also schedule objects for deletion based on a diff between old objects (aka persisted)
+     * and new objects from the given Propel collection.
+     *
+     * @param PropelCollection $ccWebstreamMetadatas A Propel collection.
+     * @param PropelPDO $con Optional connection object
+     * @return CcSchedule The current object (for fluent API support)
+     */
+    public function setCcWebstreamMetadatas(PropelCollection $ccWebstreamMetadatas, PropelPDO $con = null)
+    {
+        $ccWebstreamMetadatasToDelete = $this->getCcWebstreamMetadatas(new Criteria(), $con)->diff($ccWebstreamMetadatas);
+
+
+        $this->ccWebstreamMetadatasScheduledForDeletion = $ccWebstreamMetadatasToDelete;
+
+        foreach ($ccWebstreamMetadatasToDelete as $ccWebstreamMetadataRemoved) {
+            $ccWebstreamMetadataRemoved->setCcSchedule(null);
+        }
+
+        $this->collCcWebstreamMetadatas = null;
+        foreach ($ccWebstreamMetadatas as $ccWebstreamMetadata) {
+            $this->addCcWebstreamMetadata($ccWebstreamMetadata);
+        }
+
+        $this->collCcWebstreamMetadatas = $ccWebstreamMetadatas;
+        $this->collCcWebstreamMetadatasPartial = false;
+
+        return $this;
+    }
+
+    /**
+     * Returns the number of related CcWebstreamMetadata objects.
+     *
+     * @param Criteria $criteria
+     * @param boolean $distinct
+     * @param PropelPDO $con
+     * @return int             Count of related CcWebstreamMetadata objects.
+     * @throws PropelException
+     */
+    public function countCcWebstreamMetadatas(Criteria $criteria = null, $distinct = false, PropelPDO $con = null)
+    {
+        $partial = $this->collCcWebstreamMetadatasPartial && !$this->isNew();
+        if (null === $this->collCcWebstreamMetadatas || null !== $criteria || $partial) {
+            if ($this->isNew() && null === $this->collCcWebstreamMetadatas) {
+                return 0;
+            }
+
+            if ($partial && !$criteria) {
+                return count($this->getCcWebstreamMetadatas());
+            }
+            $query = CcWebstreamMetadataQuery::create(null, $criteria);
+            if ($distinct) {
+                $query->distinct();
+            }
+
+            return $query
+                ->filterByCcSchedule($this)
+                ->count($con);
+        }
+
+        return count($this->collCcWebstreamMetadatas);
+    }
+
+    /**
+     * Method called to associate a CcWebstreamMetadata object to this object
+     * through the CcWebstreamMetadata foreign key attribute.
+     *
+     * @param    CcWebstreamMetadata $l CcWebstreamMetadata
+     * @return CcSchedule The current object (for fluent API support)
+     */
+    public function addCcWebstreamMetadata(CcWebstreamMetadata $l)
+    {
+        if ($this->collCcWebstreamMetadatas === null) {
+            $this->initCcWebstreamMetadatas();
+            $this->collCcWebstreamMetadatasPartial = true;
+        }
+
+        if (!in_array($l, $this->collCcWebstreamMetadatas->getArrayCopy(), true)) { // only add it if the **same** object is not already associated
+            $this->doAddCcWebstreamMetadata($l);
+
+            if ($this->ccWebstreamMetadatasScheduledForDeletion and $this->ccWebstreamMetadatasScheduledForDeletion->contains($l)) {
+                $this->ccWebstreamMetadatasScheduledForDeletion->remove($this->ccWebstreamMetadatasScheduledForDeletion->search($l));
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param	CcWebstreamMetadata $ccWebstreamMetadata The ccWebstreamMetadata object to add.
+     */
+    protected function doAddCcWebstreamMetadata($ccWebstreamMetadata)
+    {
+        $this->collCcWebstreamMetadatas[]= $ccWebstreamMetadata;
+        $ccWebstreamMetadata->setCcSchedule($this);
+    }
+
+    /**
+     * @param	CcWebstreamMetadata $ccWebstreamMetadata The ccWebstreamMetadata object to remove.
+     * @return CcSchedule The current object (for fluent API support)
+     */
+    public function removeCcWebstreamMetadata($ccWebstreamMetadata)
+    {
+        if ($this->getCcWebstreamMetadatas()->contains($ccWebstreamMetadata)) {
+            $this->collCcWebstreamMetadatas->remove($this->collCcWebstreamMetadatas->search($ccWebstreamMetadata));
+            if (null === $this->ccWebstreamMetadatasScheduledForDeletion) {
+                $this->ccWebstreamMetadatasScheduledForDeletion = clone $this->collCcWebstreamMetadatas;
+                $this->ccWebstreamMetadatasScheduledForDeletion->clear();
+            }
+            $this->ccWebstreamMetadatasScheduledForDeletion[]= clone $ccWebstreamMetadata;
+            $ccWebstreamMetadata->setCcSchedule(null);
+        }
+
+        return $this;
     }
 
     /**
@@ -1768,7 +2255,8 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
         $this->id = null;
         $this->starts = null;
         $this->ends = null;
-        $this->media_id = null;
+        $this->file_id = null;
+        $this->stream_id = null;
         $this->clip_length = null;
         $this->fade_in = null;
         $this->fade_out = null;
@@ -1802,18 +2290,31 @@ abstract class BaseCcSchedule extends BaseObject implements Persistent
     {
         if ($deep && !$this->alreadyInClearAllReferencesDeep) {
             $this->alreadyInClearAllReferencesDeep = true;
+            if ($this->collCcWebstreamMetadatas) {
+                foreach ($this->collCcWebstreamMetadatas as $o) {
+                    $o->clearAllReferences($deep);
+                }
+            }
             if ($this->aCcShowInstances instanceof Persistent) {
               $this->aCcShowInstances->clearAllReferences($deep);
             }
-            if ($this->aMediaItem instanceof Persistent) {
-              $this->aMediaItem->clearAllReferences($deep);
+            if ($this->aCcFiles instanceof Persistent) {
+              $this->aCcFiles->clearAllReferences($deep);
+            }
+            if ($this->aCcWebstream instanceof Persistent) {
+              $this->aCcWebstream->clearAllReferences($deep);
             }
 
             $this->alreadyInClearAllReferencesDeep = false;
         } // if ($deep)
 
+        if ($this->collCcWebstreamMetadatas instanceof PropelCollection) {
+            $this->collCcWebstreamMetadatas->clearIterator();
+        }
+        $this->collCcWebstreamMetadatas = null;
         $this->aCcShowInstances = null;
-        $this->aMediaItem = null;
+        $this->aCcFiles = null;
+        $this->aCcWebstream = null;
     }
 
     /**

@@ -7,6 +7,13 @@ use Airtime\CcScheduleQuery;
 use Airtime\CcShowDaysQuery;
 use Airtime\CcShowDays;
 
+use Airtime\CcShowInstancesQuery;
+use Airtime\CcShowQuery;
+use Airtime\CcShowInstancesPeer;
+use Airtime\CcScheduleQuery;
+use Airtime\CcShowDaysQuery;
+use Airtime\CcShowDays;
+
 class Application_Model_ShowInstance
 {
     private $_instanceId;

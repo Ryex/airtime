@@ -11,6 +11,17 @@ use Airtime\CcFiles;
 use Airtime\CcFilesPeer;
 use Airtime\CcFilesQuery; 
 
+use Airtime\CcSubjsQuery;
+use Airtime\CcPlaylistcontentsQuery;
+use Airtime\CcPlaylistQuery;
+use Airtime\CcBlockcontentsQuery;
+use Airtime\CcBlockQuery;
+use Airtime\CcBlockPeer;
+use Airtime\CcPlaylistPeer;
+use Airtime\CcFiles;
+use Airtime\CcFilesPeer;
+use Airtime\CcFilesQuery; 
+
 /**
  *  Application_Model_StoredFile class
  *

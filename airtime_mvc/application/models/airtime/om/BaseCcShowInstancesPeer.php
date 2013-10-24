@@ -9,11 +9,11 @@ use \PDOStatement;
 use \Propel;
 use \PropelException;
 use \PropelPDO;
+use Airtime\CcFilesPeer;
 use Airtime\CcSchedulePeer;
 use Airtime\CcShowInstances;
 use Airtime\CcShowInstancesPeer;
 use Airtime\CcShowPeer;
-use Airtime\MediaItemPeer;
 use Airtime\PlayoutHistory\CcPlayoutHistoryPeer;
 use Airtime\map\CcShowInstancesTableMap;
 
@@ -69,8 +69,8 @@ abstract class BaseCcShowInstancesPeer
     /** the column name for the instance_id field */
     const INSTANCE_ID = 'cc_show_instances.instance_id';
 
-    /** the column name for the media_id field */
-    const MEDIA_ID = 'cc_show_instances.media_id';
+    /** the column name for the file_id field */
+    const FILE_ID = 'cc_show_instances.file_id';
 
     /** the column name for the time_filled field */
     const TIME_FILLED = 'cc_show_instances.time_filled';
@@ -103,11 +103,11 @@ abstract class BaseCcShowInstancesPeer
      * e.g. CcShowInstancesPeer::$fieldNames[CcShowInstancesPeer::TYPE_PHPNAME][0] = 'Id'
      */
     protected static $fieldNames = array (
-        BasePeer::TYPE_PHPNAME => array ('DbId', 'DbStarts', 'DbEnds', 'DbShowId', 'DbRecord', 'DbRebroadcast', 'DbOriginalShow', 'DbRecordedMediaItem', 'DbTimeFilled', 'DbCreated', 'DbLastScheduled', 'DbModifiedInstance', ),
-        BasePeer::TYPE_STUDLYPHPNAME => array ('dbId', 'dbStarts', 'dbEnds', 'dbShowId', 'dbRecord', 'dbRebroadcast', 'dbOriginalShow', 'dbRecordedMediaItem', 'dbTimeFilled', 'dbCreated', 'dbLastScheduled', 'dbModifiedInstance', ),
-        BasePeer::TYPE_COLNAME => array (CcShowInstancesPeer::ID, CcShowInstancesPeer::STARTS, CcShowInstancesPeer::ENDS, CcShowInstancesPeer::SHOW_ID, CcShowInstancesPeer::RECORD, CcShowInstancesPeer::REBROADCAST, CcShowInstancesPeer::INSTANCE_ID, CcShowInstancesPeer::MEDIA_ID, CcShowInstancesPeer::TIME_FILLED, CcShowInstancesPeer::CREATED, CcShowInstancesPeer::LAST_SCHEDULED, CcShowInstancesPeer::MODIFIED_INSTANCE, ),
-        BasePeer::TYPE_RAW_COLNAME => array ('ID', 'STARTS', 'ENDS', 'SHOW_ID', 'RECORD', 'REBROADCAST', 'INSTANCE_ID', 'MEDIA_ID', 'TIME_FILLED', 'CREATED', 'LAST_SCHEDULED', 'MODIFIED_INSTANCE', ),
-        BasePeer::TYPE_FIELDNAME => array ('id', 'starts', 'ends', 'show_id', 'record', 'rebroadcast', 'instance_id', 'media_id', 'time_filled', 'created', 'last_scheduled', 'modified_instance', ),
+        BasePeer::TYPE_PHPNAME => array ('DbId', 'DbStarts', 'DbEnds', 'DbShowId', 'DbRecord', 'DbRebroadcast', 'DbOriginalShow', 'DbRecordedFile', 'DbTimeFilled', 'DbCreated', 'DbLastScheduled', 'DbModifiedInstance', ),
+        BasePeer::TYPE_STUDLYPHPNAME => array ('dbId', 'dbStarts', 'dbEnds', 'dbShowId', 'dbRecord', 'dbRebroadcast', 'dbOriginalShow', 'dbRecordedFile', 'dbTimeFilled', 'dbCreated', 'dbLastScheduled', 'dbModifiedInstance', ),
+        BasePeer::TYPE_COLNAME => array (CcShowInstancesPeer::ID, CcShowInstancesPeer::STARTS, CcShowInstancesPeer::ENDS, CcShowInstancesPeer::SHOW_ID, CcShowInstancesPeer::RECORD, CcShowInstancesPeer::REBROADCAST, CcShowInstancesPeer::INSTANCE_ID, CcShowInstancesPeer::FILE_ID, CcShowInstancesPeer::TIME_FILLED, CcShowInstancesPeer::CREATED, CcShowInstancesPeer::LAST_SCHEDULED, CcShowInstancesPeer::MODIFIED_INSTANCE, ),
+        BasePeer::TYPE_RAW_COLNAME => array ('ID', 'STARTS', 'ENDS', 'SHOW_ID', 'RECORD', 'REBROADCAST', 'INSTANCE_ID', 'FILE_ID', 'TIME_FILLED', 'CREATED', 'LAST_SCHEDULED', 'MODIFIED_INSTANCE', ),
+        BasePeer::TYPE_FIELDNAME => array ('id', 'starts', 'ends', 'show_id', 'record', 'rebroadcast', 'instance_id', 'file_id', 'time_filled', 'created', 'last_scheduled', 'modified_instance', ),
         BasePeer::TYPE_NUM => array (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, )
     );
 
@@ -118,11 +118,11 @@ abstract class BaseCcShowInstancesPeer
      * e.g. CcShowInstancesPeer::$fieldNames[BasePeer::TYPE_PHPNAME]['Id'] = 0
      */
     protected static $fieldKeys = array (
-        BasePeer::TYPE_PHPNAME => array ('DbId' => 0, 'DbStarts' => 1, 'DbEnds' => 2, 'DbShowId' => 3, 'DbRecord' => 4, 'DbRebroadcast' => 5, 'DbOriginalShow' => 6, 'DbRecordedMediaItem' => 7, 'DbTimeFilled' => 8, 'DbCreated' => 9, 'DbLastScheduled' => 10, 'DbModifiedInstance' => 11, ),
-        BasePeer::TYPE_STUDLYPHPNAME => array ('dbId' => 0, 'dbStarts' => 1, 'dbEnds' => 2, 'dbShowId' => 3, 'dbRecord' => 4, 'dbRebroadcast' => 5, 'dbOriginalShow' => 6, 'dbRecordedMediaItem' => 7, 'dbTimeFilled' => 8, 'dbCreated' => 9, 'dbLastScheduled' => 10, 'dbModifiedInstance' => 11, ),
-        BasePeer::TYPE_COLNAME => array (CcShowInstancesPeer::ID => 0, CcShowInstancesPeer::STARTS => 1, CcShowInstancesPeer::ENDS => 2, CcShowInstancesPeer::SHOW_ID => 3, CcShowInstancesPeer::RECORD => 4, CcShowInstancesPeer::REBROADCAST => 5, CcShowInstancesPeer::INSTANCE_ID => 6, CcShowInstancesPeer::MEDIA_ID => 7, CcShowInstancesPeer::TIME_FILLED => 8, CcShowInstancesPeer::CREATED => 9, CcShowInstancesPeer::LAST_SCHEDULED => 10, CcShowInstancesPeer::MODIFIED_INSTANCE => 11, ),
-        BasePeer::TYPE_RAW_COLNAME => array ('ID' => 0, 'STARTS' => 1, 'ENDS' => 2, 'SHOW_ID' => 3, 'RECORD' => 4, 'REBROADCAST' => 5, 'INSTANCE_ID' => 6, 'MEDIA_ID' => 7, 'TIME_FILLED' => 8, 'CREATED' => 9, 'LAST_SCHEDULED' => 10, 'MODIFIED_INSTANCE' => 11, ),
-        BasePeer::TYPE_FIELDNAME => array ('id' => 0, 'starts' => 1, 'ends' => 2, 'show_id' => 3, 'record' => 4, 'rebroadcast' => 5, 'instance_id' => 6, 'media_id' => 7, 'time_filled' => 8, 'created' => 9, 'last_scheduled' => 10, 'modified_instance' => 11, ),
+        BasePeer::TYPE_PHPNAME => array ('DbId' => 0, 'DbStarts' => 1, 'DbEnds' => 2, 'DbShowId' => 3, 'DbRecord' => 4, 'DbRebroadcast' => 5, 'DbOriginalShow' => 6, 'DbRecordedFile' => 7, 'DbTimeFilled' => 8, 'DbCreated' => 9, 'DbLastScheduled' => 10, 'DbModifiedInstance' => 11, ),
+        BasePeer::TYPE_STUDLYPHPNAME => array ('dbId' => 0, 'dbStarts' => 1, 'dbEnds' => 2, 'dbShowId' => 3, 'dbRecord' => 4, 'dbRebroadcast' => 5, 'dbOriginalShow' => 6, 'dbRecordedFile' => 7, 'dbTimeFilled' => 8, 'dbCreated' => 9, 'dbLastScheduled' => 10, 'dbModifiedInstance' => 11, ),
+        BasePeer::TYPE_COLNAME => array (CcShowInstancesPeer::ID => 0, CcShowInstancesPeer::STARTS => 1, CcShowInstancesPeer::ENDS => 2, CcShowInstancesPeer::SHOW_ID => 3, CcShowInstancesPeer::RECORD => 4, CcShowInstancesPeer::REBROADCAST => 5, CcShowInstancesPeer::INSTANCE_ID => 6, CcShowInstancesPeer::FILE_ID => 7, CcShowInstancesPeer::TIME_FILLED => 8, CcShowInstancesPeer::CREATED => 9, CcShowInstancesPeer::LAST_SCHEDULED => 10, CcShowInstancesPeer::MODIFIED_INSTANCE => 11, ),
+        BasePeer::TYPE_RAW_COLNAME => array ('ID' => 0, 'STARTS' => 1, 'ENDS' => 2, 'SHOW_ID' => 3, 'RECORD' => 4, 'REBROADCAST' => 5, 'INSTANCE_ID' => 6, 'FILE_ID' => 7, 'TIME_FILLED' => 8, 'CREATED' => 9, 'LAST_SCHEDULED' => 10, 'MODIFIED_INSTANCE' => 11, ),
+        BasePeer::TYPE_FIELDNAME => array ('id' => 0, 'starts' => 1, 'ends' => 2, 'show_id' => 3, 'record' => 4, 'rebroadcast' => 5, 'instance_id' => 6, 'file_id' => 7, 'time_filled' => 8, 'created' => 9, 'last_scheduled' => 10, 'modified_instance' => 11, ),
         BasePeer::TYPE_NUM => array (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, )
     );
 
@@ -204,7 +204,7 @@ abstract class BaseCcShowInstancesPeer
             $criteria->addSelectColumn(CcShowInstancesPeer::RECORD);
             $criteria->addSelectColumn(CcShowInstancesPeer::REBROADCAST);
             $criteria->addSelectColumn(CcShowInstancesPeer::INSTANCE_ID);
-            $criteria->addSelectColumn(CcShowInstancesPeer::MEDIA_ID);
+            $criteria->addSelectColumn(CcShowInstancesPeer::FILE_ID);
             $criteria->addSelectColumn(CcShowInstancesPeer::TIME_FILLED);
             $criteria->addSelectColumn(CcShowInstancesPeer::CREATED);
             $criteria->addSelectColumn(CcShowInstancesPeer::LAST_SCHEDULED);
@@ -217,7 +217,7 @@ abstract class BaseCcShowInstancesPeer
             $criteria->addSelectColumn($alias . '.record');
             $criteria->addSelectColumn($alias . '.rebroadcast');
             $criteria->addSelectColumn($alias . '.instance_id');
-            $criteria->addSelectColumn($alias . '.media_id');
+            $criteria->addSelectColumn($alias . '.file_id');
             $criteria->addSelectColumn($alias . '.time_filled');
             $criteria->addSelectColumn($alias . '.created');
             $criteria->addSelectColumn($alias . '.last_scheduled');
@@ -584,7 +584,7 @@ abstract class BaseCcShowInstancesPeer
 
 
     /**
-     * Returns the number of rows matching criteria, joining the related MediaItem table
+     * Returns the number of rows matching criteria, joining the related CcFiles table
      *
      * @param      Criteria $criteria
      * @param      boolean $distinct Whether to select only distinct columns; deprecated: use Criteria->setDistinct() instead.
@@ -592,7 +592,7 @@ abstract class BaseCcShowInstancesPeer
      * @param      String    $join_behavior the type of joins to use, defaults to Criteria::LEFT_JOIN
      * @return int Number of matching rows.
      */
-    public static function doCountJoinMediaItem(Criteria $criteria, $distinct = false, PropelPDO $con = null, $join_behavior = Criteria::LEFT_JOIN)
+    public static function doCountJoinCcFiles(Criteria $criteria, $distinct = false, PropelPDO $con = null, $join_behavior = Criteria::LEFT_JOIN)
     {
         // we're going to modify criteria, so copy it first
         $criteria = clone $criteria;
@@ -619,7 +619,7 @@ abstract class BaseCcShowInstancesPeer
             $con = Propel::getConnection(CcShowInstancesPeer::DATABASE_NAME, Propel::CONNECTION_READ);
         }
 
-        $criteria->addJoin(CcShowInstancesPeer::MEDIA_ID, MediaItemPeer::ID, $join_behavior);
+        $criteria->addJoin(CcShowInstancesPeer::FILE_ID, CcFilesPeer::ID, $join_behavior);
 
         $stmt = BasePeer::doCount($criteria, $con);
 
@@ -702,7 +702,7 @@ abstract class BaseCcShowInstancesPeer
 
 
     /**
-     * Selects a collection of CcShowInstances objects pre-filled with their MediaItem objects.
+     * Selects a collection of CcShowInstances objects pre-filled with their CcFiles objects.
      * @param      Criteria  $criteria
      * @param      PropelPDO $con
      * @param      String    $join_behavior the type of joins to use, defaults to Criteria::LEFT_JOIN
@@ -710,7 +710,7 @@ abstract class BaseCcShowInstancesPeer
      * @throws PropelException Any exceptions caught during processing will be
      *		 rethrown wrapped into a PropelException.
      */
-    public static function doSelectJoinMediaItem(Criteria $criteria, $con = null, $join_behavior = Criteria::LEFT_JOIN)
+    public static function doSelectJoinCcFiles(Criteria $criteria, $con = null, $join_behavior = Criteria::LEFT_JOIN)
     {
         $criteria = clone $criteria;
 
@@ -721,9 +721,9 @@ abstract class BaseCcShowInstancesPeer
 
         CcShowInstancesPeer::addSelectColumns($criteria);
         $startcol = CcShowInstancesPeer::NUM_HYDRATE_COLUMNS;
-        MediaItemPeer::addSelectColumns($criteria);
+        CcFilesPeer::addSelectColumns($criteria);
 
-        $criteria->addJoin(CcShowInstancesPeer::MEDIA_ID, MediaItemPeer::ID, $join_behavior);
+        $criteria->addJoin(CcShowInstancesPeer::FILE_ID, CcFilesPeer::ID, $join_behavior);
 
         $stmt = BasePeer::doSelect($criteria, $con);
         $results = array();
@@ -743,19 +743,19 @@ abstract class BaseCcShowInstancesPeer
                 CcShowInstancesPeer::addInstanceToPool($obj1, $key1);
             } // if $obj1 already loaded
 
-            $key2 = MediaItemPeer::getPrimaryKeyHashFromRow($row, $startcol);
+            $key2 = CcFilesPeer::getPrimaryKeyHashFromRow($row, $startcol);
             if ($key2 !== null) {
-                $obj2 = MediaItemPeer::getInstanceFromPool($key2);
+                $obj2 = CcFilesPeer::getInstanceFromPool($key2);
                 if (!$obj2) {
 
-                    $cls = MediaItemPeer::getOMClass();
+                    $cls = CcFilesPeer::getOMClass();
 
                     $obj2 = new $cls();
                     $obj2->hydrate($row, $startcol);
-                    MediaItemPeer::addInstanceToPool($obj2, $key2);
+                    CcFilesPeer::addInstanceToPool($obj2, $key2);
                 } // if obj2 already loaded
 
-                // Add the $obj1 (CcShowInstances) to $obj2 (MediaItem)
+                // Add the $obj1 (CcShowInstances) to $obj2 (CcFiles)
                 $obj2->addCcShowInstances($obj1);
 
             } // if joined row was not null
@@ -806,7 +806,7 @@ abstract class BaseCcShowInstancesPeer
 
         $criteria->addJoin(CcShowInstancesPeer::SHOW_ID, CcShowPeer::ID, $join_behavior);
 
-        $criteria->addJoin(CcShowInstancesPeer::MEDIA_ID, MediaItemPeer::ID, $join_behavior);
+        $criteria->addJoin(CcShowInstancesPeer::FILE_ID, CcFilesPeer::ID, $join_behavior);
 
         $stmt = BasePeer::doCount($criteria, $con);
 
@@ -845,12 +845,12 @@ abstract class BaseCcShowInstancesPeer
         CcShowPeer::addSelectColumns($criteria);
         $startcol3 = $startcol2 + CcShowPeer::NUM_HYDRATE_COLUMNS;
 
-        MediaItemPeer::addSelectColumns($criteria);
-        $startcol4 = $startcol3 + MediaItemPeer::NUM_HYDRATE_COLUMNS;
+        CcFilesPeer::addSelectColumns($criteria);
+        $startcol4 = $startcol3 + CcFilesPeer::NUM_HYDRATE_COLUMNS;
 
         $criteria->addJoin(CcShowInstancesPeer::SHOW_ID, CcShowPeer::ID, $join_behavior);
 
-        $criteria->addJoin(CcShowInstancesPeer::MEDIA_ID, MediaItemPeer::ID, $join_behavior);
+        $criteria->addJoin(CcShowInstancesPeer::FILE_ID, CcFilesPeer::ID, $join_behavior);
 
         $stmt = BasePeer::doSelect($criteria, $con);
         $results = array();
@@ -887,21 +887,21 @@ abstract class BaseCcShowInstancesPeer
                 $obj2->addCcShowInstances($obj1);
             } // if joined row not null
 
-            // Add objects for joined MediaItem rows
+            // Add objects for joined CcFiles rows
 
-            $key3 = MediaItemPeer::getPrimaryKeyHashFromRow($row, $startcol3);
+            $key3 = CcFilesPeer::getPrimaryKeyHashFromRow($row, $startcol3);
             if ($key3 !== null) {
-                $obj3 = MediaItemPeer::getInstanceFromPool($key3);
+                $obj3 = CcFilesPeer::getInstanceFromPool($key3);
                 if (!$obj3) {
 
-                    $cls = MediaItemPeer::getOMClass();
+                    $cls = CcFilesPeer::getOMClass();
 
                     $obj3 = new $cls();
                     $obj3->hydrate($row, $startcol3);
-                    MediaItemPeer::addInstanceToPool($obj3, $key3);
+                    CcFilesPeer::addInstanceToPool($obj3, $key3);
                 } // if obj3 loaded
 
-                // Add the $obj1 (CcShowInstances) to the collection in $obj3 (MediaItem)
+                // Add the $obj1 (CcShowInstances) to the collection in $obj3 (CcFiles)
                 $obj3->addCcShowInstances($obj1);
             } // if joined row not null
 
@@ -949,7 +949,7 @@ abstract class BaseCcShowInstancesPeer
             $con = Propel::getConnection(CcShowInstancesPeer::DATABASE_NAME, Propel::CONNECTION_READ);
         }
 
-        $criteria->addJoin(CcShowInstancesPeer::MEDIA_ID, MediaItemPeer::ID, $join_behavior);
+        $criteria->addJoin(CcShowInstancesPeer::FILE_ID, CcFilesPeer::ID, $join_behavior);
 
         $stmt = BasePeer::doCount($criteria, $con);
 
@@ -1002,7 +1002,7 @@ abstract class BaseCcShowInstancesPeer
 
         $criteria->addJoin(CcShowInstancesPeer::SHOW_ID, CcShowPeer::ID, $join_behavior);
 
-        $criteria->addJoin(CcShowInstancesPeer::MEDIA_ID, MediaItemPeer::ID, $join_behavior);
+        $criteria->addJoin(CcShowInstancesPeer::FILE_ID, CcFilesPeer::ID, $join_behavior);
 
         $stmt = BasePeer::doCount($criteria, $con);
 
@@ -1018,7 +1018,7 @@ abstract class BaseCcShowInstancesPeer
 
 
     /**
-     * Returns the number of rows matching criteria, joining the related MediaItem table
+     * Returns the number of rows matching criteria, joining the related CcFiles table
      *
      * @param      Criteria $criteria
      * @param      boolean $distinct Whether to select only distinct columns; deprecated: use Criteria->setDistinct() instead.
@@ -1026,7 +1026,7 @@ abstract class BaseCcShowInstancesPeer
      * @param      String    $join_behavior the type of joins to use, defaults to Criteria::LEFT_JOIN
      * @return int Number of matching rows.
      */
-    public static function doCountJoinAllExceptMediaItem(Criteria $criteria, $distinct = false, PropelPDO $con = null, $join_behavior = Criteria::LEFT_JOIN)
+    public static function doCountJoinAllExceptCcFiles(Criteria $criteria, $distinct = false, PropelPDO $con = null, $join_behavior = Criteria::LEFT_JOIN)
     {
         // we're going to modify criteria, so copy it first
         $criteria = clone $criteria;
@@ -1092,10 +1092,10 @@ abstract class BaseCcShowInstancesPeer
         CcShowInstancesPeer::addSelectColumns($criteria);
         $startcol2 = CcShowInstancesPeer::NUM_HYDRATE_COLUMNS;
 
-        MediaItemPeer::addSelectColumns($criteria);
-        $startcol3 = $startcol2 + MediaItemPeer::NUM_HYDRATE_COLUMNS;
+        CcFilesPeer::addSelectColumns($criteria);
+        $startcol3 = $startcol2 + CcFilesPeer::NUM_HYDRATE_COLUMNS;
 
-        $criteria->addJoin(CcShowInstancesPeer::MEDIA_ID, MediaItemPeer::ID, $join_behavior);
+        $criteria->addJoin(CcShowInstancesPeer::FILE_ID, CcFilesPeer::ID, $join_behavior);
 
 
         $stmt = BasePeer::doSelect($criteria, $con);
@@ -1115,21 +1115,21 @@ abstract class BaseCcShowInstancesPeer
                 CcShowInstancesPeer::addInstanceToPool($obj1, $key1);
             } // if obj1 already loaded
 
-                // Add objects for joined MediaItem rows
+                // Add objects for joined CcFiles rows
 
-                $key2 = MediaItemPeer::getPrimaryKeyHashFromRow($row, $startcol2);
+                $key2 = CcFilesPeer::getPrimaryKeyHashFromRow($row, $startcol2);
                 if ($key2 !== null) {
-                    $obj2 = MediaItemPeer::getInstanceFromPool($key2);
+                    $obj2 = CcFilesPeer::getInstanceFromPool($key2);
                     if (!$obj2) {
 
-                        $cls = MediaItemPeer::getOMClass();
+                        $cls = CcFilesPeer::getOMClass();
 
                     $obj2 = new $cls();
                     $obj2->hydrate($row, $startcol2);
-                    MediaItemPeer::addInstanceToPool($obj2, $key2);
+                    CcFilesPeer::addInstanceToPool($obj2, $key2);
                 } // if $obj2 already loaded
 
-                // Add the $obj1 (CcShowInstances) to the collection in $obj2 (MediaItem)
+                // Add the $obj1 (CcShowInstances) to the collection in $obj2 (CcFiles)
                 $obj2->addCcShowInstances($obj1);
 
             } // if joined row is not null
@@ -1169,12 +1169,12 @@ abstract class BaseCcShowInstancesPeer
         CcShowPeer::addSelectColumns($criteria);
         $startcol3 = $startcol2 + CcShowPeer::NUM_HYDRATE_COLUMNS;
 
-        MediaItemPeer::addSelectColumns($criteria);
-        $startcol4 = $startcol3 + MediaItemPeer::NUM_HYDRATE_COLUMNS;
+        CcFilesPeer::addSelectColumns($criteria);
+        $startcol4 = $startcol3 + CcFilesPeer::NUM_HYDRATE_COLUMNS;
 
         $criteria->addJoin(CcShowInstancesPeer::SHOW_ID, CcShowPeer::ID, $join_behavior);
 
-        $criteria->addJoin(CcShowInstancesPeer::MEDIA_ID, MediaItemPeer::ID, $join_behavior);
+        $criteria->addJoin(CcShowInstancesPeer::FILE_ID, CcFilesPeer::ID, $join_behavior);
 
 
         $stmt = BasePeer::doSelect($criteria, $con);
@@ -1213,21 +1213,21 @@ abstract class BaseCcShowInstancesPeer
 
             } // if joined row is not null
 
-                // Add objects for joined MediaItem rows
+                // Add objects for joined CcFiles rows
 
-                $key3 = MediaItemPeer::getPrimaryKeyHashFromRow($row, $startcol3);
+                $key3 = CcFilesPeer::getPrimaryKeyHashFromRow($row, $startcol3);
                 if ($key3 !== null) {
-                    $obj3 = MediaItemPeer::getInstanceFromPool($key3);
+                    $obj3 = CcFilesPeer::getInstanceFromPool($key3);
                     if (!$obj3) {
 
-                        $cls = MediaItemPeer::getOMClass();
+                        $cls = CcFilesPeer::getOMClass();
 
                     $obj3 = new $cls();
                     $obj3->hydrate($row, $startcol3);
-                    MediaItemPeer::addInstanceToPool($obj3, $key3);
+                    CcFilesPeer::addInstanceToPool($obj3, $key3);
                 } // if $obj3 already loaded
 
-                // Add the $obj1 (CcShowInstances) to the collection in $obj3 (MediaItem)
+                // Add the $obj1 (CcShowInstances) to the collection in $obj3 (CcFiles)
                 $obj3->addCcShowInstances($obj1);
 
             } // if joined row is not null
@@ -1241,7 +1241,7 @@ abstract class BaseCcShowInstancesPeer
 
 
     /**
-     * Selects a collection of CcShowInstances objects pre-filled with all related objects except MediaItem.
+     * Selects a collection of CcShowInstances objects pre-filled with all related objects except CcFiles.
      *
      * @param      Criteria  $criteria
      * @param      PropelPDO $con
@@ -1250,7 +1250,7 @@ abstract class BaseCcShowInstancesPeer
      * @throws PropelException Any exceptions caught during processing will be
      *		 rethrown wrapped into a PropelException.
      */
-    public static function doSelectJoinAllExceptMediaItem(Criteria $criteria, $con = null, $join_behavior = Criteria::LEFT_JOIN)
+    public static function doSelectJoinAllExceptCcFiles(Criteria $criteria, $con = null, $join_behavior = Criteria::LEFT_JOIN)
     {
         $criteria = clone $criteria;
 

@@ -56,6 +56,7 @@ class CcMusicDirsTableMap extends TableMap
      */
     public function buildRelations()
     {
+        $this->addRelation('CcFiles', 'Airtime\\CcFiles', RelationMap::ONE_TO_MANY, array('id' => 'directory', ), null, null, 'CcFiless');
         $this->addRelation('AudioFile', 'Airtime\\MediaItem\\AudioFile', RelationMap::ONE_TO_MANY, array('id' => 'directory', ), null, null, 'AudioFiles');
     } // buildRelations()
 
