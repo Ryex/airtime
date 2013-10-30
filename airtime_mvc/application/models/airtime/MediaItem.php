@@ -16,6 +16,6 @@ use Airtime\om\BaseMediaItem;
  *
  * @package    propel.generator.airtime
  */
-abstract class MediaItem extends BaseMediaItem
+class MediaItem extends BaseMediaItem
 {
 }

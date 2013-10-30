@@ -300,6 +300,7 @@
     <column name="id" phpName="DbId" type="INTEGER" primaryKey="true" autoIncrement="true" required="true"/>
     <column name="starts" phpName="DbStarts" type="TIMESTAMP" required="true"/>
     <column name="ends" phpName="DbEnds" type="TIMESTAMP" required="true"/>
+    <column name="media_id" phpName="DbMediaId" type="INTEGER" required="false"/>
     <column name="file_id" phpName="DbFileId" type="INTEGER" required="false"/>
     <column name="stream_id" phpName="DbStreamId" type="INTEGER" required="false"/>
     <column name="clip_length" phpName="DbClipLength" type="VARCHAR" sqlType="interval" required="false" defaultValue="00:00:00"/>
@@ -316,12 +317,12 @@
          broadcasted = 1)
     -->
     <column name="position" phpName="DbPosition" type="INTEGER" required="true" default="0" />
-    <!-- This foreign key is still useful even though it may seem we don't ever delete cc_show_instances anymore.
-        We will do delete them in some cases (when editing a show and changing the repeating days of the week
-        for example. \
-        TLDR: Don't delete this foreign key constraint. -->
+
     <foreign-key foreignTable="cc_show_instances" name="cc_show_inst_fkey" onDelete="CASCADE">
       <reference local="instance_id" foreign="id"/>
+    </foreign-key>
+    <foreign-key foreignTable="media_item" name="media_item_sched_fkey" onDelete="CASCADE">
+      <reference local="media_id" foreign="id"/>
     </foreign-key>
     <foreign-key foreignTable="cc_files" name="cc_show_file_fkey" onDelete="CASCADE">
       <reference local="file_id" foreign="id"/>
@@ -476,11 +477,11 @@
       <reference local="template_id" foreign="id"/>
     </foreign-key>
   </table>
-
-  <table name="media_item" phpName="MediaItem" abstract="true">
+  
+  <table name="media_item" phpName="MediaItem">
     <behavior name="timestampable" />
     <column name="id" phpName="Id" primaryKey="true" type="INTEGER" autoIncrement="true" required="true" />
-    <column name="name" phpName="Name" type="VARCHAR" size="128" required="true" />
+    <column name="name" phpName="Name" type="VARCHAR" size="128" required="false" />
     <column name="owner_id" phpName="OwnerId" type="INTEGER" required="false"/>
     <column name="description" phpName="Description" type="VARCHAR" size="512" required="false"/>
     <column name="last_played" phpName="LastPlayedTime" type="TIMESTAMP" size="6" required="false"/>
@@ -491,7 +492,7 @@
     </foreign-key>
   </table>
 
-  <table name="audio_file" phpName="AudioFile" namespace="MediaItem">
+  <table name="media_audiofile" phpName="AudioFile" namespace="MediaItem">
     <behavior name="concrete_inheritance">
       <parameter name="extends" value="media_item" />
     </behavior>
@@ -509,13 +510,13 @@
     <column name="year" phpName="Year" type="VARCHAR" size="16" required="false"/>
     <column name="track_number" phpName="TrackNumber" type="INTEGER" required="false"/>
     <column name="channels" phpName="Channels" type="INTEGER" required="false"/>
-    <column name="url" phpName="Url" type="VARCHAR" size="1024" required="false"/>
     <column name="bpm" phpName="Bpm" type="INTEGER" required="false"/>
     <column name="encoded_by" phpName="EncodedBy" type="VARCHAR" size="255" required="false"/>
     <column name="mood" phpName="Mood" type="VARCHAR" size="64" required="false"/>
     <column name="label" phpName="Label" type="VARCHAR" size="512" required="false"/>
     <column name="composer" phpName="Composer" type="VARCHAR" size="512" required="false"/>
     <column name="copyright" phpName="Copyright" type="VARCHAR" size="512" required="false"/>
+    <column name="conductor" phpName="Conductor" type="VARCHAR" size="512" required="false"/>
     <column name="isrc_number" phpName="IsrcNumber" type="VARCHAR" size="512" required="false"/>
     <column name="info_url" phpName="InfoUrl" type="VARCHAR" size="512" required="false"/>
     <column name="language" phpName="Language" type="VARCHAR" size="512" required="false"/>
@@ -524,7 +525,7 @@
     <column name="cueout" phpName="Cueout" type="VARCHAR" sqlType="interval" required="false" defaultValue="00:00:00"/>
     <column name="silan_check" phpName="IsSilanChecked" type="BOOLEAN" defaultValue="false"/>
     <column name="file_exists" phpName="FileExists" type="BOOLEAN" required="false" defaultValue="true"/>
-    <column name="hidden" phpName="IsHidden" type="BOOLEAN" defaultValue="false"/>
+    <column name="hidden" phpName="FileHidden" type="BOOLEAN" defaultValue="false"/>
     <column name="is_scheduled" phpName="IsScheduled" type="BOOLEAN" defaultValue="false"/>
     <column name="is_playlist" phpName="IsPlaylist" type="BOOLEAN" defaultValue="false"/>
     <foreign-key foreignTable="cc_music_dirs" name="audio_file_music_dir_fkey">
@@ -535,7 +536,7 @@
     </index>
   </table>
 
-  <table name="webstream" phpName="Webstream" namespace="MediaItem">
+  <table name="media_webstream" phpName="Webstream" namespace="MediaItem">
     <behavior name="concrete_inheritance">
       <parameter name="extends" value="media_item" />
     </behavior>
@@ -543,20 +544,20 @@
     <column name="url" phpName="Url" type="VARCHAR" size="512" required="true" />
   </table>
 
-  <table name="playlist" phpName="Playlist" namespace="MediaItem">
+  <table name="media_playlist" phpName="Playlist" namespace="MediaItem">
     <behavior name="concrete_inheritance">
       <parameter name="extends" value="media_item" />
     </behavior>
   </table>
 
-  <table name="block" phpName="Block" namespace="MediaItem">
+  <table name="media_block" phpName="Block" namespace="MediaItem">
     <behavior name="concrete_inheritance">
-      <parameter name="extends" value="playlist" />
+      <parameter name="extends" value="media_playlist" />
     </behavior>
     <column name="type" phpName="Type" type="VARCHAR" size="7" defaultValue="static"/>
   </table>
 
-  <table name="media_contents" phpName="MediaContents" namespace="MediaItem">
+  <table name="media_content" phpName="MediaContent" namespace="MediaItem">
     <column name="id" phpName="DbId" type="INTEGER" primaryKey="true" autoIncrement="true" required="true"/>
     <column name="media_id" phpName="MediaId" type="INTEGER" required="false"/>
     <column name="position" phpName="Position" type="INTEGER" required="false"/>

@@ -1,9 +1,5 @@
 <?php
 
-use Airtime\CcMusicDirsQuery;
-
-use Airtime\CcShowInstancesQuery;
-
 use Airtime\MediaItem\AudioFile;
 use Airtime\MediaItem\AudioFilePeer;
 use Airtime\MediaItem\AudioFileQuery;
@@ -89,12 +85,10 @@ class Application_Service_AudioFileService
 		
 		$file->save($this->_con);
 		
-		Logging::info($md);
-		
 		//TODO implement upload recorded.
 		if ($md['is_record'] != 0) {
 			//think we saved show instance id in field MDATA_KEY_TRACKNUMBER for Airtime recorded shows.
-			$this->uploadRecordedFile($md['MDATA_KEY_TRACKNUMBER'], $file);
+			//$this->uploadRecordedActionParam($md['MDATA_KEY_TRACKNUMBER'], $file->getId());
 		}
 	}
 	
@@ -142,30 +136,6 @@ class Application_Service_AudioFileService
 			->save($this->_con);
 	}
 	
-	/*
-	[MDATA_KEY_FILEPATH] => /home/naomi/Music/WatchedFolder/
-    [is_record] => 0
-	 */
-	private function mediaMonitorDeleteDir($md) {
-		
-		$directorypath = Application_Common_OsPath::normpath($md['MDATA_KEY_FILEPATH']);
-		//TODO fix how directories are stored so we can just use this normpath function.
-		$directorypath = $directorypath.'/';
-		
-		$dir = CcMusicDirsQuery::create()
-			->filterByDirectory($directorypath)
-			->findOne($this->_con);
-		
-		if (isset($dir)) {
-			AudioFileQuery::create()
-				->filterByDirectory($dir->getId())
-				->update(array('FileExists' => false), $this->_con);
-		}
-		else {
-			Logging::warn("directory at $directorypath does not exist in Airtime");
-		}	
-	}
-	
 	public function mediaMonitorTask($md, $mode) {
 		
 		$this->_con->beginTransaction();
@@ -188,9 +158,6 @@ class Application_Service_AudioFileService
 				case "delete":
 					$this->mediaMonitorDelete($md);
 					break;
-				case "delete_dir":
-					$this->mediaMonitorDeleteDir($md);
-					break;
 			}
 			
 			$this->_con->commit();
@@ -199,49 +166,6 @@ class Application_Service_AudioFileService
 			Logging::warn($e->getMessage());
 			$this->_con->rollback();
 			throw $e;
-		}
-	}
-	
-	public function uploadRecordedFile($showInstanceId, $file)
-	{
-		$showCanceled = false;
-		$this->_con->beginTransaction();
-		
-		try {
-			
-			$instance = CcShowInstancesQuery::create()->findPk($showInstanceId, $this->_con);
-			
-			if (isset($instance)) {
-				$instance
-					->setDbRecordedMediaItem($file->getId())
-					->save($this->_con);
-			}
-			else {
-				//we've reached here probably because the show was
-				//cancelled, and therefore the show instance does not exist
-				//anymore (ShowInstance constructor threw this error). We've
-				//done all we can do (upload the file and put it in the
-				//library), now lets just return.
-				$showCanceled = true;
-			}
-			
-			$file
-				->setMetadataValue('MDATA_KEY_CREATOR', "Airtime Show Recorder")
-				->setMetadataValue('MDATA_KEY_TRACKNUMBER', $show_instance_id)
-				->save($this->_con);
-	
-			$this->_con->commit();
-		} 
-		catch (Exception $e) {
-			Logging::warn($e->getMessage());
-			$this->_con->rollback();
-			throw $e;
-		}
-	
-		if (!$showCanceled && Application_Model_Preference::GetAutoUploadRecordedShowToSoundcloud()) {
-			$id = $file->getId();
-			//TODO make sure the uploader uses the new media id.
-			Application_Model_Soundcloud::uploadSoundcloud($id);
 		}
 	}
 	
@@ -459,131 +383,5 @@ class Application_Service_AudioFileService
 		$isError = count($output) > 0 && in_array($output[0], $LIQUIDSOAP_ERRORS);
 	
 		return ($rv == 0 && !$isError);
-	}
-	
-	public function getAllFilesWithoutSilan() {
-		$con = Propel::getConnection();
-	
-		$sql = <<<SQL
-SELECT f.id,
-       f.filepath AS fp
-FROM media_audiofile as f
-WHERE file_exists = 'TRUE'
-  AND silan_check IS FALSE Limit 100
-SQL;
-		$stmt = $con->prepare($sql);
-	
-		if ($stmt->execute()) {
-			$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-		} else {
-			$msg = implode(',', $stmt->errorInfo());
-			throw new Exception("Error: $msg");
-		}
-	
-		return $rows;
-	}
-	
-	public function getAllFilesWithoutReplayGain($dir_id=null)
-	{
-		$con = Propel::getConnection();
-	
-		$sql = <<<SQL
-SELECT id,
-       filepath AS fp
-FROM media_audiofile as f
-WHERE directory = :dir_id
-  AND file_exists = 'TRUE'
-  AND replay_gain IS NULL LIMIT 100
-SQL;
-	
-		$stmt = $con->prepare($sql);
-		$stmt->bindParam(':dir_id', $dir_id);
-	
-		if ($stmt->execute()) {
-			$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-		} else {
-			$msg = implode(',', $stmt->errorInfo());
-			throw new Exception("Error: $msg");
-		}
-	
-		return $rows;
-	}
-	
-	/**
-	 *
-	 * Enter description here ...
-	 * @param $dir_id - if this is not provided, it returns all files with full
-	 * path constructed.
-	 */
-	public function listAllFiles($dir_id=null, $onlyExists=true)
-	{
-		$con = Propel::getConnection();
-	
-		$sql = <<<SQL
-SELECT filepath AS fp
-FROM media_audiofile as f
-WHERE f.directory = :dir_id
-SQL;
-		
-		if ($onlyExists) {
-			$sql .= " AND f.file_exists = 'TRUE'";
-		}
-	
-		$stmt = $con->prepare($sql);
-		$stmt->bindParam(':dir_id', $dir_id);
-	
-		if ($stmt->execute()) {
-			$rows = $stmt->fetchAll();
-		} else {
-			$msg = implode(',', $stmt->errorInfo());
-			throw new Exception("Error: $msg");
-		}
-	
-		$results = array();
-		foreach ($rows as $row) {
-			$results[] = $row["fp"];
-		}
-	
-		return $results;
-	}
-	
-	public function createContextMenu($audioFile) {
-		
-		$baseUrl = Application_Common_OsPath::getBaseDir();
-		
-		$id = $audioFile->getId();
-		
-		$menu = array();
-		
-		$menu["preview"] = array(
-			"name" => _("Preview"),
-			"icon" => "play",
-			"id" => $id,
-			"callback" => "previewItem"
-		);
-		
-		$menu["edit"] = array(
-			"name"=> _("Edit Metadata"), 
-			"icon" => "edit", 
-			"url" => $baseUrl."library/edit-file-md/id/{$id}",
-			"callback" => "editMetadata"
-		);
-		
-		$url = $audioFile->getFileUrl().'/download/true';
-		$menu["download"] = array(
-			"name" => _("Download"), 
-			"icon" => "download", 
-			"url" => $url,
-			"callback" => "downloadItem"
-		);
-		
-		$menu["delete"] = array(
-			"name" => _("Delete"),
-			"icon" => "delete",
-			"id" => $id,
-			"callback" => "deleteItem"
-		);
-		
-		return $menu;
 	}
 }

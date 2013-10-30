@@ -16,6 +16,8 @@ use \PropelException;
 use \PropelObjectCollection;
 use \PropelPDO;
 use \PropelQuery;
+use Airtime\CcSchedule;
+use Airtime\CcScheduleQuery;
 use Airtime\CcSubjs;
 use Airtime\CcSubjsQuery;
 use Airtime\MediaItem;
@@ -25,8 +27,8 @@ use Airtime\MediaItem\AudioFile;
 use Airtime\MediaItem\AudioFileQuery;
 use Airtime\MediaItem\Block;
 use Airtime\MediaItem\BlockQuery;
-use Airtime\MediaItem\MediaContents;
-use Airtime\MediaItem\MediaContentsQuery;
+use Airtime\MediaItem\MediaContent;
+use Airtime\MediaItem\MediaContentQuery;
 use Airtime\MediaItem\Playlist;
 use Airtime\MediaItem\PlaylistQuery;
 use Airtime\MediaItem\Webstream;
@@ -128,10 +130,16 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
     protected $aCcSubjs;
 
     /**
-     * @var        PropelObjectCollection|MediaContents[] Collection to store aggregation of MediaContents objects.
+     * @var        PropelObjectCollection|CcSchedule[] Collection to store aggregation of CcSchedule objects.
      */
-    protected $collMediaContentss;
-    protected $collMediaContentssPartial;
+    protected $collCcSchedules;
+    protected $collCcSchedulesPartial;
+
+    /**
+     * @var        PropelObjectCollection|MediaContent[] Collection to store aggregation of MediaContent objects.
+     */
+    protected $collMediaContents;
+    protected $collMediaContentsPartial;
 
     /**
      * @var        AudioFile one-to-one related AudioFile object
@@ -177,7 +185,13 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
      * An array of objects scheduled for deletion.
      * @var		PropelObjectCollection
      */
-    protected $mediaContentssScheduledForDeletion = null;
+    protected $ccSchedulesScheduledForDeletion = null;
+
+    /**
+     * An array of objects scheduled for deletion.
+     * @var		PropelObjectCollection
+     */
+    protected $mediaContentsScheduledForDeletion = null;
 
     /**
      * Applies default values to this object.
@@ -251,7 +265,7 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
      *
      * @param string $format The date/time format string (either date()-style or strftime()-style).
      *				 If format is null, then the raw DateTime object will be returned.
-     * @return mixed Formatted date/time value as string or DateTime object (if format is null), null if column is null
+     * @return mixed Formatted date/time value as string or \DateTime object (if format is null), null if column is null
      * @throws PropelException - if unable to parse/validate the date/time value.
      */
     public function getLastPlayedTime($format = 'Y-m-d H:i:s')
@@ -262,13 +276,13 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
 
 
         try {
-            $dt = new DateTime($this->last_played);
+            $dt = new \DateTime($this->last_played);
         } catch (Exception $x) {
-            throw new PropelException("Internally stored date/time/timestamp value could not be converted to DateTime: " . var_export($this->last_played, true), $x);
+            throw new PropelException("Internally stored date/time/timestamp value could not be converted to \DateTime: " . var_export($this->last_played, true), $x);
         }
 
         if ($format === null) {
-            // Because propel.useDateTimeClass is true, we return a DateTime object.
+            // Because propel.useDateTimeClass is true, we return a \DateTime object.
             return $dt;
         }
 
@@ -308,7 +322,7 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
      *
      * @param string $format The date/time format string (either date()-style or strftime()-style).
      *				 If format is null, then the raw DateTime object will be returned.
-     * @return mixed Formatted date/time value as string or DateTime object (if format is null), null if column is null
+     * @return mixed Formatted date/time value as string or \DateTime object (if format is null), null if column is null
      * @throws PropelException - if unable to parse/validate the date/time value.
      */
     public function getCreatedAt($format = 'Y-m-d H:i:s')
@@ -319,13 +333,13 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
 
 
         try {
-            $dt = new DateTime($this->created_at);
+            $dt = new \DateTime($this->created_at);
         } catch (Exception $x) {
-            throw new PropelException("Internally stored date/time/timestamp value could not be converted to DateTime: " . var_export($this->created_at, true), $x);
+            throw new PropelException("Internally stored date/time/timestamp value could not be converted to \DateTime: " . var_export($this->created_at, true), $x);
         }
 
         if ($format === null) {
-            // Because propel.useDateTimeClass is true, we return a DateTime object.
+            // Because propel.useDateTimeClass is true, we return a \DateTime object.
             return $dt;
         }
 
@@ -343,7 +357,7 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
      *
      * @param string $format The date/time format string (either date()-style or strftime()-style).
      *				 If format is null, then the raw DateTime object will be returned.
-     * @return mixed Formatted date/time value as string or DateTime object (if format is null), null if column is null
+     * @return mixed Formatted date/time value as string or \DateTime object (if format is null), null if column is null
      * @throws PropelException - if unable to parse/validate the date/time value.
      */
     public function getUpdatedAt($format = 'Y-m-d H:i:s')
@@ -354,13 +368,13 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
 
 
         try {
-            $dt = new DateTime($this->updated_at);
+            $dt = new \DateTime($this->updated_at);
         } catch (Exception $x) {
-            throw new PropelException("Internally stored date/time/timestamp value could not be converted to DateTime: " . var_export($this->updated_at, true), $x);
+            throw new PropelException("Internally stored date/time/timestamp value could not be converted to \DateTime: " . var_export($this->updated_at, true), $x);
         }
 
         if ($format === null) {
-            // Because propel.useDateTimeClass is true, we return a DateTime object.
+            // Because propel.useDateTimeClass is true, we return a \DateTime object.
             return $dt;
         }
 
@@ -480,9 +494,9 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
      */
     public function setLastPlayedTime($v)
     {
-        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
+        $dt = PropelDateTime::newInstance($v, null, '\DateTime');
         if ($this->last_played !== null || $dt !== null) {
-            $currentDateAsString = ($this->last_played !== null && $tmpDt = new DateTime($this->last_played)) ? $tmpDt->format('Y-m-d H:i:s') : null;
+            $currentDateAsString = ($this->last_played !== null && $tmpDt = new \DateTime($this->last_played)) ? $tmpDt->format('Y-m-d H:i:s') : null;
             $newDateAsString = $dt ? $dt->format('Y-m-d H:i:s') : null;
             if ($currentDateAsString !== $newDateAsString) {
                 $this->last_played = $newDateAsString;
@@ -545,9 +559,9 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
      */
     public function setCreatedAt($v)
     {
-        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
+        $dt = PropelDateTime::newInstance($v, null, '\DateTime');
         if ($this->created_at !== null || $dt !== null) {
-            $currentDateAsString = ($this->created_at !== null && $tmpDt = new DateTime($this->created_at)) ? $tmpDt->format('Y-m-d H:i:s') : null;
+            $currentDateAsString = ($this->created_at !== null && $tmpDt = new \DateTime($this->created_at)) ? $tmpDt->format('Y-m-d H:i:s') : null;
             $newDateAsString = $dt ? $dt->format('Y-m-d H:i:s') : null;
             if ($currentDateAsString !== $newDateAsString) {
                 $this->created_at = $newDateAsString;
@@ -568,9 +582,9 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
      */
     public function setUpdatedAt($v)
     {
-        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
+        $dt = PropelDateTime::newInstance($v, null, '\DateTime');
         if ($this->updated_at !== null || $dt !== null) {
-            $currentDateAsString = ($this->updated_at !== null && $tmpDt = new DateTime($this->updated_at)) ? $tmpDt->format('Y-m-d H:i:s') : null;
+            $currentDateAsString = ($this->updated_at !== null && $tmpDt = new \DateTime($this->updated_at)) ? $tmpDt->format('Y-m-d H:i:s') : null;
             $newDateAsString = $dt ? $dt->format('Y-m-d H:i:s') : null;
             if ($currentDateAsString !== $newDateAsString) {
                 $this->updated_at = $newDateAsString;
@@ -728,7 +742,9 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
         if ($deep) {  // also de-associate any related objects?
 
             $this->aCcSubjs = null;
-            $this->collMediaContentss = null;
+            $this->collCcSchedules = null;
+
+            $this->collMediaContents = null;
 
             $this->singleAudioFile = null;
 
@@ -885,17 +901,34 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
                 $this->resetModified();
             }
 
-            if ($this->mediaContentssScheduledForDeletion !== null) {
-                if (!$this->mediaContentssScheduledForDeletion->isEmpty()) {
-                    MediaContentsQuery::create()
-                        ->filterByPrimaryKeys($this->mediaContentssScheduledForDeletion->getPrimaryKeys(false))
+            if ($this->ccSchedulesScheduledForDeletion !== null) {
+                if (!$this->ccSchedulesScheduledForDeletion->isEmpty()) {
+                    CcScheduleQuery::create()
+                        ->filterByPrimaryKeys($this->ccSchedulesScheduledForDeletion->getPrimaryKeys(false))
                         ->delete($con);
-                    $this->mediaContentssScheduledForDeletion = null;
+                    $this->ccSchedulesScheduledForDeletion = null;
                 }
             }
 
-            if ($this->collMediaContentss !== null) {
-                foreach ($this->collMediaContentss as $referrerFK) {
+            if ($this->collCcSchedules !== null) {
+                foreach ($this->collCcSchedules as $referrerFK) {
+                    if (!$referrerFK->isDeleted() && ($referrerFK->isNew() || $referrerFK->isModified())) {
+                        $affectedRows += $referrerFK->save($con);
+                    }
+                }
+            }
+
+            if ($this->mediaContentsScheduledForDeletion !== null) {
+                if (!$this->mediaContentsScheduledForDeletion->isEmpty()) {
+                    MediaContentQuery::create()
+                        ->filterByPrimaryKeys($this->mediaContentsScheduledForDeletion->getPrimaryKeys(false))
+                        ->delete($con);
+                    $this->mediaContentsScheduledForDeletion = null;
+                }
+            }
+
+            if ($this->collMediaContents !== null) {
+                foreach ($this->collMediaContents as $referrerFK) {
                     if (!$referrerFK->isDeleted() && ($referrerFK->isNew() || $referrerFK->isModified())) {
                         $affectedRows += $referrerFK->save($con);
                     }
@@ -1137,8 +1170,16 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
             }
 
 
-                if ($this->collMediaContentss !== null) {
-                    foreach ($this->collMediaContentss as $referrerFK) {
+                if ($this->collCcSchedules !== null) {
+                    foreach ($this->collCcSchedules as $referrerFK) {
+                        if (!$referrerFK->validate($columns)) {
+                            $failureMap = array_merge($failureMap, $referrerFK->getValidationFailures());
+                        }
+                    }
+                }
+
+                if ($this->collMediaContents !== null) {
+                    foreach ($this->collMediaContents as $referrerFK) {
                         if (!$referrerFK->validate($columns)) {
                             $failureMap = array_merge($failureMap, $referrerFK->getValidationFailures());
                         }
@@ -1283,8 +1324,11 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
             if (null !== $this->aCcSubjs) {
                 $result['CcSubjs'] = $this->aCcSubjs->toArray($keyType, $includeLazyLoadColumns,  $alreadyDumpedObjects, true);
             }
-            if (null !== $this->collMediaContentss) {
-                $result['MediaContentss'] = $this->collMediaContentss->toArray(null, true, $keyType, $includeLazyLoadColumns, $alreadyDumpedObjects);
+            if (null !== $this->collCcSchedules) {
+                $result['CcSchedules'] = $this->collCcSchedules->toArray(null, true, $keyType, $includeLazyLoadColumns, $alreadyDumpedObjects);
+            }
+            if (null !== $this->collMediaContents) {
+                $result['MediaContents'] = $this->collMediaContents->toArray(null, true, $keyType, $includeLazyLoadColumns, $alreadyDumpedObjects);
             }
             if (null !== $this->singleAudioFile) {
                 $result['AudioFile'] = $this->singleAudioFile->toArray($keyType, $includeLazyLoadColumns, $alreadyDumpedObjects, true);
@@ -1497,9 +1541,15 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
             // store object hash to prevent cycle
             $this->startCopy = true;
 
-            foreach ($this->getMediaContentss() as $relObj) {
+            foreach ($this->getCcSchedules() as $relObj) {
                 if ($relObj !== $this) {  // ensure that we don't try to copy a reference to ourselves
-                    $copyObj->addMediaContents($relObj->copy($deepCopy));
+                    $copyObj->addCcSchedule($relObj->copy($deepCopy));
+                }
+            }
+
+            foreach ($this->getMediaContents() as $relObj) {
+                if ($relObj !== $this) {  // ensure that we don't try to copy a reference to ourselves
+                    $copyObj->addMediaContent($relObj->copy($deepCopy));
                 }
             }
 
@@ -1636,42 +1686,45 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
      */
     public function initRelation($relationName)
     {
-        if ('MediaContents' == $relationName) {
-            $this->initMediaContentss();
+        if ('CcSchedule' == $relationName) {
+            $this->initCcSchedules();
+        }
+        if ('MediaContent' == $relationName) {
+            $this->initMediaContents();
         }
     }
 
     /**
-     * Clears out the collMediaContentss collection
+     * Clears out the collCcSchedules collection
      *
      * This does not modify the database; however, it will remove any associated objects, causing
      * them to be refetched by subsequent calls to accessor method.
      *
      * @return MediaItem The current object (for fluent API support)
-     * @see        addMediaContentss()
+     * @see        addCcSchedules()
      */
-    public function clearMediaContentss()
+    public function clearCcSchedules()
     {
-        $this->collMediaContentss = null; // important to set this to null since that means it is uninitialized
-        $this->collMediaContentssPartial = null;
+        $this->collCcSchedules = null; // important to set this to null since that means it is uninitialized
+        $this->collCcSchedulesPartial = null;
 
         return $this;
     }
 
     /**
-     * reset is the collMediaContentss collection loaded partially
+     * reset is the collCcSchedules collection loaded partially
      *
      * @return void
      */
-    public function resetPartialMediaContentss($v = true)
+    public function resetPartialCcSchedules($v = true)
     {
-        $this->collMediaContentssPartial = $v;
+        $this->collCcSchedulesPartial = $v;
     }
 
     /**
-     * Initializes the collMediaContentss collection.
+     * Initializes the collCcSchedules collection.
      *
-     * By default this just sets the collMediaContentss collection to an empty array (like clearcollMediaContentss());
+     * By default this just sets the collCcSchedules collection to an empty array (like clearcollCcSchedules());
      * however, you may wish to override this method in your stub class to provide setting appropriate
      * to your application -- for example, setting the initial array to the values stored in database.
      *
@@ -1680,17 +1733,17 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
      *
      * @return void
      */
-    public function initMediaContentss($overrideExisting = true)
+    public function initCcSchedules($overrideExisting = true)
     {
-        if (null !== $this->collMediaContentss && !$overrideExisting) {
+        if (null !== $this->collCcSchedules && !$overrideExisting) {
             return;
         }
-        $this->collMediaContentss = new PropelObjectCollection();
-        $this->collMediaContentss->setModel('MediaContents');
+        $this->collCcSchedules = new PropelObjectCollection();
+        $this->collCcSchedules->setModel('CcSchedule');
     }
 
     /**
-     * Gets an array of MediaContents objects which contain a foreign key that references this object.
+     * Gets an array of CcSchedule objects which contain a foreign key that references this object.
      *
      * If the $criteria is not null, it is used to always fetch the results from the database.
      * Otherwise the results are fetched from the database the first time, then cached.
@@ -1700,107 +1753,107 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
      *
      * @param Criteria $criteria optional Criteria object to narrow the query
      * @param PropelPDO $con optional connection object
-     * @return PropelObjectCollection|MediaContents[] List of MediaContents objects
+     * @return PropelObjectCollection|CcSchedule[] List of CcSchedule objects
      * @throws PropelException
      */
-    public function getMediaContentss($criteria = null, PropelPDO $con = null)
+    public function getCcSchedules($criteria = null, PropelPDO $con = null)
     {
-        $partial = $this->collMediaContentssPartial && !$this->isNew();
-        if (null === $this->collMediaContentss || null !== $criteria  || $partial) {
-            if ($this->isNew() && null === $this->collMediaContentss) {
+        $partial = $this->collCcSchedulesPartial && !$this->isNew();
+        if (null === $this->collCcSchedules || null !== $criteria  || $partial) {
+            if ($this->isNew() && null === $this->collCcSchedules) {
                 // return empty collection
-                $this->initMediaContentss();
+                $this->initCcSchedules();
             } else {
-                $collMediaContentss = MediaContentsQuery::create(null, $criteria)
+                $collCcSchedules = CcScheduleQuery::create(null, $criteria)
                     ->filterByMediaItem($this)
                     ->find($con);
                 if (null !== $criteria) {
-                    if (false !== $this->collMediaContentssPartial && count($collMediaContentss)) {
-                      $this->initMediaContentss(false);
+                    if (false !== $this->collCcSchedulesPartial && count($collCcSchedules)) {
+                      $this->initCcSchedules(false);
 
-                      foreach ($collMediaContentss as $obj) {
-                        if (false == $this->collMediaContentss->contains($obj)) {
-                          $this->collMediaContentss->append($obj);
+                      foreach ($collCcSchedules as $obj) {
+                        if (false == $this->collCcSchedules->contains($obj)) {
+                          $this->collCcSchedules->append($obj);
                         }
                       }
 
-                      $this->collMediaContentssPartial = true;
+                      $this->collCcSchedulesPartial = true;
                     }
 
-                    $collMediaContentss->getInternalIterator()->rewind();
+                    $collCcSchedules->getInternalIterator()->rewind();
 
-                    return $collMediaContentss;
+                    return $collCcSchedules;
                 }
 
-                if ($partial && $this->collMediaContentss) {
-                    foreach ($this->collMediaContentss as $obj) {
+                if ($partial && $this->collCcSchedules) {
+                    foreach ($this->collCcSchedules as $obj) {
                         if ($obj->isNew()) {
-                            $collMediaContentss[] = $obj;
+                            $collCcSchedules[] = $obj;
                         }
                     }
                 }
 
-                $this->collMediaContentss = $collMediaContentss;
-                $this->collMediaContentssPartial = false;
+                $this->collCcSchedules = $collCcSchedules;
+                $this->collCcSchedulesPartial = false;
             }
         }
 
-        return $this->collMediaContentss;
+        return $this->collCcSchedules;
     }
 
     /**
-     * Sets a collection of MediaContents objects related by a one-to-many relationship
+     * Sets a collection of CcSchedule objects related by a one-to-many relationship
      * to the current object.
      * It will also schedule objects for deletion based on a diff between old objects (aka persisted)
      * and new objects from the given Propel collection.
      *
-     * @param PropelCollection $mediaContentss A Propel collection.
+     * @param PropelCollection $ccSchedules A Propel collection.
      * @param PropelPDO $con Optional connection object
      * @return MediaItem The current object (for fluent API support)
      */
-    public function setMediaContentss(PropelCollection $mediaContentss, PropelPDO $con = null)
+    public function setCcSchedules(PropelCollection $ccSchedules, PropelPDO $con = null)
     {
-        $mediaContentssToDelete = $this->getMediaContentss(new Criteria(), $con)->diff($mediaContentss);
+        $ccSchedulesToDelete = $this->getCcSchedules(new Criteria(), $con)->diff($ccSchedules);
 
 
-        $this->mediaContentssScheduledForDeletion = $mediaContentssToDelete;
+        $this->ccSchedulesScheduledForDeletion = $ccSchedulesToDelete;
 
-        foreach ($mediaContentssToDelete as $mediaContentsRemoved) {
-            $mediaContentsRemoved->setMediaItem(null);
+        foreach ($ccSchedulesToDelete as $ccScheduleRemoved) {
+            $ccScheduleRemoved->setMediaItem(null);
         }
 
-        $this->collMediaContentss = null;
-        foreach ($mediaContentss as $mediaContents) {
-            $this->addMediaContents($mediaContents);
+        $this->collCcSchedules = null;
+        foreach ($ccSchedules as $ccSchedule) {
+            $this->addCcSchedule($ccSchedule);
         }
 
-        $this->collMediaContentss = $mediaContentss;
-        $this->collMediaContentssPartial = false;
+        $this->collCcSchedules = $ccSchedules;
+        $this->collCcSchedulesPartial = false;
 
         return $this;
     }
 
     /**
-     * Returns the number of related MediaContents objects.
+     * Returns the number of related CcSchedule objects.
      *
      * @param Criteria $criteria
      * @param boolean $distinct
      * @param PropelPDO $con
-     * @return int             Count of related MediaContents objects.
+     * @return int             Count of related CcSchedule objects.
      * @throws PropelException
      */
-    public function countMediaContentss(Criteria $criteria = null, $distinct = false, PropelPDO $con = null)
+    public function countCcSchedules(Criteria $criteria = null, $distinct = false, PropelPDO $con = null)
     {
-        $partial = $this->collMediaContentssPartial && !$this->isNew();
-        if (null === $this->collMediaContentss || null !== $criteria || $partial) {
-            if ($this->isNew() && null === $this->collMediaContentss) {
+        $partial = $this->collCcSchedulesPartial && !$this->isNew();
+        if (null === $this->collCcSchedules || null !== $criteria || $partial) {
+            if ($this->isNew() && null === $this->collCcSchedules) {
                 return 0;
             }
 
             if ($partial && !$criteria) {
-                return count($this->getMediaContentss());
+                return count($this->getCcSchedules());
             }
-            $query = MediaContentsQuery::create(null, $criteria);
+            $query = CcScheduleQuery::create(null, $criteria);
             if ($distinct) {
                 $query->distinct();
             }
@@ -1810,28 +1863,28 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
                 ->count($con);
         }
 
-        return count($this->collMediaContentss);
+        return count($this->collCcSchedules);
     }
 
     /**
-     * Method called to associate a MediaContents object to this object
-     * through the MediaContents foreign key attribute.
+     * Method called to associate a CcSchedule object to this object
+     * through the CcSchedule foreign key attribute.
      *
-     * @param    MediaContents $l MediaContents
+     * @param    CcSchedule $l CcSchedule
      * @return MediaItem The current object (for fluent API support)
      */
-    public function addMediaContents(MediaContents $l)
+    public function addCcSchedule(CcSchedule $l)
     {
-        if ($this->collMediaContentss === null) {
-            $this->initMediaContentss();
-            $this->collMediaContentssPartial = true;
+        if ($this->collCcSchedules === null) {
+            $this->initCcSchedules();
+            $this->collCcSchedulesPartial = true;
         }
 
-        if (!in_array($l, $this->collMediaContentss->getArrayCopy(), true)) { // only add it if the **same** object is not already associated
-            $this->doAddMediaContents($l);
+        if (!in_array($l, $this->collCcSchedules->getArrayCopy(), true)) { // only add it if the **same** object is not already associated
+            $this->doAddCcSchedule($l);
 
-            if ($this->mediaContentssScheduledForDeletion and $this->mediaContentssScheduledForDeletion->contains($l)) {
-                $this->mediaContentssScheduledForDeletion->remove($this->mediaContentssScheduledForDeletion->search($l));
+            if ($this->ccSchedulesScheduledForDeletion and $this->ccSchedulesScheduledForDeletion->contains($l)) {
+                $this->ccSchedulesScheduledForDeletion->remove($this->ccSchedulesScheduledForDeletion->search($l));
             }
         }
 
@@ -1839,28 +1892,328 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
     }
 
     /**
-     * @param	MediaContents $mediaContents The mediaContents object to add.
+     * @param	CcSchedule $ccSchedule The ccSchedule object to add.
      */
-    protected function doAddMediaContents($mediaContents)
+    protected function doAddCcSchedule($ccSchedule)
     {
-        $this->collMediaContentss[]= $mediaContents;
-        $mediaContents->setMediaItem($this);
+        $this->collCcSchedules[]= $ccSchedule;
+        $ccSchedule->setMediaItem($this);
     }
 
     /**
-     * @param	MediaContents $mediaContents The mediaContents object to remove.
+     * @param	CcSchedule $ccSchedule The ccSchedule object to remove.
      * @return MediaItem The current object (for fluent API support)
      */
-    public function removeMediaContents($mediaContents)
+    public function removeCcSchedule($ccSchedule)
     {
-        if ($this->getMediaContentss()->contains($mediaContents)) {
-            $this->collMediaContentss->remove($this->collMediaContentss->search($mediaContents));
-            if (null === $this->mediaContentssScheduledForDeletion) {
-                $this->mediaContentssScheduledForDeletion = clone $this->collMediaContentss;
-                $this->mediaContentssScheduledForDeletion->clear();
+        if ($this->getCcSchedules()->contains($ccSchedule)) {
+            $this->collCcSchedules->remove($this->collCcSchedules->search($ccSchedule));
+            if (null === $this->ccSchedulesScheduledForDeletion) {
+                $this->ccSchedulesScheduledForDeletion = clone $this->collCcSchedules;
+                $this->ccSchedulesScheduledForDeletion->clear();
             }
-            $this->mediaContentssScheduledForDeletion[]= $mediaContents;
-            $mediaContents->setMediaItem(null);
+            $this->ccSchedulesScheduledForDeletion[]= $ccSchedule;
+            $ccSchedule->setMediaItem(null);
+        }
+
+        return $this;
+    }
+
+
+    /**
+     * If this collection has already been initialized with
+     * an identical criteria, it returns the collection.
+     * Otherwise if this MediaItem is new, it will return
+     * an empty collection; or if this MediaItem has previously
+     * been saved, it will retrieve related CcSchedules from storage.
+     *
+     * This method is protected by default in order to keep the public
+     * api reasonable.  You can provide public methods for those you
+     * actually need in MediaItem.
+     *
+     * @param Criteria $criteria optional Criteria object to narrow the query
+     * @param PropelPDO $con optional connection object
+     * @param string $join_behavior optional join type to use (defaults to Criteria::LEFT_JOIN)
+     * @return PropelObjectCollection|CcSchedule[] List of CcSchedule objects
+     */
+    public function getCcSchedulesJoinCcShowInstances($criteria = null, $con = null, $join_behavior = Criteria::LEFT_JOIN)
+    {
+        $query = CcScheduleQuery::create(null, $criteria);
+        $query->joinWith('CcShowInstances', $join_behavior);
+
+        return $this->getCcSchedules($query, $con);
+    }
+
+
+    /**
+     * If this collection has already been initialized with
+     * an identical criteria, it returns the collection.
+     * Otherwise if this MediaItem is new, it will return
+     * an empty collection; or if this MediaItem has previously
+     * been saved, it will retrieve related CcSchedules from storage.
+     *
+     * This method is protected by default in order to keep the public
+     * api reasonable.  You can provide public methods for those you
+     * actually need in MediaItem.
+     *
+     * @param Criteria $criteria optional Criteria object to narrow the query
+     * @param PropelPDO $con optional connection object
+     * @param string $join_behavior optional join type to use (defaults to Criteria::LEFT_JOIN)
+     * @return PropelObjectCollection|CcSchedule[] List of CcSchedule objects
+     */
+    public function getCcSchedulesJoinCcFiles($criteria = null, $con = null, $join_behavior = Criteria::LEFT_JOIN)
+    {
+        $query = CcScheduleQuery::create(null, $criteria);
+        $query->joinWith('CcFiles', $join_behavior);
+
+        return $this->getCcSchedules($query, $con);
+    }
+
+
+    /**
+     * If this collection has already been initialized with
+     * an identical criteria, it returns the collection.
+     * Otherwise if this MediaItem is new, it will return
+     * an empty collection; or if this MediaItem has previously
+     * been saved, it will retrieve related CcSchedules from storage.
+     *
+     * This method is protected by default in order to keep the public
+     * api reasonable.  You can provide public methods for those you
+     * actually need in MediaItem.
+     *
+     * @param Criteria $criteria optional Criteria object to narrow the query
+     * @param PropelPDO $con optional connection object
+     * @param string $join_behavior optional join type to use (defaults to Criteria::LEFT_JOIN)
+     * @return PropelObjectCollection|CcSchedule[] List of CcSchedule objects
+     */
+    public function getCcSchedulesJoinCcWebstream($criteria = null, $con = null, $join_behavior = Criteria::LEFT_JOIN)
+    {
+        $query = CcScheduleQuery::create(null, $criteria);
+        $query->joinWith('CcWebstream', $join_behavior);
+
+        return $this->getCcSchedules($query, $con);
+    }
+
+    /**
+     * Clears out the collMediaContents collection
+     *
+     * This does not modify the database; however, it will remove any associated objects, causing
+     * them to be refetched by subsequent calls to accessor method.
+     *
+     * @return MediaItem The current object (for fluent API support)
+     * @see        addMediaContents()
+     */
+    public function clearMediaContents()
+    {
+        $this->collMediaContents = null; // important to set this to null since that means it is uninitialized
+        $this->collMediaContentsPartial = null;
+
+        return $this;
+    }
+
+    /**
+     * reset is the collMediaContents collection loaded partially
+     *
+     * @return void
+     */
+    public function resetPartialMediaContents($v = true)
+    {
+        $this->collMediaContentsPartial = $v;
+    }
+
+    /**
+     * Initializes the collMediaContents collection.
+     *
+     * By default this just sets the collMediaContents collection to an empty array (like clearcollMediaContents());
+     * however, you may wish to override this method in your stub class to provide setting appropriate
+     * to your application -- for example, setting the initial array to the values stored in database.
+     *
+     * @param boolean $overrideExisting If set to true, the method call initializes
+     *                                        the collection even if it is not empty
+     *
+     * @return void
+     */
+    public function initMediaContents($overrideExisting = true)
+    {
+        if (null !== $this->collMediaContents && !$overrideExisting) {
+            return;
+        }
+        $this->collMediaContents = new PropelObjectCollection();
+        $this->collMediaContents->setModel('MediaContent');
+    }
+
+    /**
+     * Gets an array of MediaContent objects which contain a foreign key that references this object.
+     *
+     * If the $criteria is not null, it is used to always fetch the results from the database.
+     * Otherwise the results are fetched from the database the first time, then cached.
+     * Next time the same method is called without $criteria, the cached collection is returned.
+     * If this MediaItem is new, it will return
+     * an empty collection or the current collection; the criteria is ignored on a new object.
+     *
+     * @param Criteria $criteria optional Criteria object to narrow the query
+     * @param PropelPDO $con optional connection object
+     * @return PropelObjectCollection|MediaContent[] List of MediaContent objects
+     * @throws PropelException
+     */
+    public function getMediaContents($criteria = null, PropelPDO $con = null)
+    {
+        $partial = $this->collMediaContentsPartial && !$this->isNew();
+        if (null === $this->collMediaContents || null !== $criteria  || $partial) {
+            if ($this->isNew() && null === $this->collMediaContents) {
+                // return empty collection
+                $this->initMediaContents();
+            } else {
+                $collMediaContents = MediaContentQuery::create(null, $criteria)
+                    ->filterByMediaItem($this)
+                    ->find($con);
+                if (null !== $criteria) {
+                    if (false !== $this->collMediaContentsPartial && count($collMediaContents)) {
+                      $this->initMediaContents(false);
+
+                      foreach ($collMediaContents as $obj) {
+                        if (false == $this->collMediaContents->contains($obj)) {
+                          $this->collMediaContents->append($obj);
+                        }
+                      }
+
+                      $this->collMediaContentsPartial = true;
+                    }
+
+                    $collMediaContents->getInternalIterator()->rewind();
+
+                    return $collMediaContents;
+                }
+
+                if ($partial && $this->collMediaContents) {
+                    foreach ($this->collMediaContents as $obj) {
+                        if ($obj->isNew()) {
+                            $collMediaContents[] = $obj;
+                        }
+                    }
+                }
+
+                $this->collMediaContents = $collMediaContents;
+                $this->collMediaContentsPartial = false;
+            }
+        }
+
+        return $this->collMediaContents;
+    }
+
+    /**
+     * Sets a collection of MediaContent objects related by a one-to-many relationship
+     * to the current object.
+     * It will also schedule objects for deletion based on a diff between old objects (aka persisted)
+     * and new objects from the given Propel collection.
+     *
+     * @param PropelCollection $mediaContents A Propel collection.
+     * @param PropelPDO $con Optional connection object
+     * @return MediaItem The current object (for fluent API support)
+     */
+    public function setMediaContents(PropelCollection $mediaContents, PropelPDO $con = null)
+    {
+        $mediaContentsToDelete = $this->getMediaContents(new Criteria(), $con)->diff($mediaContents);
+
+
+        $this->mediaContentsScheduledForDeletion = $mediaContentsToDelete;
+
+        foreach ($mediaContentsToDelete as $mediaContentRemoved) {
+            $mediaContentRemoved->setMediaItem(null);
+        }
+
+        $this->collMediaContents = null;
+        foreach ($mediaContents as $mediaContent) {
+            $this->addMediaContent($mediaContent);
+        }
+
+        $this->collMediaContents = $mediaContents;
+        $this->collMediaContentsPartial = false;
+
+        return $this;
+    }
+
+    /**
+     * Returns the number of related MediaContent objects.
+     *
+     * @param Criteria $criteria
+     * @param boolean $distinct
+     * @param PropelPDO $con
+     * @return int             Count of related MediaContent objects.
+     * @throws PropelException
+     */
+    public function countMediaContents(Criteria $criteria = null, $distinct = false, PropelPDO $con = null)
+    {
+        $partial = $this->collMediaContentsPartial && !$this->isNew();
+        if (null === $this->collMediaContents || null !== $criteria || $partial) {
+            if ($this->isNew() && null === $this->collMediaContents) {
+                return 0;
+            }
+
+            if ($partial && !$criteria) {
+                return count($this->getMediaContents());
+            }
+            $query = MediaContentQuery::create(null, $criteria);
+            if ($distinct) {
+                $query->distinct();
+            }
+
+            return $query
+                ->filterByMediaItem($this)
+                ->count($con);
+        }
+
+        return count($this->collMediaContents);
+    }
+
+    /**
+     * Method called to associate a MediaContent object to this object
+     * through the MediaContent foreign key attribute.
+     *
+     * @param    MediaContent $l MediaContent
+     * @return MediaItem The current object (for fluent API support)
+     */
+    public function addMediaContent(MediaContent $l)
+    {
+        if ($this->collMediaContents === null) {
+            $this->initMediaContents();
+            $this->collMediaContentsPartial = true;
+        }
+
+        if (!in_array($l, $this->collMediaContents->getArrayCopy(), true)) { // only add it if the **same** object is not already associated
+            $this->doAddMediaContent($l);
+
+            if ($this->mediaContentsScheduledForDeletion and $this->mediaContentsScheduledForDeletion->contains($l)) {
+                $this->mediaContentsScheduledForDeletion->remove($this->mediaContentsScheduledForDeletion->search($l));
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param	MediaContent $mediaContent The mediaContent object to add.
+     */
+    protected function doAddMediaContent($mediaContent)
+    {
+        $this->collMediaContents[]= $mediaContent;
+        $mediaContent->setMediaItem($this);
+    }
+
+    /**
+     * @param	MediaContent $mediaContent The mediaContent object to remove.
+     * @return MediaItem The current object (for fluent API support)
+     */
+    public function removeMediaContent($mediaContent)
+    {
+        if ($this->getMediaContents()->contains($mediaContent)) {
+            $this->collMediaContents->remove($this->collMediaContents->search($mediaContent));
+            if (null === $this->mediaContentsScheduledForDeletion) {
+                $this->mediaContentsScheduledForDeletion = clone $this->collMediaContents;
+                $this->mediaContentsScheduledForDeletion->clear();
+            }
+            $this->mediaContentsScheduledForDeletion[]= $mediaContent;
+            $mediaContent->setMediaItem(null);
         }
 
         return $this;
@@ -2048,8 +2401,13 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
     {
         if ($deep && !$this->alreadyInClearAllReferencesDeep) {
             $this->alreadyInClearAllReferencesDeep = true;
-            if ($this->collMediaContentss) {
-                foreach ($this->collMediaContentss as $o) {
+            if ($this->collCcSchedules) {
+                foreach ($this->collCcSchedules as $o) {
+                    $o->clearAllReferences($deep);
+                }
+            }
+            if ($this->collMediaContents) {
+                foreach ($this->collMediaContents as $o) {
                     $o->clearAllReferences($deep);
                 }
             }
@@ -2072,10 +2430,14 @@ abstract class BaseMediaItem extends BaseObject implements Persistent
             $this->alreadyInClearAllReferencesDeep = false;
         } // if ($deep)
 
-        if ($this->collMediaContentss instanceof PropelCollection) {
-            $this->collMediaContentss->clearIterator();
+        if ($this->collCcSchedules instanceof PropelCollection) {
+            $this->collCcSchedules->clearIterator();
         }
-        $this->collMediaContentss = null;
+        $this->collCcSchedules = null;
+        if ($this->collMediaContents instanceof PropelCollection) {
+            $this->collMediaContents->clearIterator();
+        }
+        $this->collMediaContents = null;
         if ($this->singleAudioFile instanceof PropelCollection) {
             $this->singleAudioFile->clearIterator();
         }

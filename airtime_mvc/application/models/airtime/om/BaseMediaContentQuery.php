@@ -16,15 +16,13 @@ use Airtime\MediaItem;
 use Airtime\MediaItem\MediaContent;
 use Airtime\MediaItem\MediaContentPeer;
 use Airtime\MediaItem\MediaContentQuery;
-use Airtime\MediaItem\Playlist;
 
 /**
  * Base class that represents a query for the 'media_content' table.
  *
  *
  *
- * @method MediaContentQuery orderById($order = Criteria::ASC) Order by the id column
- * @method MediaContentQuery orderByPlaylistId($order = Criteria::ASC) Order by the playlist_id column
+ * @method MediaContentQuery orderByDbId($order = Criteria::ASC) Order by the id column
  * @method MediaContentQuery orderByMediaId($order = Criteria::ASC) Order by the media_id column
  * @method MediaContentQuery orderByPosition($order = Criteria::ASC) Order by the position column
  * @method MediaContentQuery orderByTrackOffset($order = Criteria::ASC) Order by the trackoffset column
@@ -34,8 +32,7 @@ use Airtime\MediaItem\Playlist;
  * @method MediaContentQuery orderByFadein($order = Criteria::ASC) Order by the fadein column
  * @method MediaContentQuery orderByFadeout($order = Criteria::ASC) Order by the fadeout column
  *
- * @method MediaContentQuery groupById() Group by the id column
- * @method MediaContentQuery groupByPlaylistId() Group by the playlist_id column
+ * @method MediaContentQuery groupByDbId() Group by the id column
  * @method MediaContentQuery groupByMediaId() Group by the media_id column
  * @method MediaContentQuery groupByPosition() Group by the position column
  * @method MediaContentQuery groupByTrackOffset() Group by the trackoffset column
@@ -49,10 +46,6 @@ use Airtime\MediaItem\Playlist;
  * @method MediaContentQuery rightJoin($relation) Adds a RIGHT JOIN clause to the query
  * @method MediaContentQuery innerJoin($relation) Adds a INNER JOIN clause to the query
  *
- * @method MediaContentQuery leftJoinPlaylist($relationAlias = null) Adds a LEFT JOIN clause to the query using the Playlist relation
- * @method MediaContentQuery rightJoinPlaylist($relationAlias = null) Adds a RIGHT JOIN clause to the query using the Playlist relation
- * @method MediaContentQuery innerJoinPlaylist($relationAlias = null) Adds a INNER JOIN clause to the query using the Playlist relation
- *
  * @method MediaContentQuery leftJoinMediaItem($relationAlias = null) Adds a LEFT JOIN clause to the query using the MediaItem relation
  * @method MediaContentQuery rightJoinMediaItem($relationAlias = null) Adds a RIGHT JOIN clause to the query using the MediaItem relation
  * @method MediaContentQuery innerJoinMediaItem($relationAlias = null) Adds a INNER JOIN clause to the query using the MediaItem relation
@@ -60,21 +53,19 @@ use Airtime\MediaItem\Playlist;
  * @method MediaContent findOne(PropelPDO $con = null) Return the first MediaContent matching the query
  * @method MediaContent findOneOrCreate(PropelPDO $con = null) Return the first MediaContent matching the query, or a new MediaContent object populated from the query conditions when no match is found
  *
- * @method MediaContent findOneByPlaylistId(int $playlist_id) Return the first MediaContent filtered by the playlist_id column
  * @method MediaContent findOneByMediaId(int $media_id) Return the first MediaContent filtered by the media_id column
  * @method MediaContent findOneByPosition(int $position) Return the first MediaContent filtered by the position column
- * @method MediaContent findOneByTrackOffset(string $trackoffset) Return the first MediaContent filtered by the trackoffset column
+ * @method MediaContent findOneByTrackOffset(double $trackoffset) Return the first MediaContent filtered by the trackoffset column
  * @method MediaContent findOneByCliplength(string $cliplength) Return the first MediaContent filtered by the cliplength column
  * @method MediaContent findOneByCuein(string $cuein) Return the first MediaContent filtered by the cuein column
  * @method MediaContent findOneByCueout(string $cueout) Return the first MediaContent filtered by the cueout column
  * @method MediaContent findOneByFadein(string $fadein) Return the first MediaContent filtered by the fadein column
  * @method MediaContent findOneByFadeout(string $fadeout) Return the first MediaContent filtered by the fadeout column
  *
- * @method array findById(int $id) Return MediaContent objects filtered by the id column
- * @method array findByPlaylistId(int $playlist_id) Return MediaContent objects filtered by the playlist_id column
+ * @method array findByDbId(int $id) Return MediaContent objects filtered by the id column
  * @method array findByMediaId(int $media_id) Return MediaContent objects filtered by the media_id column
  * @method array findByPosition(int $position) Return MediaContent objects filtered by the position column
- * @method array findByTrackOffset(string $trackoffset) Return MediaContent objects filtered by the trackoffset column
+ * @method array findByTrackOffset(double $trackoffset) Return MediaContent objects filtered by the trackoffset column
  * @method array findByCliplength(string $cliplength) Return MediaContent objects filtered by the cliplength column
  * @method array findByCuein(string $cuein) Return MediaContent objects filtered by the cuein column
  * @method array findByCueout(string $cueout) Return MediaContent objects filtered by the cueout column
@@ -170,7 +161,7 @@ abstract class BaseMediaContentQuery extends ModelCriteria
      * @return                 MediaContent A model object, or null if the key is not found
      * @throws PropelException
      */
-     public function findOneById($key, $con = null)
+     public function findOneByDbId($key, $con = null)
      {
         return $this->findPk($key, $con);
      }
@@ -187,7 +178,7 @@ abstract class BaseMediaContentQuery extends ModelCriteria
      */
     protected function findPkSimple($key, $con)
     {
-        $sql = 'SELECT "id", "playlist_id", "media_id", "position", "trackoffset", "cliplength", "cuein", "cueout", "fadein", "fadeout" FROM "media_content" WHERE "id" = :p0';
+        $sql = 'SELECT "id", "media_id", "position", "trackoffset", "cliplength", "cuein", "cueout", "fadein", "fadeout" FROM "media_content" WHERE "id" = :p0';
         try {
             $stmt = $con->prepare($sql);
             $stmt->bindValue(':p0', $key, PDO::PARAM_INT);
@@ -281,13 +272,13 @@ abstract class BaseMediaContentQuery extends ModelCriteria
      *
      * Example usage:
      * <code>
-     * $query->filterById(1234); // WHERE id = 1234
-     * $query->filterById(array(12, 34)); // WHERE id IN (12, 34)
-     * $query->filterById(array('min' => 12)); // WHERE id >= 12
-     * $query->filterById(array('max' => 12)); // WHERE id <= 12
+     * $query->filterByDbId(1234); // WHERE id = 1234
+     * $query->filterByDbId(array(12, 34)); // WHERE id IN (12, 34)
+     * $query->filterByDbId(array('min' => 12)); // WHERE id >= 12
+     * $query->filterByDbId(array('max' => 12)); // WHERE id <= 12
      * </code>
      *
-     * @param     mixed $id The value to use as filter.
+     * @param     mixed $dbId The value to use as filter.
      *              Use scalar values for equality.
      *              Use array values for in_array() equivalent.
      *              Use associative array('min' => $minValue, 'max' => $maxValue) for intervals.
@@ -295,16 +286,16 @@ abstract class BaseMediaContentQuery extends ModelCriteria
      *
      * @return MediaContentQuery The current query, for fluid interface
      */
-    public function filterById($id = null, $comparison = null)
+    public function filterByDbId($dbId = null, $comparison = null)
     {
-        if (is_array($id)) {
+        if (is_array($dbId)) {
             $useMinMax = false;
-            if (isset($id['min'])) {
-                $this->addUsingAlias(MediaContentPeer::ID, $id['min'], Criteria::GREATER_EQUAL);
+            if (isset($dbId['min'])) {
+                $this->addUsingAlias(MediaContentPeer::ID, $dbId['min'], Criteria::GREATER_EQUAL);
                 $useMinMax = true;
             }
-            if (isset($id['max'])) {
-                $this->addUsingAlias(MediaContentPeer::ID, $id['max'], Criteria::LESS_EQUAL);
+            if (isset($dbId['max'])) {
+                $this->addUsingAlias(MediaContentPeer::ID, $dbId['max'], Criteria::LESS_EQUAL);
                 $useMinMax = true;
             }
             if ($useMinMax) {
@@ -315,51 +306,7 @@ abstract class BaseMediaContentQuery extends ModelCriteria
             }
         }
 
-        return $this->addUsingAlias(MediaContentPeer::ID, $id, $comparison);
-    }
-
-    /**
-     * Filter the query on the playlist_id column
-     *
-     * Example usage:
-     * <code>
-     * $query->filterByPlaylistId(1234); // WHERE playlist_id = 1234
-     * $query->filterByPlaylistId(array(12, 34)); // WHERE playlist_id IN (12, 34)
-     * $query->filterByPlaylistId(array('min' => 12)); // WHERE playlist_id >= 12
-     * $query->filterByPlaylistId(array('max' => 12)); // WHERE playlist_id <= 12
-     * </code>
-     *
-     * @see       filterByPlaylist()
-     *
-     * @param     mixed $playlistId The value to use as filter.
-     *              Use scalar values for equality.
-     *              Use array values for in_array() equivalent.
-     *              Use associative array('min' => $minValue, 'max' => $maxValue) for intervals.
-     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
-     *
-     * @return MediaContentQuery The current query, for fluid interface
-     */
-    public function filterByPlaylistId($playlistId = null, $comparison = null)
-    {
-        if (is_array($playlistId)) {
-            $useMinMax = false;
-            if (isset($playlistId['min'])) {
-                $this->addUsingAlias(MediaContentPeer::PLAYLIST_ID, $playlistId['min'], Criteria::GREATER_EQUAL);
-                $useMinMax = true;
-            }
-            if (isset($playlistId['max'])) {
-                $this->addUsingAlias(MediaContentPeer::PLAYLIST_ID, $playlistId['max'], Criteria::LESS_EQUAL);
-                $useMinMax = true;
-            }
-            if ($useMinMax) {
-                return $this;
-            }
-            if (null === $comparison) {
-                $comparison = Criteria::IN;
-            }
-        }
-
-        return $this->addUsingAlias(MediaContentPeer::PLAYLIST_ID, $playlistId, $comparison);
+        return $this->addUsingAlias(MediaContentPeer::ID, $dbId, $comparison);
     }
 
     /**
@@ -453,24 +400,37 @@ abstract class BaseMediaContentQuery extends ModelCriteria
      *
      * Example usage:
      * <code>
-     * $query->filterByTrackOffset('fooValue');   // WHERE trackoffset = 'fooValue'
-     * $query->filterByTrackOffset('%fooValue%'); // WHERE trackoffset LIKE '%fooValue%'
+     * $query->filterByTrackOffset(1234); // WHERE trackoffset = 1234
+     * $query->filterByTrackOffset(array(12, 34)); // WHERE trackoffset IN (12, 34)
+     * $query->filterByTrackOffset(array('min' => 12)); // WHERE trackoffset >= 12
+     * $query->filterByTrackOffset(array('max' => 12)); // WHERE trackoffset <= 12
      * </code>
      *
-     * @param     string $trackOffset The value to use as filter.
-     *              Accepts wildcards (* and % trigger a LIKE)
+     * @param     mixed $trackOffset The value to use as filter.
+     *              Use scalar values for equality.
+     *              Use array values for in_array() equivalent.
+     *              Use associative array('min' => $minValue, 'max' => $maxValue) for intervals.
      * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
      *
      * @return MediaContentQuery The current query, for fluid interface
      */
     public function filterByTrackOffset($trackOffset = null, $comparison = null)
     {
-        if (null === $comparison) {
-            if (is_array($trackOffset)) {
+        if (is_array($trackOffset)) {
+            $useMinMax = false;
+            if (isset($trackOffset['min'])) {
+                $this->addUsingAlias(MediaContentPeer::TRACKOFFSET, $trackOffset['min'], Criteria::GREATER_EQUAL);
+                $useMinMax = true;
+            }
+            if (isset($trackOffset['max'])) {
+                $this->addUsingAlias(MediaContentPeer::TRACKOFFSET, $trackOffset['max'], Criteria::LESS_EQUAL);
+                $useMinMax = true;
+            }
+            if ($useMinMax) {
+                return $this;
+            }
+            if (null === $comparison) {
                 $comparison = Criteria::IN;
-            } elseif (preg_match('/[\%\*]/', $trackOffset)) {
-                $trackOffset = str_replace('*', '%', $trackOffset);
-                $comparison = Criteria::LIKE;
             }
         }
 
@@ -569,13 +529,14 @@ abstract class BaseMediaContentQuery extends ModelCriteria
      *
      * Example usage:
      * <code>
-     * $query->filterByFadein(1234); // WHERE fadein = 1234
-     * $query->filterByFadein(array(12, 34)); // WHERE fadein IN (12, 34)
-     * $query->filterByFadein(array('min' => 12)); // WHERE fadein >= 12
-     * $query->filterByFadein(array('max' => 12)); // WHERE fadein <= 12
+     * $query->filterByFadein('2011-03-14'); // WHERE fadein = '2011-03-14'
+     * $query->filterByFadein('now'); // WHERE fadein = '2011-03-14'
+     * $query->filterByFadein(array('max' => 'yesterday')); // WHERE fadein < '2011-03-13'
      * </code>
      *
      * @param     mixed $fadein The value to use as filter.
+     *              Values can be integers (unix timestamps), DateTime objects, or strings.
+     *              Empty strings are treated as NULL.
      *              Use scalar values for equality.
      *              Use array values for in_array() equivalent.
      *              Use associative array('min' => $minValue, 'max' => $maxValue) for intervals.
@@ -611,13 +572,14 @@ abstract class BaseMediaContentQuery extends ModelCriteria
      *
      * Example usage:
      * <code>
-     * $query->filterByFadeout(1234); // WHERE fadeout = 1234
-     * $query->filterByFadeout(array(12, 34)); // WHERE fadeout IN (12, 34)
-     * $query->filterByFadeout(array('min' => 12)); // WHERE fadeout >= 12
-     * $query->filterByFadeout(array('max' => 12)); // WHERE fadeout <= 12
+     * $query->filterByFadeout('2011-03-14'); // WHERE fadeout = '2011-03-14'
+     * $query->filterByFadeout('now'); // WHERE fadeout = '2011-03-14'
+     * $query->filterByFadeout(array('max' => 'yesterday')); // WHERE fadeout < '2011-03-13'
      * </code>
      *
      * @param     mixed $fadeout The value to use as filter.
+     *              Values can be integers (unix timestamps), DateTime objects, or strings.
+     *              Empty strings are treated as NULL.
      *              Use scalar values for equality.
      *              Use array values for in_array() equivalent.
      *              Use associative array('min' => $minValue, 'max' => $maxValue) for intervals.
@@ -646,82 +608,6 @@ abstract class BaseMediaContentQuery extends ModelCriteria
         }
 
         return $this->addUsingAlias(MediaContentPeer::FADEOUT, $fadeout, $comparison);
-    }
-
-    /**
-     * Filter the query by a related Playlist object
-     *
-     * @param   Playlist|PropelObjectCollection $playlist The related object(s) to use as filter
-     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
-     *
-     * @return                 MediaContentQuery The current query, for fluid interface
-     * @throws PropelException - if the provided filter is invalid.
-     */
-    public function filterByPlaylist($playlist, $comparison = null)
-    {
-        if ($playlist instanceof Playlist) {
-            return $this
-                ->addUsingAlias(MediaContentPeer::PLAYLIST_ID, $playlist->getId(), $comparison);
-        } elseif ($playlist instanceof PropelObjectCollection) {
-            if (null === $comparison) {
-                $comparison = Criteria::IN;
-            }
-
-            return $this
-                ->addUsingAlias(MediaContentPeer::PLAYLIST_ID, $playlist->toKeyValue('PrimaryKey', 'Id'), $comparison);
-        } else {
-            throw new PropelException('filterByPlaylist() only accepts arguments of type Playlist or PropelCollection');
-        }
-    }
-
-    /**
-     * Adds a JOIN clause to the query using the Playlist relation
-     *
-     * @param     string $relationAlias optional alias for the relation
-     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
-     *
-     * @return MediaContentQuery The current query, for fluid interface
-     */
-    public function joinPlaylist($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
-    {
-        $tableMap = $this->getTableMap();
-        $relationMap = $tableMap->getRelation('Playlist');
-
-        // create a ModelJoin object for this join
-        $join = new ModelJoin();
-        $join->setJoinType($joinType);
-        $join->setRelationMap($relationMap, $this->useAliasInSQL ? $this->getModelAlias() : null, $relationAlias);
-        if ($previousJoin = $this->getPreviousJoin()) {
-            $join->setPreviousJoin($previousJoin);
-        }
-
-        // add the ModelJoin to the current object
-        if ($relationAlias) {
-            $this->addAlias($relationAlias, $relationMap->getRightTable()->getName());
-            $this->addJoinObject($join, $relationAlias);
-        } else {
-            $this->addJoinObject($join, 'Playlist');
-        }
-
-        return $this;
-    }
-
-    /**
-     * Use the Playlist relation Playlist object
-     *
-     * @see       useQuery()
-     *
-     * @param     string $relationAlias optional alias for the relation,
-     *                                   to be used as main alias in the secondary query
-     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
-     *
-     * @return   \Airtime\MediaItem\PlaylistQuery A secondary query class using the current class as primary query
-     */
-    public function usePlaylistQuery($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
-    {
-        return $this
-            ->joinPlaylist($relationAlias, $joinType)
-            ->useQuery($relationAlias ? $relationAlias : 'Playlist', '\Airtime\MediaItem\PlaylistQuery');
     }
 
     /**
@@ -810,7 +696,7 @@ abstract class BaseMediaContentQuery extends ModelCriteria
     public function prune($mediaContent = null)
     {
         if ($mediaContent) {
-            $this->addUsingAlias(MediaContentPeer::ID, $mediaContent->getId(), Criteria::NOT_EQUAL);
+            $this->addUsingAlias(MediaContentPeer::ID, $mediaContent->getDbId(), Criteria::NOT_EQUAL);
         }
 
         return $this;

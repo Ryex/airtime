@@ -9,12 +9,13 @@ use \PDOStatement;
 use \Propel;
 use \PropelException;
 use \PropelPDO;
+use Airtime\CcSchedulePeer;
 use Airtime\CcSubjsPeer;
 use Airtime\MediaItem;
 use Airtime\MediaItemPeer;
 use Airtime\MediaItem\AudioFilePeer;
 use Airtime\MediaItem\BlockPeer;
-use Airtime\MediaItem\MediaContentsPeer;
+use Airtime\MediaItem\MediaContentPeer;
 use Airtime\MediaItem\PlaylistPeer;
 use Airtime\MediaItem\WebstreamPeer;
 use Airtime\map\MediaItemTableMap;
@@ -36,7 +37,7 @@ abstract class BaseMediaItemPeer
     const TABLE_NAME = 'media_item';
 
     /** the related Propel class for this table */
-    const OM_CLASS = '';
+    const OM_CLASS = 'Airtime\\MediaItem';
 
     /** the related TableMap class for this table */
     const TM_CLASS = 'Airtime\\map\\MediaItemTableMap';
@@ -418,9 +419,12 @@ abstract class BaseMediaItemPeer
      */
     public static function clearRelatedInstancePool()
     {
-        // Invalidate objects in MediaContentsPeer instance pool,
+        // Invalidate objects in CcSchedulePeer instance pool,
         // since one or more of them may be deleted by ON DELETE CASCADE/SETNULL rule.
-        MediaContentsPeer::clearInstancePool();
+        CcSchedulePeer::clearInstancePool();
+        // Invalidate objects in MediaContentPeer instance pool,
+        // since one or more of them may be deleted by ON DELETE CASCADE/SETNULL rule.
+        MediaContentPeer::clearInstancePool();
         // Invalidate objects in AudioFilePeer instance pool,
         // since one or more of them may be deleted by ON DELETE CASCADE/SETNULL rule.
         AudioFilePeer::clearInstancePool();
@@ -518,11 +522,6 @@ abstract class BaseMediaItemPeer
             // We no longer rehydrate the object, since this can cause data loss.
             // See http://www.propelorm.org/ticket/509
             // $obj->hydrate($row, $startcol, true); // rehydrate
-            $col = $startcol + MediaItemPeer::NUM_HYDRATE_COLUMNS;
-        } elseif (null == $key) {
-            // empty resultset, probably from a left join
-            // since this table is abstract, we can't hydrate an empty object
-            $obj = null;
             $col = $startcol + MediaItemPeer::NUM_HYDRATE_COLUMNS;
         } else {
             $cls = MediaItemPeer::OM_CLASS;
@@ -798,10 +797,13 @@ abstract class BaseMediaItemPeer
     /**
      * The class that the Peer will make instances of.
      *
-     * This method must be overridden by the stub subclass, because
-     * MediaItem is declared abstract in the schema.
+     *
+     * @return string ClassName
      */
-    abstract public static function getOMClass($row = 0, $colnum = 0);
+    public static function getOMClass($row = 0, $colnum = 0)
+    {
+        return MediaItemPeer::OM_CLASS;
+    }
 
     /**
      * Performs an INSERT on the database, given a MediaItem or Criteria object.

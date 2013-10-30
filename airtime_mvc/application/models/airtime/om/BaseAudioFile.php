@@ -23,7 +23,7 @@ use Airtime\MediaItem\AudioFilePeer;
 use Airtime\MediaItem\AudioFileQuery;
 
 /**
- * Base class that represents a row from the 'audio_file' table.
+ * Base class that represents a row from the 'media_audiofile' table.
  *
  *
  *
@@ -136,12 +136,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
     protected $channels;
 
     /**
-     * The value for the url field.
-     * @var        string
-     */
-    protected $url;
-
-    /**
      * The value for the bpm field.
      * @var        int
      */
@@ -176,6 +170,12 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
      * @var        string
      */
     protected $copyright;
+
+    /**
+     * The value for the conductor field.
+     * @var        string
+     */
+    protected $conductor;
 
     /**
      * The value for the isrc_number field.
@@ -526,17 +526,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
     }
 
     /**
-     * Get the [url] column value.
-     *
-     * @return string
-     */
-    public function getUrl()
-    {
-
-        return $this->url;
-    }
-
-    /**
      * Get the [bpm] column value.
      *
      * @return int
@@ -600,6 +589,17 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
     {
 
         return $this->copyright;
+    }
+
+    /**
+     * Get the [conductor] column value.
+     *
+     * @return string
+     */
+    public function getConductor()
+    {
+
+        return $this->conductor;
     }
 
     /**
@@ -695,7 +695,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
      *
      * @return boolean
      */
-    public function getIsHidden()
+    public function getFileHidden()
     {
 
         return $this->hidden;
@@ -773,7 +773,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
      *
      * @param string $format The date/time format string (either date()-style or strftime()-style).
      *				 If format is null, then the raw DateTime object will be returned.
-     * @return mixed Formatted date/time value as string or DateTime object (if format is null), null if column is null
+     * @return mixed Formatted date/time value as string or \DateTime object (if format is null), null if column is null
      * @throws PropelException - if unable to parse/validate the date/time value.
      */
     public function getLastPlayedTime($format = 'Y-m-d H:i:s')
@@ -784,13 +784,13 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
 
 
         try {
-            $dt = new DateTime($this->last_played);
+            $dt = new \DateTime($this->last_played);
         } catch (Exception $x) {
-            throw new PropelException("Internally stored date/time/timestamp value could not be converted to DateTime: " . var_export($this->last_played, true), $x);
+            throw new PropelException("Internally stored date/time/timestamp value could not be converted to \DateTime: " . var_export($this->last_played, true), $x);
         }
 
         if ($format === null) {
-            // Because propel.useDateTimeClass is true, we return a DateTime object.
+            // Because propel.useDateTimeClass is true, we return a \DateTime object.
             return $dt;
         }
 
@@ -830,7 +830,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
      *
      * @param string $format The date/time format string (either date()-style or strftime()-style).
      *				 If format is null, then the raw DateTime object will be returned.
-     * @return mixed Formatted date/time value as string or DateTime object (if format is null), null if column is null
+     * @return mixed Formatted date/time value as string or \DateTime object (if format is null), null if column is null
      * @throws PropelException - if unable to parse/validate the date/time value.
      */
     public function getCreatedAt($format = 'Y-m-d H:i:s')
@@ -841,13 +841,13 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
 
 
         try {
-            $dt = new DateTime($this->created_at);
+            $dt = new \DateTime($this->created_at);
         } catch (Exception $x) {
-            throw new PropelException("Internally stored date/time/timestamp value could not be converted to DateTime: " . var_export($this->created_at, true), $x);
+            throw new PropelException("Internally stored date/time/timestamp value could not be converted to \DateTime: " . var_export($this->created_at, true), $x);
         }
 
         if ($format === null) {
-            // Because propel.useDateTimeClass is true, we return a DateTime object.
+            // Because propel.useDateTimeClass is true, we return a \DateTime object.
             return $dt;
         }
 
@@ -865,7 +865,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
      *
      * @param string $format The date/time format string (either date()-style or strftime()-style).
      *				 If format is null, then the raw DateTime object will be returned.
-     * @return mixed Formatted date/time value as string or DateTime object (if format is null), null if column is null
+     * @return mixed Formatted date/time value as string or \DateTime object (if format is null), null if column is null
      * @throws PropelException - if unable to parse/validate the date/time value.
      */
     public function getUpdatedAt($format = 'Y-m-d H:i:s')
@@ -876,13 +876,13 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
 
 
         try {
-            $dt = new DateTime($this->updated_at);
+            $dt = new \DateTime($this->updated_at);
         } catch (Exception $x) {
-            throw new PropelException("Internally stored date/time/timestamp value could not be converted to DateTime: " . var_export($this->updated_at, true), $x);
+            throw new PropelException("Internally stored date/time/timestamp value could not be converted to \DateTime: " . var_export($this->updated_at, true), $x);
         }
 
         if ($format === null) {
-            // Because propel.useDateTimeClass is true, we return a DateTime object.
+            // Because propel.useDateTimeClass is true, we return a \DateTime object.
             return $dt;
         }
 
@@ -1193,27 +1193,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
     } // setChannels()
 
     /**
-     * Set the value of [url] column.
-     *
-     * @param  string $v new value
-     * @return AudioFile The current object (for fluent API support)
-     */
-    public function setUrl($v)
-    {
-        if ($v !== null && is_numeric($v)) {
-            $v = (string) $v;
-        }
-
-        if ($this->url !== $v) {
-            $this->url = $v;
-            $this->modifiedColumns[] = AudioFilePeer::URL;
-        }
-
-
-        return $this;
-    } // setUrl()
-
-    /**
      * Set the value of [bpm] column.
      *
      * @param  int $v new value
@@ -1338,6 +1317,27 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
 
         return $this;
     } // setCopyright()
+
+    /**
+     * Set the value of [conductor] column.
+     *
+     * @param  string $v new value
+     * @return AudioFile The current object (for fluent API support)
+     */
+    public function setConductor($v)
+    {
+        if ($v !== null && is_numeric($v)) {
+            $v = (string) $v;
+        }
+
+        if ($this->conductor !== $v) {
+            $this->conductor = $v;
+            $this->modifiedColumns[] = AudioFilePeer::CONDUCTOR;
+        }
+
+
+        return $this;
+    } // setConductor()
 
     /**
      * Set the value of [isrc_number] column.
@@ -1533,7 +1533,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
      * @param boolean|integer|string $v The new value
      * @return AudioFile The current object (for fluent API support)
      */
-    public function setIsHidden($v)
+    public function setFileHidden($v)
     {
         if ($v !== null) {
             if (is_string($v)) {
@@ -1550,7 +1550,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
 
 
         return $this;
-    } // setIsHidden()
+    } // setFileHidden()
 
     /**
      * Sets the value of the [is_scheduled] column.
@@ -1711,9 +1711,9 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
      */
     public function setLastPlayedTime($v)
     {
-        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
+        $dt = PropelDateTime::newInstance($v, null, '\DateTime');
         if ($this->last_played !== null || $dt !== null) {
-            $currentDateAsString = ($this->last_played !== null && $tmpDt = new DateTime($this->last_played)) ? $tmpDt->format('Y-m-d H:i:s') : null;
+            $currentDateAsString = ($this->last_played !== null && $tmpDt = new \DateTime($this->last_played)) ? $tmpDt->format('Y-m-d H:i:s') : null;
             $newDateAsString = $dt ? $dt->format('Y-m-d H:i:s') : null;
             if ($currentDateAsString !== $newDateAsString) {
                 $this->last_played = $newDateAsString;
@@ -1776,9 +1776,9 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
      */
     public function setCreatedAt($v)
     {
-        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
+        $dt = PropelDateTime::newInstance($v, null, '\DateTime');
         if ($this->created_at !== null || $dt !== null) {
-            $currentDateAsString = ($this->created_at !== null && $tmpDt = new DateTime($this->created_at)) ? $tmpDt->format('Y-m-d H:i:s') : null;
+            $currentDateAsString = ($this->created_at !== null && $tmpDt = new \DateTime($this->created_at)) ? $tmpDt->format('Y-m-d H:i:s') : null;
             $newDateAsString = $dt ? $dt->format('Y-m-d H:i:s') : null;
             if ($currentDateAsString !== $newDateAsString) {
                 $this->created_at = $newDateAsString;
@@ -1799,9 +1799,9 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
      */
     public function setUpdatedAt($v)
     {
-        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
+        $dt = PropelDateTime::newInstance($v, null, '\DateTime');
         if ($this->updated_at !== null || $dt !== null) {
-            $currentDateAsString = ($this->updated_at !== null && $tmpDt = new DateTime($this->updated_at)) ? $tmpDt->format('Y-m-d H:i:s') : null;
+            $currentDateAsString = ($this->updated_at !== null && $tmpDt = new \DateTime($this->updated_at)) ? $tmpDt->format('Y-m-d H:i:s') : null;
             $newDateAsString = $dt ? $dt->format('Y-m-d H:i:s') : null;
             if ($currentDateAsString !== $newDateAsString) {
                 $this->updated_at = $newDateAsString;
@@ -1899,13 +1899,13 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
             $this->year = ($row[$startcol + 11] !== null) ? (string) $row[$startcol + 11] : null;
             $this->track_number = ($row[$startcol + 12] !== null) ? (int) $row[$startcol + 12] : null;
             $this->channels = ($row[$startcol + 13] !== null) ? (int) $row[$startcol + 13] : null;
-            $this->url = ($row[$startcol + 14] !== null) ? (string) $row[$startcol + 14] : null;
-            $this->bpm = ($row[$startcol + 15] !== null) ? (int) $row[$startcol + 15] : null;
-            $this->encoded_by = ($row[$startcol + 16] !== null) ? (string) $row[$startcol + 16] : null;
-            $this->mood = ($row[$startcol + 17] !== null) ? (string) $row[$startcol + 17] : null;
-            $this->label = ($row[$startcol + 18] !== null) ? (string) $row[$startcol + 18] : null;
-            $this->composer = ($row[$startcol + 19] !== null) ? (string) $row[$startcol + 19] : null;
-            $this->copyright = ($row[$startcol + 20] !== null) ? (string) $row[$startcol + 20] : null;
+            $this->bpm = ($row[$startcol + 14] !== null) ? (int) $row[$startcol + 14] : null;
+            $this->encoded_by = ($row[$startcol + 15] !== null) ? (string) $row[$startcol + 15] : null;
+            $this->mood = ($row[$startcol + 16] !== null) ? (string) $row[$startcol + 16] : null;
+            $this->label = ($row[$startcol + 17] !== null) ? (string) $row[$startcol + 17] : null;
+            $this->composer = ($row[$startcol + 18] !== null) ? (string) $row[$startcol + 18] : null;
+            $this->copyright = ($row[$startcol + 19] !== null) ? (string) $row[$startcol + 19] : null;
+            $this->conductor = ($row[$startcol + 20] !== null) ? (string) $row[$startcol + 20] : null;
             $this->isrc_number = ($row[$startcol + 21] !== null) ? (string) $row[$startcol + 21] : null;
             $this->info_url = ($row[$startcol + 22] !== null) ? (string) $row[$startcol + 22] : null;
             $this->language = ($row[$startcol + 23] !== null) ? (string) $row[$startcol + 23] : null;
@@ -2242,9 +2242,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         if ($this->isColumnModified(AudioFilePeer::CHANNELS)) {
             $modifiedColumns[':p' . $index++]  = '"channels"';
         }
-        if ($this->isColumnModified(AudioFilePeer::URL)) {
-            $modifiedColumns[':p' . $index++]  = '"url"';
-        }
         if ($this->isColumnModified(AudioFilePeer::BPM)) {
             $modifiedColumns[':p' . $index++]  = '"bpm"';
         }
@@ -2262,6 +2259,9 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         }
         if ($this->isColumnModified(AudioFilePeer::COPYRIGHT)) {
             $modifiedColumns[':p' . $index++]  = '"copyright"';
+        }
+        if ($this->isColumnModified(AudioFilePeer::CONDUCTOR)) {
+            $modifiedColumns[':p' . $index++]  = '"conductor"';
         }
         if ($this->isColumnModified(AudioFilePeer::ISRC_NUMBER)) {
             $modifiedColumns[':p' . $index++]  = '"isrc_number"';
@@ -2325,7 +2325,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         }
 
         $sql = sprintf(
-            'INSERT INTO "audio_file" (%s) VALUES (%s)',
+            'INSERT INTO "media_audiofile" (%s) VALUES (%s)',
             implode(', ', $modifiedColumns),
             implode(', ', array_keys($modifiedColumns))
         );
@@ -2376,9 +2376,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
                     case '"channels"':
                         $stmt->bindValue($identifier, $this->channels, PDO::PARAM_INT);
                         break;
-                    case '"url"':
-                        $stmt->bindValue($identifier, $this->url, PDO::PARAM_STR);
-                        break;
                     case '"bpm"':
                         $stmt->bindValue($identifier, $this->bpm, PDO::PARAM_INT);
                         break;
@@ -2396,6 +2393,9 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
                         break;
                     case '"copyright"':
                         $stmt->bindValue($identifier, $this->copyright, PDO::PARAM_STR);
+                        break;
+                    case '"conductor"':
+                        $stmt->bindValue($identifier, $this->conductor, PDO::PARAM_STR);
                         break;
                     case '"isrc_number"':
                         $stmt->bindValue($identifier, $this->isrc_number, PDO::PARAM_STR);
@@ -2651,25 +2651,25 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
                 return $this->getChannels();
                 break;
             case 14:
-                return $this->getUrl();
-                break;
-            case 15:
                 return $this->getBpm();
                 break;
-            case 16:
+            case 15:
                 return $this->getEncodedBy();
                 break;
-            case 17:
+            case 16:
                 return $this->getMood();
                 break;
-            case 18:
+            case 17:
                 return $this->getLabel();
                 break;
-            case 19:
+            case 18:
                 return $this->getComposer();
                 break;
-            case 20:
+            case 19:
                 return $this->getCopyright();
+                break;
+            case 20:
+                return $this->getConductor();
                 break;
             case 21:
                 return $this->getIsrcNumber();
@@ -2696,7 +2696,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
                 return $this->getFileExists();
                 break;
             case 29:
-                return $this->getIsHidden();
+                return $this->getFileHidden();
                 break;
             case 30:
                 return $this->getIsScheduled();
@@ -2774,13 +2774,13 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
             $keys[11] => $this->getYear(),
             $keys[12] => $this->getTrackNumber(),
             $keys[13] => $this->getChannels(),
-            $keys[14] => $this->getUrl(),
-            $keys[15] => $this->getBpm(),
-            $keys[16] => $this->getEncodedBy(),
-            $keys[17] => $this->getMood(),
-            $keys[18] => $this->getLabel(),
-            $keys[19] => $this->getComposer(),
-            $keys[20] => $this->getCopyright(),
+            $keys[14] => $this->getBpm(),
+            $keys[15] => $this->getEncodedBy(),
+            $keys[16] => $this->getMood(),
+            $keys[17] => $this->getLabel(),
+            $keys[18] => $this->getComposer(),
+            $keys[19] => $this->getCopyright(),
+            $keys[20] => $this->getConductor(),
             $keys[21] => $this->getIsrcNumber(),
             $keys[22] => $this->getInfoUrl(),
             $keys[23] => $this->getLanguage(),
@@ -2789,7 +2789,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
             $keys[26] => $this->getCueout(),
             $keys[27] => $this->getIsSilanChecked(),
             $keys[28] => $this->getFileExists(),
-            $keys[29] => $this->getIsHidden(),
+            $keys[29] => $this->getFileHidden(),
             $keys[30] => $this->getIsScheduled(),
             $keys[31] => $this->getIsPlaylist(),
             $keys[32] => $this->getId(),
@@ -2894,25 +2894,25 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
                 $this->setChannels($value);
                 break;
             case 14:
-                $this->setUrl($value);
-                break;
-            case 15:
                 $this->setBpm($value);
                 break;
-            case 16:
+            case 15:
                 $this->setEncodedBy($value);
                 break;
-            case 17:
+            case 16:
                 $this->setMood($value);
                 break;
-            case 18:
+            case 17:
                 $this->setLabel($value);
                 break;
-            case 19:
+            case 18:
                 $this->setComposer($value);
                 break;
-            case 20:
+            case 19:
                 $this->setCopyright($value);
+                break;
+            case 20:
+                $this->setConductor($value);
                 break;
             case 21:
                 $this->setIsrcNumber($value);
@@ -2939,7 +2939,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
                 $this->setFileExists($value);
                 break;
             case 29:
-                $this->setIsHidden($value);
+                $this->setFileHidden($value);
                 break;
             case 30:
                 $this->setIsScheduled($value);
@@ -3012,13 +3012,13 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         if (array_key_exists($keys[11], $arr)) $this->setYear($arr[$keys[11]]);
         if (array_key_exists($keys[12], $arr)) $this->setTrackNumber($arr[$keys[12]]);
         if (array_key_exists($keys[13], $arr)) $this->setChannels($arr[$keys[13]]);
-        if (array_key_exists($keys[14], $arr)) $this->setUrl($arr[$keys[14]]);
-        if (array_key_exists($keys[15], $arr)) $this->setBpm($arr[$keys[15]]);
-        if (array_key_exists($keys[16], $arr)) $this->setEncodedBy($arr[$keys[16]]);
-        if (array_key_exists($keys[17], $arr)) $this->setMood($arr[$keys[17]]);
-        if (array_key_exists($keys[18], $arr)) $this->setLabel($arr[$keys[18]]);
-        if (array_key_exists($keys[19], $arr)) $this->setComposer($arr[$keys[19]]);
-        if (array_key_exists($keys[20], $arr)) $this->setCopyright($arr[$keys[20]]);
+        if (array_key_exists($keys[14], $arr)) $this->setBpm($arr[$keys[14]]);
+        if (array_key_exists($keys[15], $arr)) $this->setEncodedBy($arr[$keys[15]]);
+        if (array_key_exists($keys[16], $arr)) $this->setMood($arr[$keys[16]]);
+        if (array_key_exists($keys[17], $arr)) $this->setLabel($arr[$keys[17]]);
+        if (array_key_exists($keys[18], $arr)) $this->setComposer($arr[$keys[18]]);
+        if (array_key_exists($keys[19], $arr)) $this->setCopyright($arr[$keys[19]]);
+        if (array_key_exists($keys[20], $arr)) $this->setConductor($arr[$keys[20]]);
         if (array_key_exists($keys[21], $arr)) $this->setIsrcNumber($arr[$keys[21]]);
         if (array_key_exists($keys[22], $arr)) $this->setInfoUrl($arr[$keys[22]]);
         if (array_key_exists($keys[23], $arr)) $this->setLanguage($arr[$keys[23]]);
@@ -3027,7 +3027,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         if (array_key_exists($keys[26], $arr)) $this->setCueout($arr[$keys[26]]);
         if (array_key_exists($keys[27], $arr)) $this->setIsSilanChecked($arr[$keys[27]]);
         if (array_key_exists($keys[28], $arr)) $this->setFileExists($arr[$keys[28]]);
-        if (array_key_exists($keys[29], $arr)) $this->setIsHidden($arr[$keys[29]]);
+        if (array_key_exists($keys[29], $arr)) $this->setFileHidden($arr[$keys[29]]);
         if (array_key_exists($keys[30], $arr)) $this->setIsScheduled($arr[$keys[30]]);
         if (array_key_exists($keys[31], $arr)) $this->setIsPlaylist($arr[$keys[31]]);
         if (array_key_exists($keys[32], $arr)) $this->setId($arr[$keys[32]]);
@@ -3064,13 +3064,13 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         if ($this->isColumnModified(AudioFilePeer::YEAR)) $criteria->add(AudioFilePeer::YEAR, $this->year);
         if ($this->isColumnModified(AudioFilePeer::TRACK_NUMBER)) $criteria->add(AudioFilePeer::TRACK_NUMBER, $this->track_number);
         if ($this->isColumnModified(AudioFilePeer::CHANNELS)) $criteria->add(AudioFilePeer::CHANNELS, $this->channels);
-        if ($this->isColumnModified(AudioFilePeer::URL)) $criteria->add(AudioFilePeer::URL, $this->url);
         if ($this->isColumnModified(AudioFilePeer::BPM)) $criteria->add(AudioFilePeer::BPM, $this->bpm);
         if ($this->isColumnModified(AudioFilePeer::ENCODED_BY)) $criteria->add(AudioFilePeer::ENCODED_BY, $this->encoded_by);
         if ($this->isColumnModified(AudioFilePeer::MOOD)) $criteria->add(AudioFilePeer::MOOD, $this->mood);
         if ($this->isColumnModified(AudioFilePeer::LABEL)) $criteria->add(AudioFilePeer::LABEL, $this->label);
         if ($this->isColumnModified(AudioFilePeer::COMPOSER)) $criteria->add(AudioFilePeer::COMPOSER, $this->composer);
         if ($this->isColumnModified(AudioFilePeer::COPYRIGHT)) $criteria->add(AudioFilePeer::COPYRIGHT, $this->copyright);
+        if ($this->isColumnModified(AudioFilePeer::CONDUCTOR)) $criteria->add(AudioFilePeer::CONDUCTOR, $this->conductor);
         if ($this->isColumnModified(AudioFilePeer::ISRC_NUMBER)) $criteria->add(AudioFilePeer::ISRC_NUMBER, $this->isrc_number);
         if ($this->isColumnModified(AudioFilePeer::INFO_URL)) $criteria->add(AudioFilePeer::INFO_URL, $this->info_url);
         if ($this->isColumnModified(AudioFilePeer::LANGUAGE)) $criteria->add(AudioFilePeer::LANGUAGE, $this->language);
@@ -3168,13 +3168,13 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         $copyObj->setYear($this->getYear());
         $copyObj->setTrackNumber($this->getTrackNumber());
         $copyObj->setChannels($this->getChannels());
-        $copyObj->setUrl($this->getUrl());
         $copyObj->setBpm($this->getBpm());
         $copyObj->setEncodedBy($this->getEncodedBy());
         $copyObj->setMood($this->getMood());
         $copyObj->setLabel($this->getLabel());
         $copyObj->setComposer($this->getComposer());
         $copyObj->setCopyright($this->getCopyright());
+        $copyObj->setConductor($this->getConductor());
         $copyObj->setIsrcNumber($this->getIsrcNumber());
         $copyObj->setInfoUrl($this->getInfoUrl());
         $copyObj->setLanguage($this->getLanguage());
@@ -3183,7 +3183,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         $copyObj->setCueout($this->getCueout());
         $copyObj->setIsSilanChecked($this->getIsSilanChecked());
         $copyObj->setFileExists($this->getFileExists());
-        $copyObj->setIsHidden($this->getIsHidden());
+        $copyObj->setFileHidden($this->getFileHidden());
         $copyObj->setIsScheduled($this->getIsScheduled());
         $copyObj->setIsPlaylist($this->getIsPlaylist());
         $copyObj->setName($this->getName());
@@ -3426,13 +3426,13 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         $this->year = null;
         $this->track_number = null;
         $this->channels = null;
-        $this->url = null;
         $this->bpm = null;
         $this->encoded_by = null;
         $this->mood = null;
         $this->label = null;
         $this->composer = null;
         $this->copyright = null;
+        $this->conductor = null;
         $this->isrc_number = null;
         $this->info_url = null;
         $this->language = null;

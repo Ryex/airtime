@@ -12,13 +12,14 @@ use \PropelCollection;
 use \PropelException;
 use \PropelObjectCollection;
 use \PropelPDO;
+use Airtime\CcSchedule;
 use Airtime\CcSubjs;
 use Airtime\MediaItem;
 use Airtime\MediaItemPeer;
 use Airtime\MediaItemQuery;
 use Airtime\MediaItem\AudioFile;
 use Airtime\MediaItem\Block;
-use Airtime\MediaItem\MediaContents;
+use Airtime\MediaItem\MediaContent;
 use Airtime\MediaItem\Playlist;
 use Airtime\MediaItem\Webstream;
 
@@ -57,9 +58,13 @@ use Airtime\MediaItem\Webstream;
  * @method MediaItemQuery rightJoinCcSubjs($relationAlias = null) Adds a RIGHT JOIN clause to the query using the CcSubjs relation
  * @method MediaItemQuery innerJoinCcSubjs($relationAlias = null) Adds a INNER JOIN clause to the query using the CcSubjs relation
  *
- * @method MediaItemQuery leftJoinMediaContents($relationAlias = null) Adds a LEFT JOIN clause to the query using the MediaContents relation
- * @method MediaItemQuery rightJoinMediaContents($relationAlias = null) Adds a RIGHT JOIN clause to the query using the MediaContents relation
- * @method MediaItemQuery innerJoinMediaContents($relationAlias = null) Adds a INNER JOIN clause to the query using the MediaContents relation
+ * @method MediaItemQuery leftJoinCcSchedule($relationAlias = null) Adds a LEFT JOIN clause to the query using the CcSchedule relation
+ * @method MediaItemQuery rightJoinCcSchedule($relationAlias = null) Adds a RIGHT JOIN clause to the query using the CcSchedule relation
+ * @method MediaItemQuery innerJoinCcSchedule($relationAlias = null) Adds a INNER JOIN clause to the query using the CcSchedule relation
+ *
+ * @method MediaItemQuery leftJoinMediaContent($relationAlias = null) Adds a LEFT JOIN clause to the query using the MediaContent relation
+ * @method MediaItemQuery rightJoinMediaContent($relationAlias = null) Adds a RIGHT JOIN clause to the query using the MediaContent relation
+ * @method MediaItemQuery innerJoinMediaContent($relationAlias = null) Adds a INNER JOIN clause to the query using the MediaContent relation
  *
  * @method MediaItemQuery leftJoinAudioFile($relationAlias = null) Adds a LEFT JOIN clause to the query using the AudioFile relation
  * @method MediaItemQuery rightJoinAudioFile($relationAlias = null) Adds a RIGHT JOIN clause to the query using the AudioFile relation
@@ -746,41 +751,41 @@ abstract class BaseMediaItemQuery extends ModelCriteria
     }
 
     /**
-     * Filter the query by a related MediaContents object
+     * Filter the query by a related CcSchedule object
      *
-     * @param   MediaContents|PropelObjectCollection $mediaContents  the related object to use as filter
+     * @param   CcSchedule|PropelObjectCollection $ccSchedule  the related object to use as filter
      * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
      *
      * @return                 MediaItemQuery The current query, for fluid interface
      * @throws PropelException - if the provided filter is invalid.
      */
-    public function filterByMediaContents($mediaContents, $comparison = null)
+    public function filterByCcSchedule($ccSchedule, $comparison = null)
     {
-        if ($mediaContents instanceof MediaContents) {
+        if ($ccSchedule instanceof CcSchedule) {
             return $this
-                ->addUsingAlias(MediaItemPeer::ID, $mediaContents->getMediaId(), $comparison);
-        } elseif ($mediaContents instanceof PropelObjectCollection) {
+                ->addUsingAlias(MediaItemPeer::ID, $ccSchedule->getDbMediaId(), $comparison);
+        } elseif ($ccSchedule instanceof PropelObjectCollection) {
             return $this
-                ->useMediaContentsQuery()
-                ->filterByPrimaryKeys($mediaContents->getPrimaryKeys())
+                ->useCcScheduleQuery()
+                ->filterByPrimaryKeys($ccSchedule->getPrimaryKeys())
                 ->endUse();
         } else {
-            throw new PropelException('filterByMediaContents() only accepts arguments of type MediaContents or PropelCollection');
+            throw new PropelException('filterByCcSchedule() only accepts arguments of type CcSchedule or PropelCollection');
         }
     }
 
     /**
-     * Adds a JOIN clause to the query using the MediaContents relation
+     * Adds a JOIN clause to the query using the CcSchedule relation
      *
      * @param     string $relationAlias optional alias for the relation
      * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
      *
      * @return MediaItemQuery The current query, for fluid interface
      */
-    public function joinMediaContents($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
+    public function joinCcSchedule($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
     {
         $tableMap = $this->getTableMap();
-        $relationMap = $tableMap->getRelation('MediaContents');
+        $relationMap = $tableMap->getRelation('CcSchedule');
 
         // create a ModelJoin object for this join
         $join = new ModelJoin();
@@ -795,14 +800,14 @@ abstract class BaseMediaItemQuery extends ModelCriteria
             $this->addAlias($relationAlias, $relationMap->getRightTable()->getName());
             $this->addJoinObject($join, $relationAlias);
         } else {
-            $this->addJoinObject($join, 'MediaContents');
+            $this->addJoinObject($join, 'CcSchedule');
         }
 
         return $this;
     }
 
     /**
-     * Use the MediaContents relation MediaContents object
+     * Use the CcSchedule relation CcSchedule object
      *
      * @see       useQuery()
      *
@@ -810,13 +815,87 @@ abstract class BaseMediaItemQuery extends ModelCriteria
      *                                   to be used as main alias in the secondary query
      * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
      *
-     * @return   \Airtime\MediaItem\MediaContentsQuery A secondary query class using the current class as primary query
+     * @return   \Airtime\CcScheduleQuery A secondary query class using the current class as primary query
      */
-    public function useMediaContentsQuery($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
+    public function useCcScheduleQuery($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
     {
         return $this
-            ->joinMediaContents($relationAlias, $joinType)
-            ->useQuery($relationAlias ? $relationAlias : 'MediaContents', '\Airtime\MediaItem\MediaContentsQuery');
+            ->joinCcSchedule($relationAlias, $joinType)
+            ->useQuery($relationAlias ? $relationAlias : 'CcSchedule', '\Airtime\CcScheduleQuery');
+    }
+
+    /**
+     * Filter the query by a related MediaContent object
+     *
+     * @param   MediaContent|PropelObjectCollection $mediaContent  the related object to use as filter
+     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return                 MediaItemQuery The current query, for fluid interface
+     * @throws PropelException - if the provided filter is invalid.
+     */
+    public function filterByMediaContent($mediaContent, $comparison = null)
+    {
+        if ($mediaContent instanceof MediaContent) {
+            return $this
+                ->addUsingAlias(MediaItemPeer::ID, $mediaContent->getMediaId(), $comparison);
+        } elseif ($mediaContent instanceof PropelObjectCollection) {
+            return $this
+                ->useMediaContentQuery()
+                ->filterByPrimaryKeys($mediaContent->getPrimaryKeys())
+                ->endUse();
+        } else {
+            throw new PropelException('filterByMediaContent() only accepts arguments of type MediaContent or PropelCollection');
+        }
+    }
+
+    /**
+     * Adds a JOIN clause to the query using the MediaContent relation
+     *
+     * @param     string $relationAlias optional alias for the relation
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return MediaItemQuery The current query, for fluid interface
+     */
+    public function joinMediaContent($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
+    {
+        $tableMap = $this->getTableMap();
+        $relationMap = $tableMap->getRelation('MediaContent');
+
+        // create a ModelJoin object for this join
+        $join = new ModelJoin();
+        $join->setJoinType($joinType);
+        $join->setRelationMap($relationMap, $this->useAliasInSQL ? $this->getModelAlias() : null, $relationAlias);
+        if ($previousJoin = $this->getPreviousJoin()) {
+            $join->setPreviousJoin($previousJoin);
+        }
+
+        // add the ModelJoin to the current object
+        if ($relationAlias) {
+            $this->addAlias($relationAlias, $relationMap->getRightTable()->getName());
+            $this->addJoinObject($join, $relationAlias);
+        } else {
+            $this->addJoinObject($join, 'MediaContent');
+        }
+
+        return $this;
+    }
+
+    /**
+     * Use the MediaContent relation MediaContent object
+     *
+     * @see       useQuery()
+     *
+     * @param     string $relationAlias optional alias for the relation,
+     *                                   to be used as main alias in the secondary query
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return   \Airtime\MediaItem\MediaContentQuery A secondary query class using the current class as primary query
+     */
+    public function useMediaContentQuery($relationAlias = null, $joinType = Criteria::LEFT_JOIN)
+    {
+        return $this
+            ->joinMediaContent($relationAlias, $joinType)
+            ->useQuery($relationAlias ? $relationAlias : 'MediaContent', '\Airtime\MediaItem\MediaContentQuery');
     }
 
     /**
