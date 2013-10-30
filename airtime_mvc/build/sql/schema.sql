@@ -138,20 +138,21 @@ DROP TABLE IF EXISTS "cc_show_instances" CASCADE;
 
 CREATE TABLE "cc_show_instances"
 (
-	"id" serial  NOT NULL,
-	"description" VARCHAR(512),
-	"starts" TIMESTAMP  NOT NULL,
-	"ends" TIMESTAMP  NOT NULL,
-	"show_id" INTEGER  NOT NULL,
-	"record" INT2 default 0,
-	"rebroadcast" INT2 default 0,
-	"instance_id" INTEGER,
-	"file_id" INTEGER,
-	"time_filled" interval default '00:00:00',
-	"created" TIMESTAMP  NOT NULL,
-	"last_scheduled" TIMESTAMP,
-	"modified_instance" BOOLEAN default 'f' NOT NULL,
-	PRIMARY KEY ("id")
+    "id" serial NOT NULL,
+    "description" VARCHAR(512),
+    "starts" TIMESTAMP NOT NULL,
+    "ends" TIMESTAMP NOT NULL,
+    "show_id" INTEGER NOT NULL,
+    "record" INT2 DEFAULT 0,
+    "rebroadcast" INT2 DEFAULT 0,
+    "instance_id" INTEGER,
+    "file_id" INTEGER,
+    "media_id" INTEGER,
+    "time_filled" interval DEFAULT '00:00:00',
+    "created" TIMESTAMP NOT NULL,
+    "last_scheduled" TIMESTAMP,
+    "modified_instance" BOOLEAN DEFAULT 'f' NOT NULL,
+    PRIMARY KEY ("id")
 );
 
 COMMENT ON TABLE "cc_show_instances" IS '';
@@ -805,6 +806,11 @@ ALTER TABLE "cc_show_instances" ADD CONSTRAINT "cc_original_show_instance_fkey"
 ALTER TABLE "cc_show_instances" ADD CONSTRAINT "cc_recorded_file_fkey"
     FOREIGN KEY ("file_id")
     REFERENCES "cc_files" ("id")
+    ON DELETE CASCADE;
+
+ALTER TABLE "cc_show_instances" ADD CONSTRAINT "cc_recorded_media_item_fkey"
+    FOREIGN KEY ("media_id")
+    REFERENCES "media_item" ("id")
     ON DELETE CASCADE;
 
 ALTER TABLE "cc_show_days" ADD CONSTRAINT "cc_show_fkey"
