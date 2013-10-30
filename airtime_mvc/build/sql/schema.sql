@@ -630,7 +630,7 @@ DROP TABLE IF EXISTS "media_item" CASCADE;
 CREATE TABLE "media_item"
 (
     "id" serial NOT NULL,
-    "name" VARCHAR(128) NOT NULL,
+    "name" VARCHAR(128),
     "owner_id" INTEGER,
     "description" VARCHAR(512),
     "last_played" TIMESTAMP(6),
@@ -670,6 +670,7 @@ CREATE TABLE "media_audiofile"
     "label" VARCHAR(512),
     "composer" VARCHAR(512),
     "copyright" VARCHAR(512),
+    "conductor" VARCHAR(512),
     "isrc_number" VARCHAR(512),
     "info_url" VARCHAR(512),
     "language" VARCHAR(512),
@@ -682,7 +683,7 @@ CREATE TABLE "media_audiofile"
     "is_scheduled" BOOLEAN DEFAULT 'f',
     "is_playlist" BOOLEAN DEFAULT 'f',
     "id" INTEGER NOT NULL,
-    "name" VARCHAR(128) NOT NULL,
+    "name" VARCHAR(128),
     "owner_id" INTEGER,
     "description" VARCHAR(512),
     "last_played" TIMESTAMP(6),
@@ -706,7 +707,7 @@ CREATE TABLE "media_webstream"
     "mime" VARCHAR,
     "url" VARCHAR(512) NOT NULL,
     "id" INTEGER NOT NULL,
-    "name" VARCHAR(128) NOT NULL,
+    "name" VARCHAR(128),
     "owner_id" INTEGER,
     "description" VARCHAR(512),
     "last_played" TIMESTAMP(6),
@@ -726,7 +727,7 @@ DROP TABLE IF EXISTS "media_playlist" CASCADE;
 CREATE TABLE "media_playlist"
 (
     "id" INTEGER NOT NULL,
-    "name" VARCHAR(128) NOT NULL,
+    "name" VARCHAR(128),
     "owner_id" INTEGER,
     "description" VARCHAR(512),
     "last_played" TIMESTAMP(6),
@@ -748,7 +749,7 @@ CREATE TABLE "media_block"
 (
     "type" VARCHAR(7) DEFAULT 'static',
     "id" INTEGER NOT NULL,
-    "name" VARCHAR(128) NOT NULL,
+    "name" VARCHAR(128),
     "owner_id" INTEGER,
     "description" VARCHAR(512),
     "last_played" TIMESTAMP(6),
