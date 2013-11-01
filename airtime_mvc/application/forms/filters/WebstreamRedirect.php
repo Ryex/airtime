@@ -11,13 +11,14 @@ class Filter_WebstreamRedirect implements Zend_Filter_Interface
     		return $value;
     	}
     	
-    	// By default get_headers uses a GET request to fetch the headers.
+    	// By default get_headers uses a GET request to fetch the headers. If you
+    	// want to send a HEAD request instead, you can do so using a stream context:
     	//using max redirects to avoid mixed headers, 
     	//can manually follow redirects if a Location header exists.
     	stream_context_set_default(
     		array(
     			'http' => array(
-    				'method' => 'GET',
+    				'method' => 'HEAD',
     				'max_redirects' => '1'
     			)
     		)

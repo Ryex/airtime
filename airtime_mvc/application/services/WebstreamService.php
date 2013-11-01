@@ -17,7 +17,6 @@ class Application_Service_WebstreamService
 				$length = $webstream->getHoursMins();
 				
 				$formValues = array(
-					"id" => $id,
 					"name" => $webstream->getName(),
 					"description" => $webstream->getDescription(),
 					"url" => $webstream->getUrl(),
@@ -84,33 +83,5 @@ class Application_Service_WebstreamService
 		$ws->save();
 		
 		return $ws;
-	}
-	
-	public function deleteWebstreams($ids) {
-		
-		WebstreamQuery::create()->findPks($ids)->delete();
-	}
-	
-	public function createContextMenu($webstream) {
-	
-		$id = $webstream->getId();
-		
-		$menu = array();
-		
-		$menu["preview"] = array(
-			"name" => _("Preview"),
-			"icon" => "play",
-			"id" => $id,
-			"callback" => "previewItem"
-		);
-		
-		$menu["delete"] = array(
-			"name" => _("Delete"),
-			"icon" => "delete",
-			"id" => $id,
-			"callback" => "deleteItem"
-		);
-		
-		return $menu;
 	}
 }
