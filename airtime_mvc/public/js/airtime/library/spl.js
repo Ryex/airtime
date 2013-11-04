@@ -784,7 +784,7 @@ var AIRTIME = (function(AIRTIME){
 
 		$pl.on("click", "#webstream_save", function() {
             //get all fields and POST to server
-            var id = $pl.find("#ws_id").attr("value");
+            var id = $pl.find("#obj_id").attr("value"); 
             var description = $pl.find("#ws_description").val();
             var streamurl = $pl.find("#ws_url").val();
             var hours = $pl.find("#ws_hours").val();
@@ -1038,71 +1038,55 @@ var AIRTIME = (function(AIRTIME){
             });
     };
 
+	mod.fnEdit = function(id, type, url) {
+		if ($pl.is(":hidden")) {
+		    openPlaylistPanel();
+		}
+		stopAudioPreview();
 
-    mod.fnNewBlock = function() {
-        var url = baseUrl+'Playlist/new';
-
-        stopAudioPreview();
-
-        $.post(url,
-            {format: "json", type: 'block'},
-            function(json){
-                openPlaylist(json);
-                redrawLib();
-            });
-    };
-
-    mod.fnEdit = function(id, type, url) {
-        if ($pl.is(":hidden")) {
-            openPlaylistPanel();
-        }
-        stopAudioPreview();
-
-        $.post(url,
-            {format: "json", id: id, type: type},
-            function(json){
-                openPlaylist(json);
-            });
-    };
+		$.post(url,
+			{format: "json", id: id, type: type},
+			function(json){
+				openPlaylist(json);
+			});
+	};
 
 
-    mod.fnDelete = function(plid) {
-        var url, id, lastMod;
+	mod.fnDelete = function(plid) {
+		var url, id, lastMod;
 
-        stopAudioPreview();
-        id = (plid === undefined) ? getId() : plid;
-        lastMod = getModified();
-        type = $('#obj_type').val();
-        url = baseUrl+'Playlist/delete';
+		stopAudioPreview();
+		id = (plid === undefined) ? getId() : plid;
+		lastMod = getModified();
+		type = $('#obj_type').val();
+		url = baseUrl+'Playlist/delete';
 
-        $.post(url,
-            {format: "json", ids: id, modified: lastMod, type: type},
-            function(json){
-                openPlaylist(json);
-                redrawLib();
-            });
-    };
+		$.post(url,
+			{format: "json", ids: id, modified: lastMod, type: type},
+			function(json){
+				openPlaylist(json);
+				redrawLib();
+			});
+	};
 
-    mod.fnWsDelete = function(wsid) {
-        var url, id, lastMod;
+	mod.fnWsDelete = function(wsid) {
+		var url, id;
 
-        stopAudioPreview();
-        id = (wsid === undefined) ? getId() : wsid;
-        lastMod = getModified();
-        type = $('#obj_type').val();
-        url = baseUrl+'Webstream/delete';
+		stopAudioPreview();
+		id = (wsid === undefined) ? getId() : wsid;
+		url = baseUrl+'Webstream/delete';
 
-        $.post(url,
-            {format: "json", ids: id, modified: lastMod, type: type},
-            function(json){
-                openPlaylist(json);
-                redrawLib();
-            });
-    };
+		$.post(url,
+			{format: "json", ids: id},
+			function(json){
+				openPlaylist(json);
+				redrawLib();
+			});
+	};
 
-    mod.disableUI = function() {
+	mod.disableUI = function() {
 
-        $lib.block({
+    	$lib.block({
             message: "",
             theme: true,
             applyPlatformOpacityRules: false
