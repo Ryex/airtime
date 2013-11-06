@@ -784,7 +784,7 @@ var AIRTIME = (function(AIRTIME){
 
 		$pl.on("click", "#webstream_save", function() {
             //get all fields and POST to server
-            var id = $pl.find("#obj_id").attr("value"); 
+            var id = $pl.find("#obj_id").attr("value");
             var description = $pl.find("#ws_description").val();
             var streamurl = $pl.find("#ws_url").val();
             var hours = $pl.find("#ws_hours").val();
@@ -1467,10 +1467,10 @@ var AIRTIME = (function(AIRTIME){
         $lib = $("#library_content");
         $pl = $("#side_playlist");
 
-        setWidgetSize();
+		setWidgetSize();
 
-        AIRTIME.library.libraryInit();
-        AIRTIME.playlist.init();
+		//AIRTIME.library.libraryInit();
+		AIRTIME.playlist.init();
 
         if ($pl.is(':hidden')) {
             $lib.find("#library_display_length").append($togglePl.show());
