@@ -1,86 +1,117 @@
 <?php
 
-use Airtime\MediaItem\MediaContentQuery;
-use Airtime\MediaItem\MediaContent;
 use Airtime\MediaItem\PlaylistPeer;
-use Airtime\MediaItem\Playlist;
+
 use Airtime\MediaItemQuery;
+
+use Airtime\MediaItem\MediaContent;
 
 class Application_Service_PlaylistService
 {
-	public function createContextMenu($playlist) {
-	
-		$id = $playlist->getId();
+	/*return array (
+			"id" => $obj->getId(),
+			"cuein" => $obj->getSchedulingCueIn(),
+			"cueout" => $obj->getSchedulingCueOut(),
+			"fadein" => $obj->getSchedulingFadeIn(),
+			"fadeout" => $obj->getSchedulingFadeOut(),
+			"length" => $obj->getSchedulingLength(),
+			"crossfadeDuration" => 0
+		);
+	*/
+	private function buildContentItem($info) {
+		$item = new MediaContent();
 		
-		$menu = array();
+		$item->setCuein($info["cuein"]);
+		$item->setCueout($info["cueout"]);
+		$item->setFadein($info["fadein"]);
+		$item->setFadeout($info["fadeout"]);
+		$item->generateCliplength();
+		$item->setMediaId($info["id"]);
+		
+		return $item;
+	}
 	
-		if ($playlist->isStatic()) {
-			$menu["preview"] = array(
-				"name" => _("Preview"),
-				"icon" => "play",
-				"id" => $id,
-				"callback" => "previewItem"
-			);
-		}
+	/*
+	 * @param $playlist playlist item to add the files to.
+	 * @param $ids list of media ids to add to the end of the playlist.
+	 */
+	public function addMedia($playlist, $ids, $doSave = false) {
 
-		$menu["edit"] = array(
-			"name"=> _("Edit"),
-			"icon" => "edit",
-			"id" => $id,
-			"callback" => "openPlaylist"
-		);
-	
-		$menu["delete"] = array(
-			"name" => _("Delete"),
-			"icon" => "delete",
-			"id" => $id,
-			"callback" => "deleteItem"
-		);
-	
-		return $menu;
-	}
-	
-	public function createPlaylist($type) {
-		
-		switch($type) {
-			case PlaylistPeer::CLASSKEY_0:
-				$class = PlaylistPeer::CLASSNAME_0;
-				return new $class();
-				break;
-			case PlaylistPeer::CLASSKEY_1:
-			default:
-				$class = PlaylistPeer::CLASSNAME_1;
-				return new $class();
-				break;
-				
-		}
-	}
-	
-	public function savePlaylist($playlist, $info, $con) {
-		
+		$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
 		$con->beginTransaction();
-		 
+		
+		Logging::enablePropelLogging();
+		
 		try {
-			if (isset($info["name"])) {
-				$playlist->setName($info["name"]);
-			}
+			$position = $playlist->countMediaContents(null, false, $con);
+			$mediaToAdd = MediaItemQuery::create()->findPks($ids, $con);
 			
-			if (isset($info["description"])) {
-				$playlist->setDescription($info["description"]);
+			foreach ($mediaToAdd as $media) {
+				$info = $media->getSchedulingInfo();
+				Logging::info($info);
+				$mediaContent = $this->buildContentItem($info);
+				$mediaContent->setPosition($position);
+				
+				$playlist->addMediaContent($mediaContent);
+				
+				$position++;
 			}
-			
-			//only save content for static playlists
-			if ($playlist->isStatic()) {
-				$content = isset($info["content"]) ? $info["content"] : array();
-				$playlist->savePlaylistContent($con, $content, true);
+
+			if ($doSave) {
+				$playlist->save($con);
+				$con->commit();
 			}
+		}
+		catch (Exception $e) {
+			$con->rollBack();
+			Logging::error($e->getMessage());
+			throw $e;
+		}
+		
+		Logging::disablePropelLogging();
+	}
+	
+	/*
+	 * [16] => Array
+                (
+                    [id] => 5
+                    [cuein] => 00:00:00
+                    [cueout] => 00:04:12.917551
+                    [fadein] => 0.5
+                    [fadeout] => 0.5
+                )
+	 */
+	public function savePlaylist($playlist, $data) {
+		
+		$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
+		$con->beginTransaction();
+		
+		Logging::enablePropelLogging();
+		
+		try {
 			
-			$playlist->save($con); 
+			$playlist->setName($data["name"]);
+			$playlist->setDescription($data["description"]);
+			
+			$contents = $data["contents"];
+			$position = 0;
+			foreach ($contents as $item) {
+				$mediaContent = $this->buildContentItem($item);
+				$mediaContent->setPosition($position);
+				$playlist->addMediaContent($mediaContent);
+				
+				$position++;
+			}
+				
+			$playlist->save($con);
 			$con->commit();
 		}
 		catch (Exception $e) {
 			$con->rollBack();
+			Logging::error($e->getMessage());
 			throw $e;
-		}	
+		}
+		
+		Logging::disablePropelLogging();
 	}
 }

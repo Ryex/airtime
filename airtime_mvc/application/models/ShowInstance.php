@@ -7,13 +7,6 @@ use Airtime\CcScheduleQuery;
 use Airtime\CcShowDaysQuery;
 use Airtime\CcShowDays;
 
-use Airtime\CcShowInstancesQuery;
-use Airtime\CcShowQuery;
-use Airtime\CcShowInstancesPeer;
-use Airtime\CcScheduleQuery;
-use Airtime\CcShowDaysQuery;
-use Airtime\CcShowDays;
-
 class Application_Model_ShowInstance
 {
     private $_instanceId;
@@ -464,7 +457,7 @@ SQL;
     {
         $durationSeconds = $this->getDurationSecs();
         $timeSeconds = $this->getTimeScheduledSecs();
-
+    
         if ($durationSeconds != 0) { //Prevent division by zero if the show duration is somehow zero.
             $percent = ceil(($timeSeconds / $durationSeconds) * 100);
         } else {
@@ -493,7 +486,7 @@ SQL;
         return $returnStr;
     }
 
-    public static function getContentCount($p_start, $p_end)
+    public static function getContentCount($p_start, $p_end) 
     {
         $sql = <<<SQL
 SELECT instance_id,
@@ -517,7 +510,6 @@ SQL;
 
     }
 
-    //TODO this sucks.
     public static function getIsFull($p_start, $p_end)
     {
         $sql = <<<SQL
@@ -539,7 +531,6 @@ SQL;
 
         return $isFilled;
     }
-
 
     public function showEmpty()
     {
@@ -613,10 +604,10 @@ SQL;
             ':instance_id2' => $this->_instanceId
         ));
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+       
         if (isset($timezone)) {
             $displayTimezone = new DateTimeZone($timezone);
-        } else {
+        } else { 
             $userTimezone = Application_Model_Preference::GetUserTimezone();
             $displayTimezone = new DateTimeZone($userTimezone);
         }
