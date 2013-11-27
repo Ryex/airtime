@@ -133,7 +133,7 @@ var AIRTIME = (function(AIRTIME){
 		return info;
 	}
 	
-	mod.redrawPlaylist = function(data) {
+	mod.redrawPlaylist = function redrawPlaylist(data) {
 		
 		$wrapper = $("div.wrapper");
 		$playlist = $("#side_playlist");
@@ -147,7 +147,7 @@ var AIRTIME = (function(AIRTIME){
 		$wrapper.append($playlist);
 	};
 	
-	mod.drawPlaylist = function(data) {
+	mod.drawPlaylist = function drawPlaylist(data) {
 		$playlist = $("#side_playlist");
 		
 		$playlist.empty().append(data.html);
@@ -286,7 +286,31 @@ var AIRTIME = (function(AIRTIME){
 		$playlist.on("blur", ".spl_fade_in span, .spl_fade_out span", changeFade);
 		$playlist.on("blur", ".spl_cue_in span, .spl_cue_out span", changeCue);
 		
-		$("#save_button").click(function(e) {
+		$playlist.on("click", "#spl_shuffle", function(e) {
+			
+			var url = baseUrl+"playlist/shuffle",
+				data;
+			
+			data = {format: "json"};
+			
+			$.post(url, data, function(json) {
+				mod.redrawPlaylist(json);
+			});
+		});
+
+		$playlist.on("click", "#spl_clear", function(e) {
+			
+			var url = baseUrl+"playlist/clear",
+				data;
+			
+			data = {format: "json"};
+			
+			$.post(url, data, function(json) {
+				mod.redrawPlaylist(json);
+			});
+		});
+		
+		$playlist.on("click", "#spl_save", function(e) {
 			
 			var order = $contents.sortable("toArray"),
 				url = baseUrl+"playlist/save",
@@ -303,6 +327,18 @@ var AIRTIME = (function(AIRTIME){
 			
 			$.post(url, data, function() {
 				
+			});
+		});
+		
+		$playlist.on("click", "#spl_delete", function(e) {
+			
+			var url = baseUrl+"playlist/delete",
+				data;
+			
+			data = {format: "json"};
+			
+			$.post(url, data, function(json) {
+				mod.drawPlaylist(json);
 			});
 		});
 	};
