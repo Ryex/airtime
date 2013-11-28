@@ -326,8 +326,8 @@ var AIRTIME = (function(AIRTIME){
 			
 			data = {format: "json", serialized: serializePlaylist(order)};
 			
-			$.post(url, data, function() {
-				
+			$.post(url, data, function(json) {
+				mod.redrawPlaylist(json);
 			});
 		});
 		
