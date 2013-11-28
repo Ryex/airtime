@@ -11,10 +11,14 @@ function showConfigCheckPage() {
         // configuration hasn't been initialized
         checkConfiguration();
     }
-
     require_once(CONFIG_PATH . 'config-check.php');
     die();
 }
+
+// Define application environment
+defined('APPLICATION_ENV')
+    || define('APPLICATION_ENV', (getenv('APPLICATION_ENV') ? getenv('APPLICATION_ENV') : 'development'));
+
 
 function isApiCall() {
     $path = $_SERVER['PHP_SELF'];
