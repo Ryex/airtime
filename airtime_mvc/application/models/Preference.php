@@ -134,7 +134,6 @@ class Application_Model_Preference
 
         	$cacheInfo = $cache->fetch($key, $isUserValue, $userId);
         	if ($cacheInfo["found"] !== false) {
-        		//Logging::info("returning {$key} {$userId} from cache. = {$res}");
         		return $cacheInfo["value"];
         	}
 
