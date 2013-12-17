@@ -32,7 +32,8 @@ class Config {
         $CC_CONFIG['baseDir'] = $values['general']['base_dir'];
         $CC_CONFIG['baseUrl'] = $values['general']['base_url'];
         $CC_CONFIG['basePort'] = $values['general']['base_port'];
-//        $CC_CONFIG['phpDir'] = $values['general']['airtime_dir'];
+
+        $CC_CONFIG['phpDir'] = $values['general']['airtime_dir'];
 
         $CC_CONFIG['cache_ahead_hours'] = $values['general']['cache_ahead_hours'];
 
@@ -59,6 +60,7 @@ class Config {
             die("Fatal Error: [memcached] section missing from your airtime.conf.<br>" .
                 "Please see the default airtime.conf for an example.");
         }
+
         $CC_CONFIG['memcached']['servers'] = $values['memcached']['servers'];
 
         if(isset($values['demo']['demo'])){
