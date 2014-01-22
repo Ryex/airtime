@@ -5,6 +5,16 @@ var AIRTIME = (function(AIRTIME) {
     }
     var mod = AIRTIME.library;
     
+<<<<<<< HEAD
+=======
+    //stored in format chosenItems[tabname] = object of chosen ids for the tab.
+    var chosenItems = {},
+    	LIB_SELECTED_CLASS = "lib-selected",
+    	//used for using dbclick vs click events on the library rows.
+    	alreadyclicked = false,
+    	alreadyclickedTimeout;
+    
+>>>>>>> CC-5450 : Refactor Media Management (Classes/DB) in Airtime
     function createDatatable(config) {
     	
     	$("#"+config.id).dataTable({
@@ -125,6 +135,65 @@ var AIRTIME = (function(AIRTIME) {
     		});
     	});
     	
+<<<<<<< HEAD
+=======
+    	$library.on("click", "input[type=checkbox]", function(ev) {
+            
+            var $cb = $(this),
+                $prev,
+                $tr = $cb.parents("tr"),
+                $trs;
+            
+            if ($cb.is(":checked")) {
+                
+                if (ev.shiftKey) {
+                    $prev = $library.find("tr."+LIB_SELECTED_CLASS+":visible").eq(-1);
+                    $trs = $prev.nextUntil($tr);
+                    
+                    $trs.each(function(i, el){
+                        mod.selectItem($(el));
+                    });
+                }
+
+                mod.selectItem($tr);
+            }
+            else {
+                mod.deselectItem($tr);  
+            }
+        });
+    	
+    	// call the context menu so we can prevent the event from
+        // propagating.
+    	$library.on("click", 'td:not(.library_checkbox)', function(e) {
+    		
+            var $el = $(this);
+            
+            if (mod.alreadyclicked) {
+            	
+            	// reset
+            	mod.alreadyclicked = false;
+                // prevent this from happening
+                clearTimeout(mod.alreadyclickedTimeout); 
+    
+                // do what needs to happen on double click.
+                $tr = $el.parent();
+                data = $tr.data("aData");
+                mod.dblClickAdd(data);
+            }
+            else
+            {
+            	mod.alreadyclicked = true;
+            	mod.alreadyclickedTimeout = setTimeout(function() {
+            		// reset when it happens
+            		mod.alreadyclicked = false;
+                    // do what needs to happen on single click.
+                    $el.contextMenu({x: e.pageX, y: e.pageY});
+                }, 200); // <-- dblclick tolerance here
+            }
+            return false;
+        });
+    	
+>>>>>>> CC-5450 : Refactor Media Management (Classes/DB) in Airtime
     	 // begin context menu initialization.
         $.contextMenu({
             selector: '#lib_tabs td',

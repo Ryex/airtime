@@ -3,9 +3,6 @@
 use Airtime\CcShowHostsQuery;
 use Airtime\CcShowInstancesQuery;
 
-use Airtime\CcShowHostsQuery;
-use Airtime\CcShowInstancesQuery;
-
 class Application_Model_ShowBuilder
 {
     private $timezone;
@@ -293,6 +290,7 @@ class Application_Model_ShowBuilder
     	$rows = array();
     	$row = $this->defaultRowArray;
     	
+    	$position = 0;
     	$instance = $showInstance->getDbId();
     	$showStartDT = $showInstance->getDbStarts(null);
     	$showEndDT = $showInstance->getDbEnds(null);
@@ -301,7 +299,7 @@ class Application_Model_ShowBuilder
     	
     	foreach ($scheduledItems as $scheduledItem) {
     		
-    		//if there's a filler row its status is -1, don't display it.
+    		//if there's a filler row it's status is -1, don't display it.
     		if ($scheduledItem->getDbPlayoutStatus() >= 0) {
 
     			$schedStartDT = $scheduledItem->getDbStarts(null);
@@ -328,21 +326,18 @@ class Application_Model_ShowBuilder
     			$row["ends"] = $schedEndDT->format("H:i:s");
     		
     			$mediaItem = $scheduledItem->getMediaItem();
-    			$row["mediaId"] = $mediaItem->getId();
     			$row["title"] = htmlspecialchars($mediaItem->getName());
     			$row["creator"] = htmlspecialchars($mediaItem->getCreator());
-    			$row["album"] = htmlspecialchars($mediaItem->getSource());
+    			$row["album"] = "";//htmlspecialchars($p_item["file_album_title"]);
     			$row["mime"] = $mediaItem->getMime();
     		
-    			$formatter = new Format_HHMMSSULength($scheduledItem->getDbCueIn());
-    			$row["cuein"] = $formatter->format();
-    			$formatter = new Format_HHMMSSULength($scheduledItem->getDbCueOut());
-    			$row["cueout"] = $formatter->format();
-    			$formatter = new Format_HHMMSSULength($scheduledItem->getDbClipLength());
-    			$row["runtime"] = $formatter->format();
-    			
+    			$row["cuein"] = $scheduledItem->getDbCueIn();
+    			$row["cueout"] = $scheduledItem->getDbCueOut();
+    			$row['runtime'] = $scheduledItem->getDbClipLength();
     			$row["fadein"] = $scheduledItem->getDbFadeIn();
     			$row["fadeout"] = $scheduledItem->getDbFadeOut();
+    			
+    			$row["pos"] = $position++;
     			
     			self::itemRowCheck($showInstance, $row);
     		
@@ -356,20 +351,7 @@ class Application_Model_ShowBuilder
     	//empty normal show.
     	if (count($scheduledItems) === 0 && !$showInstance->isRecorded()) {
     		$row["empty"] = true;
-    		$row["id"] = 0;
-    		$row["instance"] = $instance;
-    		
-    		self::itemRowCheck($showInstance, $row);
-    		
-    		$rows[] = $row;
-    	}
-    	//a show that's currently played all its scheduled content but is now empty, needs an empty row.
-    	else if (count($scheduledItems) > 0 
-    			&& $this->epoch_now < floatval($showEndDT->format("U.u"))
-    			&& $this->epoch_now > floatval($schedEndDT->format("U.u"))) {
-    		
-    		$row["empty"] = true;
-    		$row["id"] = $scheduledItem->getDbId();
+    		$row["id"] = 0 ;
     		$row["instance"] = $instance;
     		
     		self::itemRowCheck($showInstance, $row);
@@ -430,7 +412,7 @@ class Application_Model_ShowBuilder
     {
         $outdated = false;
         $shows = Application_Model_Show::getShows($this->startDT, $this->endDT);
-       
+
         $include = array();
         if ($this->opts["showFilter"] !== 0) {
             $include[] = $this->opts["showFilter"];
@@ -439,6 +421,7 @@ class Application_Model_ShowBuilder
 
             $include = $this->getUsersShows();
         }
+
 
         $currentInstances = array();
 
@@ -472,7 +455,8 @@ class Application_Model_ShowBuilder
             $outdated = true;
         }
 
-        return $outdated;
+        //return $outdated;
+        return false;
     }
 
     public function getItems()
@@ -492,10 +476,10 @@ class Application_Model_ShowBuilder
             $showInstance[] = $this->opts["showInstanceFilter"];
         }
 
-        //Logging::enablePropelLogging();
+        Logging::enablePropelLogging();
         
         $scheduledShows = Application_Model_Schedule::GetScheduleDetailItems(
-            $this->startDT, $this->endDT, false, $shows, $showInstance);
+            $this->startDT, $this->endDT, $shows, $showInstance);
          
         //Logging::info($scheduledShows);
         
@@ -514,7 +498,7 @@ class Application_Model_ShowBuilder
         	$display_items[]= $footer;
         }
         
-        //Logging::disablePropelLogging();
+        Logging::disablePropelLogging();
         
         return array(
             "schedule" => $display_items,

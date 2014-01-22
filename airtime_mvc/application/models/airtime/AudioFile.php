@@ -183,12 +183,34 @@ class AudioFile extends BaseAudioFile
 	
 	public function setTrackNumber($v) {
 		
-		if ($v === "") {
+		if (!is_numeric($v)) {
 			$v = null;
 		}
 		
 		parent::setTrackNumber($v);
 		
+		return $this;
+	}
+	
+	public function setBitRate($v) {
+		
+		if (!is_numeric($v)) {
+			$v = null;
+		}
+		
+		parent::setBitRate($v);
+		
+		return $this;
+	}
+	
+	public function setSampleRate($v) {
+	
+		if (!is_numeric($v)) {
+			$v = null;
+		}
+	
+		parent::setSampleRate($v);
+	
 		return $this;
 	}
 	
@@ -258,5 +280,19 @@ class AudioFile extends BaseAudioFile
 	
 	public function getSchedulingFadeOut() {
 		return \Application_Model_Preference::GetDefaultFadeOut();
+	}
+	
+	public function getScheduledContent() {
+		
+		return array (
+			array (
+				"id" => $this->getId(),
+				"cliplength" => $this->getCueLength(),
+				"cuein" => $this->getCuein(),
+				"cueout" => $this->getCueout(),
+				"fadein" => \Application_Model_Preference::GetDefaultFadeIn(),
+				"fadeout" => \Application_Model_Preference::GetDefaultFadeOut(),
+			)
+		);	
 	}
 }

@@ -32,14 +32,14 @@ class Playlist extends BasePlaylist
 	/*
 	 * returns a list of media contents.
 	 */
-	public function getMediaContents($criteria = NULL, PropelPDO $con = NULL) {
+	public function getContents($criteria = NULL, PropelPDO $con = NULL) {
 		
 		if (is_null($criteria)) {
 			$criteria = new Criteria();
 			$criteria->addAscendingOrderByColumn(MediaContentPeer::POSITION);
 		}
 		
-		return parent::getMediaContents($criteria, $con);
+		return parent::getMediaContentsJoinMediaItem($criteria, $con);
 	}
 	
 	/**
@@ -80,8 +80,37 @@ class Playlist extends BasePlaylist
 		$this->length = $length;
 	}
 	
+	public function getLength()
+	{
+		if (is_null($this->length)) {
+			$this->length = "00:00:00";
+		}
+		
+		return $this->length;
+	}
+	
 	public function postSave(PropelPDO $con = null)
     {
     	$this->updateLength($con);
+    }
+    
+    public function getScheduledContent() {
+    
+    	$contents = $this->getMediaContents();
+    	$items = array();
+    	
+    	foreach ($contents as $content) {
+    		$data = array();
+    		$data["id"] = $content->getMediaId();
+    		$data["cliplength"] = $content->getCliplength();
+    		$data["cuein"] = $content->getCuein();
+    		$data["cueout"] = $content->getCueout();
+    		$data["fadein"] = $content->getFadein();
+    		$data["fadeout"] = $content->getFadeout();
+    		
+    		$items[] = $data;
+    	}
+    	
+    	return $items;
     }
 }

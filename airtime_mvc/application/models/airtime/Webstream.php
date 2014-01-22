@@ -82,4 +82,18 @@ class Webstream extends BaseWebstream
 	public function getSchedulingFadeOut() {
 		return \Application_Model_Preference::GetDefaultFadeOut();
 	}
+	
+	public function getScheduledContent() {
+	
+		return array(
+			array (
+				"id" => $this->getId(),
+				"cliplength" => $this->getLength(),
+				"cuein" => $this->getCuein(),
+				"cueout" => $this->getCueout(),
+				"fadein" => \Application_Model_Preference::GetDefaultFadeIn(),
+				"fadeout" => \Application_Model_Preference::GetDefaultFadeOut(),
+			)
+		);
+	}
 }

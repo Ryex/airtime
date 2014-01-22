@@ -195,7 +195,7 @@ SQL;
         /*
          * If the resized show is an edited instance of a repeating show we
          * need to treat it as a separate show and not resize the other instances
-         *
+         * 
          * Also, if the resized show has edited instances, we need to exclude
          * those from the resize
          */
@@ -262,7 +262,7 @@ SQL;
         //keep track of instance ids for update show instances start/end times
         $instanceIds = array();
         $displayTimezone = new DateTimeZone(Application_Model_Preference::GetUserTimezone());
-
+        
         //check if new show time overlaps with any other shows
         foreach ($showInstances as $si) {
             array_push($instanceIds, $si->getDbId());
@@ -373,7 +373,7 @@ SELECT id from cc_show_instances
 WHERE starts >= :dayTimestamp::TIMESTAMP
   AND show_id = :showId
 SQL;
-
+    
         $rows = Application_Common_Database::prepareAndExecute( $sql, array(
             ':dayTimestamp' => $day_timestamp,
             ':showId'       => $this->getId()), 'all');
@@ -468,9 +468,9 @@ SQL;
     }
 
     /**
-     * Get the repeat type of the show. Show can have repeat type of
+     * Get the repeat type of the show. Show can have repeat type of 
      * "weekly", "every 2 weeks", "monthly", "monthly on the same weekday",
-     * "every 3 weeks" and "every 4 weeks". These values are represented
+     * "every 3 weeks" and "every 4 weeks". These values are represented 
      * by 0, 1, 2, 3, 4 and 5, respectively.
      *
      * @return int
@@ -722,7 +722,7 @@ SET ends = starts + :add_show_duration::INTERVAL
 WHERE show_id = :show_id
   AND ends > :timestamp::TIMESTAMP
 SQL;
-
+        
         Application_Common_Database::prepareAndExecute( $sql, array(
             ':add_show_duration' => $p_data['add_show_duration'],
             ':show_id' => $p_data['add_show_id'],
@@ -834,15 +834,15 @@ SQL;
         } catch (Exception $e) {
             return null;
         }
-
+        
     }
-
+    
     /**
-     *
+     * 
      * Creates show instances that are scheduled after the shows_populated_until
      * value in cc_pref. If the show instances are linked their show content will
      * get filled.
-     *
+     * 
      * This can occur when a user is viewing the next day/week/month in the
      * calendar or when pypo is requesting the schedule after the shows_populated_until
      * date and time.
@@ -906,7 +906,7 @@ SQL;
 
         if ($showId) {
             $sql .= " AND (si1.show_id = :show_id)";
-            $params[':show_id'] = $showId;
+            $params[':show_id'] = $showId; 
         }
 
         if ($onlyRecord) {
@@ -1025,7 +1025,7 @@ SQL;
             $event["rebroadcast"]   = intval($show["rebroadcast"]);
             //$event["soundcloud_id"] = is_null($show["soundcloud_id"])
              //   ? -1 : $show["soundcloud_id"];
-
+            
             //for putting the now playing icon on the show.
             if ($now > $startsDT && $now < $endsDT) {
                 $event["nowPlaying"] = true;
@@ -1055,7 +1055,7 @@ SQL;
     /**
      * Calculates the percentage of a show scheduled given the start and end times in date/time format
      * and the time_filled as the total time the schow is scheduled for in time format.
-     *
+     * 
      * TODO when using propel properly this should be a method on the propel show instance model.
      **/
     private static function getPercentScheduled($p_starts, $p_ends, $p_time_filled)
@@ -1123,9 +1123,9 @@ SQL;
     /**
      * Gets the current show, previous and next with an n-day window from
      * the given timeNow, so timeNow-2days and timeNow+$daysToRetrieve days.
-     *
+     * 
      * @param $utcNow A DateTime object containing the current time in UTC.
-     * @return An array containing the previous show,
+     * @return An array containing the previous show, 
      *         current show, and next show.
      */
     public static function getPrevCurrentNext($utcNow, $utcEndStr, $showsToRetrieve)
@@ -1133,12 +1133,12 @@ SQL;
         $timeZone = new DateTimeZone("UTC"); //This function works entirely in UTC.
         assert(get_class($utcNow) === "DateTime");
         assert($utcNow->getTimeZone() == $timeZone);
-
+        
         $CC_CONFIG = Config::getConfig();
         $con = Propel::getConnection();
 
-        // This will fetch the currently playing show first, then any
-        // upcoming shows within our interval, and finally move on to
+        // This will fetch the currently playing show first, then any 
+        // upcoming shows within our interval, and finally move on to 
         // previous shows in the past 2 days.
         $sql = <<<SQL
 SELECT s.name,
@@ -1158,8 +1158,8 @@ WHERE si.show_id = s.id
   AND si.starts >= :timeNow::timestamp - INTERVAL '2 days'
   AND si.starts < :timeEnd::timestamp
   AND modified_instance != TRUE
-ORDER BY
-  CASE
+ORDER BY 
+  CASE 
     WHEN si.ends > :timeNow::timestamp
       AND  si.starts < :timeNow::timestamp THEN 1
     WHEN si.starts > :timeNow::timestamp THEN 2
@@ -1169,12 +1169,12 @@ LIMIT :lim
 SQL;
 
         $stmt = $con->prepare($sql);
-
+        
         $utcNowStr = $utcNow->format("Y-m-d H:i:s");
         $stmt->bindValue(':timeNow', $utcNowStr);
         $stmt->bindValue(':timeEnd', $utcEndStr);
         $stmt->bindValue(':lim', $showsToRetrieve);
-
+        
         if ($stmt->execute()) {
             // use PDO::FETCH_ASSOC to only get the associative values
             // note that fetchAll() defaults to PDO::FETCH_BOTH, which we don't want
@@ -1194,9 +1194,9 @@ SQL;
             // all shows start/end times are stored in the database as UTC.
             $showStartTime = new DateTime($rows[$i]['starts'], $timeZone);
             $showEndTime   = new DateTime($rows[$i]['ends'], $timeZone);
-
+            
             // Find the show that is within the current time.
-            if (($showStartTime <= $utcNow) && ($showEndTime > $utcNow)) {
+            if (($showStartTime <= $utcNow) && ($showEndTime > $utcNow)) {   
                 $results['currentShow'] = $rows[$i];
             } else if ($showEndTime < $utcNow ) {
                 array_push($results['previousShow'], $rows[$i]);
@@ -1207,7 +1207,7 @@ SQL;
 
         return $results;
     }
-
+    
     /**
      * Gets the current show, previous and next with an 2day window from
      * the given timeNow, so timeNow-2days and timeNow+2days.
@@ -1222,10 +1222,10 @@ SQL;
         $timeZone = new DateTimeZone("UTC"); //This function works entirely in UTC.
         assert(get_class($utcNow) === "DateTime");
         assert($utcNow->getTimeZone() == $timeZone);
-
+    
         $CC_CONFIG = Config::getConfig();
         $con = Propel::getConnection();
-
+    
         //TODO, returning starts + ends twice (once with an alias). Unify this after the 2.0 release. --Martin
         $sql = <<<SQL
 SELECT si.starts AS start_timestamp,
@@ -1248,31 +1248,31 @@ WHERE si.show_id = s.id
   AND modified_instance != TRUE
 ORDER BY si.starts
 SQL;
-
+    
         $stmt = $con->prepare($sql);
-
+    
         $utcNowStr = $utcNow->format("Y-m-d H:i:s");
         $stmt->bindValue(':timeNow1', $utcNowStr);
         $stmt->bindValue(':timeNow2', $utcNowStr);
-
+    
         if ($stmt->execute()) {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } else {
             $msg = implode(',', $stmt->errorInfo());
             throw new Exception("Error: $msg");
         }
-
+    
         $numberOfRows = count($rows);
-
+    
         $results['previousShow'] = array();
         $results['currentShow']  = array();
         $results['nextShow']     = array();
-
+    
         for ($i = 0; $i < $numberOfRows; ++$i) {
             //All shows start/end times are stored in the database as UTC.
             $showStartTime = new DateTime($rows[$i]['starts'], $timeZone);
             $showEndTime   = new DateTime($rows[$i]['ends'], $timeZone);
-
+    
             //Find the show that is within the current time.
             if (($showStartTime <= $utcNow) && ($showEndTime > $utcNow))
             {
@@ -1288,11 +1288,12 @@ SQL;
                             "starts"                  => $rows[$i-1]['starts'],
                             "ends"                    => $rows[$i-1]['ends'],
                             "record"                  => $rows[$i-1]['record'],
+                            "image_path"              => $rows[$i-1]['image_path'],
                             "type"                   => "show");
                 }
-
+    
                 $results['currentShow'][0] =  $rows[$i];
-
+    
                 if (isset($rows[$i+1])) {
                     $results['nextShow'][0] =  array(
                             "id"                     => $rows[$i+1]['id'],
@@ -1305,6 +1306,7 @@ SQL;
                             "starts"                  => $rows[$i+1]['starts'],
                             "ends"                    => $rows[$i+1]['ends'],
                             "record"                  => $rows[$i+1]['record'],
+                            "image_path"              => $rows[$i+1]['image_path'],
                             "type"                    => "show");
                 }
                 break;
@@ -1346,7 +1348,7 @@ SQL;
                     "record"                  => $rows[$previousShowIndex]['record'],
                     "type"                    => "show");
         }
-
+    
         return $results;
     }
 

@@ -635,6 +635,7 @@ var AIRTIME = (function(AIRTIME){
                             hide: 'mouseout'
                         });
                     }
+<<<<<<< HEAD
 
                     if (aData.allowed === true && aData.scheduled >= 1) {
                     	$wrapper.append('<input type="checkbox" name="'+aData.id+'"></input>');
@@ -643,6 +644,15 @@ var AIRTIME = (function(AIRTIME){
                     	if ($lib.length > 0 && $lib.filter(":visible").length > 0) {
                     		$wrapper.append($marker);
                     	}
+=======
+                    
+                    $node = $(nRow.children[0]);
+                    if (aData.allowed === true && aData.scheduled >= 1) {
+                        $node.html('<input type="checkbox" name="'+aData.id+'"></input>');
+                    }
+                    else {
+                        $node.html('');
+>>>>>>> CC-5450 : Refactor Media Management (Classes/DB) in Airtime
                     }
                 }
 
@@ -676,7 +686,11 @@ var AIRTIME = (function(AIRTIME){
                 else {
                     $nRow.addClass("sb-future");
                 }
+<<<<<<< HEAD
 
+=======
+                
+>>>>>>> CC-5450 : Refactor Media Management (Classes/DB) in Airtime
                 if (aData.allowed !== true) {
                     $nRow.addClass("sb-not-allowed");
                 }
