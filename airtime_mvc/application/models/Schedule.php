@@ -59,7 +59,7 @@ SQL;
 
         return $real_streams;
     }
-    
+
     /**
      * Returns data related to the scheduled items.
      */
@@ -112,15 +112,15 @@ SQL;
     public static function GetPlayOrderRangeOld()
     {
         // Everything in this function must be done in UTC. You will get a swift kick in the pants if you mess that up.
-    
+
         $utcNow = new DateTime("now", new DateTimeZone("UTC"));
-    
+
         $shows = Application_Model_Show::getPrevCurrentNextOld($utcNow);
         $previousShowID = count($shows['previousShow'])>0?$shows['previousShow'][0]['instance_id']:null;
         $currentShowID = count($shows['currentShow'])>0?$shows['currentShow'][0]['instance_id']:null;
         $nextShowID = count($shows['nextShow'])>0?$shows['nextShow'][0]['instance_id']:null;
         $results = self::GetPrevCurrentNext($previousShowID, $currentShowID, $nextShowID, $utcNow);
-    
+
         $range = array(
                 "env" => APPLICATION_ENV,
                 "schedulerTime" => $utcNow->format("Y-m-d H:i:s"),
@@ -132,7 +132,7 @@ SQL;
                 "currentShow"=>$shows['currentShow'],
                 "nextShow"=>$shows['nextShow']
         );
-    
+
         return $range;
     }
 
@@ -351,7 +351,7 @@ SQL;
     		->_endif()
     		->between($start, $end)
     		->orderByDbStarts()
-    		//including these relations to prevent further database queries for 
+    		//including these relations to prevent further database queries for
     		->joinWith("CcShow", Criteria::LEFT_JOIN)
     		->useCcScheduleQuery(null, Criteria::LEFT_JOIN)
 	    		->orderByDbStarts()
@@ -361,178 +361,8 @@ SQL;
     		->joinWith("MediaItem.AudioFile", Criteria::LEFT_JOIN)
     		->joinWith("MediaItem.Webstream", Criteria::LEFT_JOIN)
     		->find();
-    	
+
     	return $items;
-    	
-    	/*
-        $p_start_str = $p_start->format("Y-m-d H:i:s");
-        $p_end_str = $p_end->format("Y-m-d H:i:s");
-
-        //We need to search 48 hours before and after the show times so that that we
-        //capture all of the show's contents.
-        $p_track_start= $p_start->sub(new DateInterval("PT48H"))->format("Y-m-d H:i:s");
-        $p_track_end = $p_end->add(new DateInterval("PT48H"))->format("Y-m-d H:i:s");
-
-        $templateSql = <<<SQL
-SELECT DISTINCT sched.starts AS sched_starts,
-                sched.ends AS sched_ends,
-                sched.id AS sched_id,
-                sched.cue_in AS cue_in,
-                sched.cue_out AS cue_out,
-                sched.fade_in AS fade_in,
-                sched.fade_out AS fade_out,
-                sched.playout_status AS playout_status,
-                sched.instance_id AS sched_instance_id,
-
-                %%columns%%
-                FROM (%%join%%)
-SQL;
-
-        $filesColumns = <<<SQL
-                ft.track_title AS file_track_title,
-                ft.artist_name AS file_artist_name,
-                ft.album_title AS file_album_title,
-                ft.length AS file_length,
-                ft.file_exists AS file_exists,
-                ft.mime AS file_mime,
-                ft.soundcloud_id AS soundcloud_id
-SQL;
-        $filesJoin = <<<SQL
-       cc_schedule AS sched
-       JOIN cc_files AS ft ON (sched.file_id = ft.id
-           AND ((sched.starts >= :fj_ts_1
-               AND sched.starts < :fj_ts_2)
-               OR (sched.ends > :fj_ts_3
-               AND sched.ends <= :fj_ts_4)
-               OR (sched.starts <= :fj_ts_5
-               AND sched.ends >= :fj_ts_6))
-        )
-SQL;
-        $paramMap = array(
-        	":fj_ts_1" => $p_track_start,
-        	":fj_ts_2" => $p_track_end,
-        	":fj_ts_3" => $p_track_start,
-        	":fj_ts_4" => $p_track_end,
-        	":fj_ts_5" => $p_track_start,
-        	":fj_ts_6" => $p_track_end,
-        );
-
-        $filesSql = str_replace("%%columns%%",
-            $filesColumns,
-            $templateSql);
-        $filesSql= str_replace("%%join%%",
-            $filesJoin,
-            $filesSql);
-
-        $streamColumns = <<<SQL
-                ws.name AS file_track_title,
-                sub.login AS file_artist_name,
-                ws.description AS file_album_title,
-                ws.length AS file_length,
-                't'::BOOL AS file_exists,
-                ws.mime AS file_mime,
-                (SELECT NULL::integer AS soundcloud_id)
-SQL;
-        $streamJoin = <<<SQL
-      cc_schedule AS sched
-      JOIN cc_webstream AS ws ON (sched.stream_id = ws.id
-          AND ((sched.starts >= :sj_ts_1
-               AND sched.starts < :sj_ts_2)
-               OR (sched.ends > :sj_ts_3
-               AND sched.ends <= :sj_ts_4)
-               OR (sched.starts <= :sj_ts_5
-               AND sched.ends >= :sj_ts_6))
-      )
-      LEFT JOIN cc_subjs AS sub ON (ws.creator_id = sub.id)
-SQL;
-        $map = array(
-        	":sj_ts_1" => $p_track_start,
-        	":sj_ts_2" => $p_track_end,
-        	":sj_ts_3" => $p_track_start,
-        	":sj_ts_4" => $p_track_end,
-        	":sj_ts_5" => $p_track_start,
-        	":sj_ts_6" => $p_track_end,
-        );
-        $paramMap = $paramMap + $map;
-
-        $streamSql = str_replace("%%columns%%",
-            $streamColumns,
-            $templateSql);
-        $streamSql = str_replace("%%join%%",
-            $streamJoin,
-            $streamSql);
-
-
-        $showPredicate = "";
-        if (count($p_shows) > 0) {
-
-            $params = array();
-            $map = array();
-
-            for ($i = 0, $len = count($p_shows); $i < $len; $i++) {
-            	$holder = ":show_".$i;
-
-            	$params[] = $holder;
-            	$map[$holder] = $p_shows[$i];
-            }
-
-            $showPredicate = " AND show_id IN (".implode(",", $params).")";
-            $paramMap = $paramMap + $map;
-        } else if (count($p_show_instances) > 0) {
-            $showPredicate = " AND si.id IN (".implode(",", $p_show_instances).")";
-        }
-
-        $sql = <<<SQL
-SELECT showt.name AS show_name,
-       showt.color AS show_color,
-       showt.background_color AS show_background_color,
-       showt.id AS show_id,
-       showt.linked AS linked,
-       si.starts AS si_starts,
-       si.ends AS si_ends,
-       si.time_filled AS si_time_filled,
-       si.record AS si_record,
-       si.rebroadcast AS si_rebroadcast,
-       si.instance_id AS parent_show,
-       si.id AS si_id,
-       si.last_scheduled AS si_last_scheduled,
-       si.file_id AS si_file_id,
-       *
-       FROM (($filesSql) UNION ($streamSql)) as temp
-       RIGHT JOIN cc_show_instances AS si ON (si.id = sched_instance_id)
-JOIN cc_show AS showt ON (showt.id = si.show_id)
-WHERE si.modified_instance = FALSE
-  $showPredicate
-  AND ((si.starts >= :ts_1
-       AND si.starts < :ts_2)
-  OR (si.ends > :ts_3
-      AND si.ends <= :ts_4)
-  OR (si.starts <= :ts_5
-      AND si.ends >= :ts_6))
-ORDER BY si_starts,
-         sched_starts;
-SQL;
-
-        $map = array(
-        	":ts_1" => $p_start_str,
-        	":ts_2" => $p_end_str,
-        	":ts_3" => $p_start_str,
-        	":ts_4" => $p_end_str,
-        	":ts_5" => $p_start_str,
-        	":ts_6" => $p_end_str,
-        );
-        $paramMap = $paramMap + $map;
-
-        $rows = Application_Common_Database::prepareAndExecute(
-        	$sql,
-        	$paramMap,
-        	Application_Common_Database::ALL
-        );
-
-        return $rows;
-        */
-    	
-    	return array();
     }
 
     public static function UpdateMediaPlayedStatus($p_id)
@@ -898,7 +728,7 @@ SQL;
         $CC_CONFIG = Config::getConfig();
 
         $utcTimeZone = new DateTimeZone('UTC');
-        
+
         /* if $p_fromDateTime and $p_toDateTime function parameters are null,
             then set range * from "now" to "now + 24 hours". */
         if (is_null($p_fromDateTime)) {
@@ -958,13 +788,13 @@ SQL;
                 $storedFile = Application_Model_StoredFile::RecallById($media_id);
                 $uri = $storedFile->getFilePath();
                 self::createFileScheduleEvent($data, $item, $media_id, $uri);
-            } 
+            }
             elseif (!is_null($item['stream_id'])) {
                 //row is type "webstream"
                 $media_id = $item['stream_id'];
                 $uri = $item['url'];
                 self::createStreamScheduleEvent($data, $item, $media_id, $uri);
-            } 
+            }
             else {
                 throw new Exception("Unknown schedule type: ".print_r($item, true));
             }
@@ -1040,7 +870,7 @@ SQL;
             $needScheduleUntil->add(new DateInterval("P1D"));
         }
         Application_Model_Show::createAndFillShowInstancesPastPopulatedUntilDate($needScheduleUntil);
-        
+
         list($range_start, $range_end) = self::getRangeStartAndEnd($p_fromDateTime, $p_toDateTime);
 
         $data = array();
