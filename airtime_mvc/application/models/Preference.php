@@ -254,7 +254,6 @@ class Application_Model_Preference
     	$duration = self::getValue("default_crossfade_duration");
 
     	if ($duration === "") {
-    		// the default value of the fade is 00.5
     		return "0";
     	}
 
@@ -293,28 +292,6 @@ class Application_Model_Preference
     	}
 
     	return $fade;
-    }
-
-    public static function SetDefaultFadeOut($fade)
-    {
-        self::setValue("default_fade_out", $fade);
-    }
-
-    public static function GetDefaultFadeOut()
-    {
-        $fade = self::getValue("default_fade_out");
-
-        if ($fade === "") {
-            // the default value of the fade is 0.5
-            return "0.5";
-        }
-
-        return $fade;
-    }
-
-    public static function SetDefaultFade($fade)
-    {
-        self::setValue("default_fade", $fade);
     }
 
     public static function SetDefaultTransitionFade($fade)
@@ -1405,7 +1382,7 @@ class Application_Model_Preference
         $rg_modifier = self::getValue("replay_gain_modifier");
 
         if ($rg_modifier === "") {
-            return "0";
+            $rg_modifier = 0;
         }
 
         return $rg_modifier;
