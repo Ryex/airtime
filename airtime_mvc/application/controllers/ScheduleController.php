@@ -117,7 +117,7 @@ class ScheduleController extends Zend_Controller_Action
         $currentUser = $service_user->getCurrentUser();
 
         $userTimezone = new DateTimeZone(Application_Model_Preference::GetUserTimezone());
-        
+
         $start = new DateTime($this->_getParam('start', null), $userTimezone);
         $start->setTimezone(new DateTimeZone("UTC"));
         $end = new DateTime($this->_getParam('end', null), $userTimezone);
@@ -260,12 +260,11 @@ class ScheduleController extends Zend_Controller_Action
 
     public function getCurrentPlaylistAction()
     {
-        $range = Application_Model_Schedule::GetPlayOrderRangeOld();
-        $show = Application_Model_Show::getCurrentShow();
+        $range = Application_Model_Schedule::getDashboardInfo();
 
         /* Convert all UTC times to localtime before sending back to user. */
         $range["schedulerTime"] = Application_Common_DateHelper::UTCStringToUserTimezoneString($range["schedulerTime"]);
-        
+
         if (isset($range["previous"])) {
             $range["previous"]["starts"] = Application_Common_DateHelper::UTCStringToUserTimezoneString($range["previous"]["starts"]);
             $range["previous"]["ends"] = Application_Common_DateHelper::UTCStringToUserTimezoneString($range["previous"]["ends"]);
@@ -278,14 +277,14 @@ class ScheduleController extends Zend_Controller_Action
             $range["next"]["starts"] = Application_Common_DateHelper::UTCStringToUserTimezoneString($range["next"]["starts"]);
             $range["next"]["ends"] = Application_Common_DateHelper::UTCStringToUserTimezoneString($range["next"]["ends"]);
         }
-  
+
         Application_Common_DateHelper::convertTimestamps(
-        	$range["currentShow"], 
+        	$range["currentShow"],
         	array("starts", "ends", "start_timestamp", "end_timestamp"),
         	"user"
         );
         Application_Common_DateHelper::convertTimestamps(
-        	$range["nextShow"], 
+        	$range["nextShow"],
         	array("starts", "ends", "start_timestamp", "end_timestamp"),
         	"user"
         );
@@ -293,7 +292,7 @@ class ScheduleController extends Zend_Controller_Action
         //TODO: Add timezone and timezoneOffset back into the ApiController's results.
         $range["timezone"] = Application_Common_DateHelper::getUserTimezoneAbbreviation();
         $range["timezoneOffset"] = Application_Common_DateHelper::getUserTimezoneOffset();
-        
+
         $source_status = array();
         $switch_status = array();
         $live_dj = Application_Model_Preference::GetSourceStatus("live_dj");
@@ -314,7 +313,7 @@ class ScheduleController extends Zend_Controller_Action
         $this->view->switch_status = $switch_status;
 
         $this->view->entries = $range;
-        $this->view->show_name = isset($show[0])?$show[0]["name"]:"";
+        $this->view->show_name = isset($range["currentShow"][0]) ? $range["currentShow"][0]["name"] : "";
     }
 
     public function showContentDialogAction()
@@ -344,7 +343,7 @@ class ScheduleController extends Zend_Controller_Action
             $displayTimeZone = new DateTimeZone(Application_Model_Preference::GetTimezone());
             $originalDateTime = new DateTime($originalShowStart, new DateTimeZone("UTC"));
             $originalDateTime->setTimezone($displayTimeZone);
-            
+
             $this->view->additionalShowInfo =
                 sprintf(_("Rebroadcast of show %s from %s at %s"),
                     $originalShowName,
@@ -649,7 +648,7 @@ class ScheduleController extends Zend_Controller_Action
     	$start = $this->_getParam('startTime');
     	$end = $this->_getParam('endTime');
     	$timezone = $this->_getParam('timezone');
-    	
+
         $service_showForm = new Application_Service_ShowFormService();
         $result = $service_showForm->calculateDuration($start, $end, $timezone);
 
@@ -660,10 +659,10 @@ class ScheduleController extends Zend_Controller_Action
     public function updateFutureIsScheduledAction()
     {
         $schedId = $this->_getParam('schedId');
-        
+
         $scheduleService = new Application_Service_SchedulerService();
         $redrawLibTable = $scheduleService->updateFutureIsScheduled($schedId, false);
-        
+
         $this->_helper->json->sendJson(array("redrawLibTable" => $redrawLibTable));
     }
 
