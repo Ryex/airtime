@@ -294,6 +294,8 @@ SQL;
         return $row;
     }
 
+
+
     /*
      *
      * @param DateTime $start in UTC timezone
@@ -560,4 +562,313 @@ SQL;
 
         return $overlapping;
     }
+
+
+    private static function makeDashboardItemOutput(&$row)
+    {
+    	if (empty($row["item_start"])) {
+    		return null;
+    	}
+
+    	return array(
+    		"name"=> $row["media_title"], //TODO add artist back in
+    		"starts" => $row["item_start"],
+    		"ends" => (($row["item_end"] > $row["show_end"]) ? $row["show_end"]: $row["item_end"]),
+    		"media_item_played" => (boolean) $row["media_item_played"],
+    		"record" => 0,
+    		"type" => 'track'
+    	);
+    }
+
+    private static function makeDashboardShowOutput(&$row)
+    {
+    	return array(
+        	"id" => $row['show_id'],
+            "instance_id" => $row['instance_id'],
+            "name" => $row['show_name'],
+            "url" => $row['show_url'],
+            "start_timestamp" => $row['show_start'],
+            "end_timestamp" => $row['show_end'],
+            "starts" => $row['show_start'],
+            "ends" => $row['show_end'],
+            "record" => $row['is_recorded'],
+            "type" => "show"
+    	);
+    }
+
+    public static function getDashboardInfo()
+    {
+    	$sql = <<<SQL
+select
+
+npItems.media_title,
+npItems.item_start,
+npItems.item_end,
+npItems.show_start,
+npItems.show_end,
+npItems.show_id,
+npItems.instance_id,
+npItems.is_recorded,
+npItems.media_item_played,
+show.name as show_name,
+show.url as show_url
+
+from
+(
+
+select
+
+pcnItems.media_title,
+pcnItems.starts as item_start,
+pcnItems.ends as item_end,
+pcnItems.media_item_played,
+pcnShows.starts as show_start,
+pcnShows.ends as show_end,
+pcnShows.show_id,
+pcnShows.instance_id,
+pcnShows.is_recorded
+
+from
+(
+
+select
+
+preCurrNextShows.starts,
+preCurrNextShows.ends,
+preCurrNextShows.show_id,
+preCurrNextShows.id as instance_id,
+preCurrNextShows.record as is_recorded
+
+from
+(
+
+select * from
+(
+select * from cc_show_instances instance
+where
+instance.modified_instance = false
+and instance.starts <= (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+and instance.ends > (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+)
+
+as currInstance
+
+union
+
+select * from
+(
+select * from cc_show_instances instance
+where
+instance.modified_instance = false
+and instance.starts > (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+order by instance.starts
+limit 1
+)
+
+as nextInstance
+
+union
+
+select * from
+(
+select * from cc_show_instances instance
+where
+instance.modified_instance = false
+and instance.ends < (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+order by instance.ends desc
+limit 1
+)
+
+as prevInstance
+
+)
+
+as preCurrNextShows
+)
+
+as pcnShows
+
+full outer join
+
+(
+
+select
+preCurrNextItem.starts,
+preCurrNextItem.ends,
+preCurrNextItem.show_id,
+preCurrNextItem.media_item_played,
+media.name as media_title
+
+
+from
+(
+
+select * from
+
+(select currentItem.starts, currentItem.ends, currentItem.media_id, currentItem.media_item_played, showInstance.show_id from
+(select sched.starts, sched.ends, sched.instance_id, sched.media_id, sched.media_item_played from cc_schedule sched
+where
+sched.playout_status > 0
+and sched.starts <= (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+and sched.ends > (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))
+as currentItem
+left join cc_show_instances showInstance on currentItem.instance_id = showInstance.id
+where showInstance.modified_instance = false
+and showInstance.starts <= (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+and showInstance.ends > (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))
+
+as cItem
+
+
+union
+
+select * from
+(select nextItem.starts, nextItem.ends, nextItem.media_id, nextItem.media_item_played, showInstance.show_id from
+(select sched.starts, sched.ends, sched.instance_id, sched.media_id, sched.media_item_played from cc_schedule sched
+where
+sched.playout_status > 0
+and sched.starts > (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+order by sched.starts
+limit 1)
+as nextItem
+left join cc_show_instances showInstance on nextItem.instance_id = showInstance.id
+where showInstance.modified_instance = false)
+
+as nItem
+
+union
+
+select * from
+(select prevItem.starts, prevItem.ends, prevItem.media_id, prevItem.media_item_played, showInstance.show_id from
+(select sched.starts, sched.ends, sched.instance_id, sched.media_id, sched.media_item_played from cc_schedule sched
+where
+sched.playout_status > 0
+and sched.ends < (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+order by sched.ends desc
+limit 1)
+as prevItem
+left join cc_show_instances showInstance on prevItem.instance_id = showInstance.id
+where showInstance.modified_instance = false)
+
+as pItem
+
+)
+as preCurrNextItem
+
+left join media_item media on preCurrNextItem.media_id = media.id
+)
+
+as pcnItems
+
+using(show_id)
+
+)
+
+as npItems
+
+left join cc_show show on npItems.show_id = show.id
+
+where npItems.show_id is not null
+
+order by
+npItems.show_start,
+npItems.item_start
+SQL;
+
+
+    	// extra rows can be created here from combining prev/curr/next items
+    	// with prev/curr/next shows.
+    	//this happens from recorded shows, or any kind of show that does not have a cc_schedule entry associated with it.
+    	//at most 5 items will be returned, need to find the proper prev/curr/next.
+    	$rows = Application_Common_Database::prepareAndExecute($sql);
+
+    	Logging::info($rows);
+
+    	$prev = null;
+    	$curr = null;
+    	$next = null;
+
+    	$utcTimezone = new DateTimeZone("UTC");
+    	$utcNow = new DateTime("now", $utcTimezone);
+
+    	for ($i = 0, $len = count($rows); $i < $len; $i++) {
+
+    		$start = $rows[$i]["show_start"];
+    		$end = $rows[$i]["show_end"];
+
+    		$startDT = new DateTime($start, $utcTimezone);
+    		$endDT = new DateTime($end, $utcTimezone);
+
+    		if ($endDT < $utcNow) {
+    			$prev = $rows[$i];
+    		}
+    		else if ($startDT <= $utcNow && $endDT > $utcNow) {
+    			$curr = $rows[$i];
+    		}
+    		else {
+    			$next = $rows[$i];
+    		}
+    	}
+
+    	$prevShow = isset($prev) ? self::makeDashboardShowOutput($prev) : null;
+    	$currShow = isset($curr) ? self::makeDashboardShowOutput($curr) : null;
+    	$nextShow = isset($next) ? self::makeDashboardShowOutput($next) : null;
+
+    	//start again to find items.
+    	$prev = null;
+    	$curr = null;
+    	$next = null;
+
+    	for ($i = 0, $len = count($rows); $i < $len; $i++) {
+
+    		if (empty($rows[$i]["item_start"])) {
+    			continue;
+    		}
+
+    		$start = $rows[$i]["item_start"];
+    		$end = $rows[$i]["item_end"];
+
+    		$startDT = new DateTime($start, $utcTimezone);
+    		$endDT = new DateTime($end, $utcTimezone);
+
+    		if ($endDT < $utcNow) {
+    			$prev = $rows[$i];
+    		}
+    		else if ($startDT <= $utcNow && $endDT > $utcNow) {
+    			$curr = $rows[$i];
+    			//could theoretically have 2 currents with crossfades,
+    			//need to update the previous here just incase.
+    			//items are ordered by starts so we can assume this.
+    			if ($i > 0) {
+    				$prev = $rows[$i - 1];
+    			}
+    		}
+    		else {
+    			$next = $rows[$i];
+    			//need to exit as extra rows can occur from future empty shows.
+    			break;
+    		}
+    	}
+
+    	$prevItem = isset($prev) ? self::makeDashboardItemOutput($prev) : null;
+    	$currItem = isset($curr) ? self::makeDashboardItemOutput($curr) : null;
+    	$nextItem = isset($next) ? self::makeDashboardItemOutput($next) : null;
+
+    	$range = array("env"=>APPLICATION_ENV,
+    		"schedulerTime"=> $utcNow->format("Y-m-d H:i:s"),
+    		//Previous, current, next songs!
+    		"previous"=> isset($prevItem) ? $prevItem : $prevShow,
+    		//only pass back the current show as the current item if it's recording.
+    		"current"=> isset($currItem) ? $currItem : (($currShow["record"] == 1) ? $currShow: null),
+    		"next"=> isset($nextItem) ? $nextItem : $nextShow,
+    		//Current and next shows
+    		//TODO this is lame that they're sent back in an array instead of just an object.
+    		//dashboard.js needs to be fixed up for this though.
+    		"currentShow"=> isset($currShow) ? array($currShow) : array(),
+    		"nextShow"=> isset($nextShow) ? array($nextShow) : array()
+    	);
+
+    	return $range;
+    }
+
 }

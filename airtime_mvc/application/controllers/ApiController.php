@@ -212,7 +212,7 @@ class ApiController extends Zend_Controller_Action
         $result["on_air_light_expected_status"] = false;
         $result["station_down"] = false;
 
-        $range = Application_Model_Schedule::GetPlayOrderRange();
+        $range = Application_Model_Schedule::getDashboardInfo();
 
         $isItemCurrentlyScheduled = !is_null($range["current"]) && count($range["currentShow"]) > 0 ? true : false;
 
@@ -293,8 +293,9 @@ class ApiController extends Zend_Controller_Action
                     "currentShow" => Application_Model_Show::getCurrentShow($utcTimeNow),
                     "nextShow" => Application_Model_Show::getNextShows($utcTimeNow, $limit, $utcTimeEnd)
                 );
-            } else {
-                $result = Application_Model_Schedule::GetPlayOrderRangeOld($limit);
+            }
+            else {
+                $result = Application_Model_Schedule::getDashboardInfo();
             }
 
             // XSS exploit prevention
