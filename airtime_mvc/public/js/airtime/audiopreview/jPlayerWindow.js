@@ -6,53 +6,37 @@ var AIRTIME = (function(AIRTIME) {
     var mod = AIRTIME.playerPreview,
     	playlistJPlayer;
     
-    function addToPlaylist(data) {
-    	var playNow = false;
-    	var jPlayerData = $("#jquery_jplayer_1").data();
+    function changePlaylist(data) {
     	
-    	//if (playlistJPlayer.playlist.length === 0) {
-    	if (jPlayerData.jPlayer.status.paused === true) {
-    		playNow = true;
+    	
+    	if (data.hasMultiple) {
+    		$(".jp-previous, .jp-next").show();
+    	}
+    	else {
+    		$(".jp-previous, .jp-next").hide();
     	}
     	
-    	data.playlist.forEach(function(mediaObject, index, mediaArray) {
-
-    		if (mod.isAudioSupported(mediaObject.mime)) {
-    			playlistJPlayer.add(mediaObject, playNow);
-        		playNow = false;
-    		}
-    	});
+    	if (data.hasDuration) {
+    		$(".jp-duration").show();
+    	}
+    	else {
+    		$(".jp-duration").hide();
+    	}
+    	
+    	playlistJPlayer.setPlaylist(data.playlist);
+    	//playlistJPlayer.option("autoPlay", true);
+    	playlistJPlayer.play(0);
     }
     
     function fetchMedia(mediaId) {
     	var url = baseUrl+"audiopreview/media-preview";
     	
-    	$.get(url, {format: "json", id: mediaId}, addToPlaylist);
+    	$.get(url, {format: "json", id: mediaId}, changePlaylist);
     }
     
     mod.previewMedia = function(mediaId) {
     	
     	fetchMedia(mediaId);
-    };
-    
-    mod.isAudioSupported = function(mime){
-        var audio = new Audio();
-
-        var bMime = null;
-        if (mime.indexOf("ogg") != -1 || mime.indexOf("vorbis") != -1) {
-           bMime = 'audio/ogg; codecs="vorbis"'; 
-        } else {
-            bMime = mime;
-        }
-
-        //return a true of the browser can play this file natively, or if the
-        //file is an mp3 and flash is installed (jPlayer will fall back to flash to play mp3s).
-        //Note that checking the navigator.mimeTypes value does not work for IE7, but the alternative
-        //is adding a javascript library to do the work for you, which seems like overkill....
-        return (!!audio.canPlayType && audio.canPlayType(bMime) != "") || 
-            (mime.indexOf("mp3") != -1 && navigator.mimeTypes ["application/x-shockwave-flash"] != undefined) ||
-            (mime.indexOf("mp4") != -1 && navigator.mimeTypes ["application/x-shockwave-flash"] != undefined) ||
-            (mime.indexOf("mpeg") != -1 && navigator.mimeTypes ["application/x-shockwave-flash"] != undefined);
     };
     
     mod.initPlayer = function() {
@@ -66,10 +50,7 @@ var AIRTIME = (function(AIRTIME) {
         [], //array of songs will be filled with json call
         {
             swfPath: baseUrl+"js/jplayer",
-            supplied: "mp3, oga, m4a, wav, flac",
-            preload: "none",
-            wmode: "window",
-            //remainingDuration: true,
+            supplied:"oga, mp3, m4v, m4a, wav, flac",
             size: {
                 width: "0px",
                 height: "0px",
@@ -78,37 +59,25 @@ var AIRTIME = (function(AIRTIME) {
             playlistOptions: {
                 autoPlay: false,
                 loopOnPrevious: false,
-                shuffleOnLoop: false,
-                enableRemoveControls: true,
+                shuffleOnLoop: true,
+                enableRemoveControls: false,
                 displayTime: 0,
                 addTime: 0,
                 removeTime: 0,
                 shuffleTime: 0
             },
-            ready: function(e) {
-            	console.log("ready");
-            	console.log(e);
-            },
-            error: function(e) {
-            	console.log("error");
-            	console.error(e);
-            },
-            play: function(e) {
-            	var title = e.jPlayer.status.media.title,
-            		artist = e.jPlayer.status.media.artist,
-            		html;
-            	
-            	html = title + " <span class='jp-artist'>" + artist + "</span>";
-            	
-            	$(".jp-current").html(html);
+            ready: function() {
+              
             }
         });
-    	
-    	$("#open_playlist").click(function() {
-    	    $(".jp-playlist").toggleClass("open");
-    	    $(this).toggleClass("selected");
-    	});
 
+        $("#jp_container_1").on("mouseenter", "ul.jp-controls li", function(ev) {
+        	$(this).addClass("ui-state-hover");
+        });
+        
+        $("#jp_container_1").on("mouseleave", "ul.jp-controls li", function(ev) {
+        	$(this).removeClass("ui-state-hover");
+        });
     };
     
 return AIRTIME;

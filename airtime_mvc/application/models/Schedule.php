@@ -781,8 +781,8 @@ SQL;
     	//this happens from recorded shows, or any kind of show that does not have a cc_schedule entry associated with it.
     	//at most 5 items will be returned, need to find the proper prev/curr/next.
     	$rows = Application_Common_Database::prepareAndExecute($sql);
-
-    	Logging::info($rows);
+    	
+    	//Logging::info($rows);
 
     	$prev = null;
     	$curr = null;

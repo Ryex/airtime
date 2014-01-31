@@ -59,6 +59,11 @@ var AIRTIME = (function(AIRTIME) {
     	AIRTIME.playlist.edit(mediaId);
     };
     
+    mod.dblClickAdd = function(data) {
+    	
+    	
+    };
+    
     return AIRTIME;
 
 }(AIRTIME || {}));
