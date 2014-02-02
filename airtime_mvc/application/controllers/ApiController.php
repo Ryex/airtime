@@ -103,7 +103,7 @@ class ApiController extends Zend_Controller_Action
             $filepath = $media->getFilepath();
             // Make sure we don't have some wrong result beecause of caching
             clearstatcache();
-            
+
             if (is_file($filepath)) {
                 //$full_path = $media->getPropelOrm()->getDbFilepath();
 
@@ -154,12 +154,12 @@ class ApiController extends Zend_Controller_Action
     public function smartReadFile($location, $mimeType = 'audio/mp3')
     {
     	Logging::info($location);
-    	
+
     	//We can have multiple levels of output buffering. Need to
     	//keep looping until all have been disabled!!!
     	//http://www.php.net/manual/en/function.ob-end-flush.php
     	while (@ob_end_flush());
-    	
+
         $size= filesize($location);
         $time= date('r', filemtime($location));
 
@@ -180,36 +180,37 @@ class ApiController extends Zend_Controller_Action
                 Logging::info($rangeBegin);
                 if (!empty($matches[2])) {
                     $rangeEnd = intval($matches[2]);
-                    Logging::info($rangeEnd);  
+                    Logging::info($rangeEnd);
                 }
             }
         }
-        
+
         //this check is performed to stop Chrome from hanging on a request
         // with "Range:bytes=0-"
         //http://stackoverflow.com/questions/12801192/client-closes-connection-when-streaming-m4v-from-apache-to-chrome-with-jplayer
         $sendPartialContent = false;
-        if (isset($rangeBegin) && $rangeBegin > 0) {
+        if (isset($rangeBegin)) {
+        //if (isset($rangeBegin) && $rangeBegin > 0) {
         	$sendPartialContent = true;
         	$begin = $rangeBegin;
         	$end = isset($rangeEnd) ? $rangeEnd : $end;
         }
-        
+
         Logging::info("Range: {$begin} - {$end}");
-        
+
         if ($sendPartialContent) {
         	header('HTTP/1.1 206 Partial Content');
         }
         else {
         	header('HTTP/1.1 200 OK');
         }
-        
+
         header("Content-Type: $mimeType");
         header('Cache-Control: public, must-revalidate, max-age=0');
         header('Pragma: no-cache');
         header('Accept-Ranges: bytes');
         header('Content-Length:' . (($end - $begin) + 1));
-        
+
         if ($sendPartialContent) {
         	header("Content-Range: bytes $begin-$end/$size");
         }
@@ -326,6 +327,11 @@ class ApiController extends Zend_Controller_Action
             }
             else {
                 $result = Application_Model_Schedule::getDashboardInfo();
+
+                // XSS exploit prevention
+                $result["previous"]["name"] = htmlspecialchars($result["previous"]["name"]);
+                $result["current"]["name"] = htmlspecialchars($result["current"]["name"]);
+                $result["next"]["name"] = htmlspecialchars($result["next"]["name"]);
             }
 
             // XSS exploit prevention
@@ -404,6 +410,22 @@ class ApiController extends Zend_Controller_Action
             if ($showsToRetrieve == "" || !is_numeric($showsToRetrieve)) {
                 $showsToRetrieve = "5";
             }
+
+            //For consistency, all times here are being sent in the station timezone, which
+            //seems to be what we've normalized everything to.
+
+            //Convert the UTC scheduler time ("now") to the station timezone.
+            $result["schedulerTime"] = Application_Common_DateHelper::UTCStringToStationTimezoneString($result["schedulerTime"]);
+            $result["timezone"] = Application_Common_DateHelper::getStationTimezoneAbbreviation();
+            $result["timezoneOffset"] = Application_Common_DateHelper::getStationTimezoneOffset();
+
+            //Convert from UTC to station time for Web Browser.
+            Application_Common_DateHelper::convertTimestamps($result["currentShow"],
+            		array("starts", "ends", "start_timestamp", "end_timestamp"),
+            		"station");
+            Application_Common_DateHelper::convertTimestamps($result["nextShow"],
+            		array("starts", "ends", "start_timestamp", "end_timestamp"),
+            		"station");
 
             // set the end time to the day's start n days from now.
             // days=1 will return shows until the end of the current day,
@@ -513,20 +535,19 @@ class ApiController extends Zend_Controller_Action
             $utcDayStart = $weekStartDateTime->format("Y-m-d H:i:s");
             for ($i = 0; $i < 14; $i++) {
 
-                //have to be in station timezone when adding 1 day for daylight savings.
-                $weekStartDateTime->setTimezone(new DateTimeZone($timezone));
-                $weekStartDateTime->add(new DateInterval('P1D'));
+            	//have to be in station timezone when adding 1 day for daylight savings.
+            	$weekStartDateTime->setTimezone($stationTimezone);
+            	$weekStartDateTime->add(new DateInterval('P1D'));
 
-                //convert back to UTC to get the actual timestamp used for search.
-                $weekStartDateTime->setTimezone($utcTimezone);
+            	//convert back to UTC to get the actual timestamp used for search.
+            	$weekStartDateTime->setTimezone($utcTimezone);
 
                 $utcDayEnd = $weekStartDateTime->format("Y-m-d H:i:s");
                 $shows = Application_Model_Show::getNextShows($utcDayStart, "ALL", $utcDayEnd);
                 $utcDayStart = $utcDayEnd;
 
-                // convert to user-defined timezone, or default to station
-                Application_Common_DateHelper::convertTimestampsToTimezone(
-                    $shows,
+                Application_Common_DateHelper::convertTimestamps(
+                	$shows,
                     array("starts", "ends", "start_timestamp","end_timestamp"),
                     $timezone
                 );
@@ -1283,7 +1304,7 @@ class ApiController extends Zend_Controller_Action
 
             if (isset($data_arr->title)) {
 
-                $data_title = substr($data_arr->title, 0, 1024);
+            	$data_title = substr($data_arr->title, 0, 1024);
 
                 $previous_metadata = CcWebstreamMetadataQuery::create()
                     ->orderByDbStartTime('desc')
@@ -1300,7 +1321,7 @@ class ApiController extends Zend_Controller_Action
 
                 if ($do_insert) {
 
-                    $startDT = new DateTime("now", new DateTimeZone("UTC"));
+                	$startDT = new DateTime("now", new DateTimeZone("UTC"));
 
                     $webstream_metadata = new CcWebstreamMetadata();
                     $webstream_metadata->setDbInstanceId($media_id);
