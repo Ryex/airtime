@@ -89,8 +89,7 @@ class Application_Service_AudioFileService
 		
 		$file->save($this->_con);
 		
-		Logging::info($file->toJSON(true));
-		Logging::info($file->toJSON(false));
+		Logging::info($md);
 		
 		//TODO implement upload recorded.
 		if ($md['is_record'] != 0) {
@@ -464,5 +463,45 @@ class Application_Service_AudioFileService
 		$isError = count($output) > 0 && in_array($output[0], $LIQUIDSOAP_ERRORS);
 	
 		return ($rv == 0 && !$isError);
+	}
+	
+	public function createContextMenu($audioFile) {
+		
+		$baseUrl = Application_Common_OsPath::getBaseDir();
+		
+		$id = $audioFile->getId();
+		
+		$menu = array();
+		
+		$menu["preview"] = array(
+			"name" => _("Preview"),
+			"icon" => "play",
+			"id" => $id,
+			"callback" => "previewMedia"
+		);
+		
+		$menu["edit"] = array(
+			"name"=> _("Edit Metadata"), 
+			"icon" => "edit", 
+			"url" => $baseUrl."library/edit-file-md/id/{$id}",
+			"callback" => "editMetadata"
+		);
+		
+		$url = $audioFile->getFileUrl().'/download/true';
+		$menu["download"] = array(
+			"name" => _("Download"), 
+			"icon" => "download", 
+			"url" => $url,
+			"callback" => "downloadMedia"
+		);
+		
+		/*
+		if ($isAdminOrPM || $file->getFileOwnerId() == $user->getId()) {
+			$menu["del"] = array("name"=> _("Delete"), "icon" => "delete", "url" => $baseUrl."library/delete");
+			$menu["edit"] = array("name"=> _("Edit Metadata"), "icon" => "edit", "url" => $baseUrl."library/edit-file-md/id/{$id}");
+		}
+		*/
+		
+		return $menu;
 	}
 }
