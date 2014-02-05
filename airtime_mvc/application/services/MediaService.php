@@ -12,11 +12,42 @@ use Airtime\MediaItemQuery;
 
 class Application_Service_MediaService
 {
+	private function enhanceDatatablesColumns(&$datatablesColumns) {
+		
+		$checkbox = array(
+			"sTitle" =>	"",
+			"mDataProp" => "Checkbox",
+			"bSortable" => false,
+			"bSearchable" => false,
+			"bVisible" => true,
+			"sWidth" => "25px",
+			"sClass" => "library_checkbox",
+		);
+		
+		//add the checkbox to the beginning.
+		array_unshift($datatablesColumns, $checkbox);
+	}
+	
+	/*
+	 * add display only columns such as checkboxs to the datatables response.
+	 * these should not be columns that could be calculated in the DB query.
+	 */
+	private function enhanceDatatablesOutput(&$output) {
+		
+		//add in data for the display columns.
+		foreach ($output as &$row) {
+			$row["Checkbox"] = '<input type="checkbox">';
+		}
+	}
+	
 	private function getAudioFileColumnDetails() {
 		
 		return array(
 			"Id" => array(
-				"isColumn" => false
+				"isColumn" => false,
+				"advancedSearch" => array(
+					"type" => null		
+				)
 			),
 			"IsScheduled" => array(
 				"isColumn" => true,
@@ -24,6 +55,9 @@ class Application_Service_MediaService
 				"width" => "90px",
 				"class" => "library_is_scheduled",
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => "checkbox"		
+				)
 			),
 			"IsPlaylist" => array(
 				"isColumn" => true,
@@ -31,24 +65,36 @@ class Application_Service_MediaService
 				"width" => "90px",
 				"class" => "library_is_playlist",
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => "checkbox"		
+				)
 			),
 			"TrackTitle" => array(
 				"isColumn" => true,
 				"title" => _("Title"),
 				"width" => "170px",
-				"class" => "library_title"
+				"class" => "library_title",
+				"advancedSearch" => array(
+					"type" => "text"		
+				)
 			),
 			"ArtistName" => array(
 				"isColumn" => true,
 				"title" => _("Creator"),
 				"width" => "160px",
-				"class" => "library_creator"
+				"class" => "library_creator",
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"AlbumTitle" => array(
 				"isColumn" => true,
 				"title" => _("Album"),
 				"width" => "150px",
-				"class" => "library_album"
+				"class" => "library_album",
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"BitRate" => array(
 				"isColumn" => true,
@@ -57,6 +103,9 @@ class Application_Service_MediaService
 				"class" => "library_bitrate",
 				"visible" => false,
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => "number-range"
+				)
 			),
 			"Bpm" => array(
 				"isColumn" => true,
@@ -65,6 +114,9 @@ class Application_Service_MediaService
 				"class" => "library_bpm",
 				"visible" => false,
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => "number-range"
+				)
 			),
 			"Composer" => array(
 				"isColumn" => true,
@@ -72,6 +124,9 @@ class Application_Service_MediaService
 				"width" => "150px",
 				"class" => "library_composer",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"Conductor" => array(
 				"isColumn" => true,
@@ -79,6 +134,9 @@ class Application_Service_MediaService
 				"width" => "125px",
 				"class" => "library_conductor",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"Copyright" => array(
 				"isColumn" => true,
@@ -86,6 +144,9 @@ class Application_Service_MediaService
 				"width" => "125px",
 				"class" => "library_copyright",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"Cuein" => array(
 				"isColumn" => true,
@@ -94,6 +155,9 @@ class Application_Service_MediaService
 				"class" => "library_length",
 				"visible" => false,
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => null
+				)
 			),
 			"Cueout" => array(
 				"isColumn" => true,
@@ -102,6 +166,9 @@ class Application_Service_MediaService
 				"class" => "library_length",
 				"visible" => false,
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => null
+				)
 			),
 			"EncodedBy" => array(
 				"isColumn" => true,
@@ -109,6 +176,9 @@ class Application_Service_MediaService
 				"width" => "150px",
 				"class" => "library_encoded",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"Genre" => array(
 				"isColumn" => true,
@@ -116,6 +186,9 @@ class Application_Service_MediaService
 				"width" => "100px",
 				"class" => "library_genre",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"IsrcNumber" => array(
 				"isColumn" => true,
@@ -123,6 +196,9 @@ class Application_Service_MediaService
 				"width" => "150px",
 				"class" => "library_isrc",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"Label" => array(
 				"isColumn" => true,
@@ -130,6 +206,9 @@ class Application_Service_MediaService
 				"width" => "125px",
 				"class" => "library_label",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"Language" => array(
 				"isColumn" => true,
@@ -137,6 +216,9 @@ class Application_Service_MediaService
 				"width" => "125px",
 				"class" => "library_language",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"UpdatedAt" => array(
 				"isColumn" => true,
@@ -145,6 +227,9 @@ class Application_Service_MediaService
 				"class" => "library_modified_time",
 				"visible" => false,
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => "date-range"
+				)
 			),
 			"LastPlayedTime" => array(
 				"isColumn" => true,
@@ -153,6 +238,9 @@ class Application_Service_MediaService
 				"class" => "library_modified_time",
 				"visible" => false,
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => "date-range"
+				)
 			),
 			"CueLength" => array(
 				"isColumn" => true,
@@ -160,6 +248,9 @@ class Application_Service_MediaService
 				"width" => "80px",
 				"class" => "library_length",
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => null
+				)
 			),
 			"Mime" => array(
 				"isColumn" => true,
@@ -167,6 +258,9 @@ class Application_Service_MediaService
 				"width" => "80px",
 				"class" => "library_mime",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"Mood" => array(
 				"isColumn" => true,
@@ -174,13 +268,19 @@ class Application_Service_MediaService
 				"width" => "70px",
 				"class" => "library_mood",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),	
 			"CcSubjs.DbLogin" => array(
 				"isColumn" => true,
 				"title" => _("Owner"),
 				"width" => "125px",
 				"class" => "library_owner",
-				"visible" => false
+				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
 			),
 			"ReplayGain" => array(
 				"isColumn" => true,
@@ -189,6 +289,9 @@ class Application_Service_MediaService
 				"class" => "library_replay_gain",
 				"visible" => false,
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => "number-range"
+				)
 			),
 			"SampleRate" => array(
 				"isColumn" => true,
@@ -197,6 +300,9 @@ class Application_Service_MediaService
 				"class" => "library_sr",
 				"visible" => false,
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => "number-range"
+				)
 			),
 			"TrackNumber" => array(
 				"isColumn" => true,
@@ -205,6 +311,9 @@ class Application_Service_MediaService
 				"class" => "library_track",
 				"visible" => false,
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => "number-range"
+				)
 			),
 			"CreatedAt" => array(
 				"isColumn" => true,
@@ -213,6 +322,9 @@ class Application_Service_MediaService
 				"class" => "library_upload_time",
 				"visible" => false,
 				"searchable" => false,
+				"advancedSearch" => array(
+					"type" => "date-range"
+				)
 			),
 			"InfoUrl" => array(
 				"isColumn" => true,
@@ -220,6 +332,10 @@ class Application_Service_MediaService
 				"width" => "150px",
 				"class" => "library_url",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "text"
+				)
+				
 			),
 			"Year" => array(
 				"isColumn" => true,
@@ -227,6 +343,9 @@ class Application_Service_MediaService
 				"width" => "60px",
 				"class" => "library_year",
 				"visible" => false,
+				"advancedSearch" => array(
+					"type" => "number-range"
+				)
 			),
 		);
 	}
@@ -281,7 +400,7 @@ class Application_Service_MediaService
 			),
 			"Name" => array(
 				"isColumn" => true,
-				"title" => _("Title"),
+				"title" => _("Name"),
 				"width" => "170px",
 				"class" => "library_title"
 			),
@@ -453,14 +572,22 @@ class Application_Service_MediaService
 			);
 		}
 		
+		self::enhanceDatatablesColumns($datatablesColumns);
+		
 		return $datatablesColumns;
 	}
 	
-	private function buildQuery($query, $params, $aliasedColumns) {
+	private function buildQuery($query, $params, $dataColumns, $aliasedColumns) {
 		
 		$len = intval($params["iColumns"]);
 		for ($i = 0; $i < $len; $i++) {
-			$selectColumns[] = $params["mDataProp_{$i}"];	
+			
+			$prop = $params["mDataProp_{$i}"];
+			
+			//if it's not in this array then it's a display only column.
+			if (in_array($prop, $dataColumns)) {
+				$selectColumns[] = $prop;
+			}		
 		}
 		
 		$query->setFormatter('PropelOnDemandFormatter');
@@ -516,16 +643,19 @@ class Application_Service_MediaService
 		for ($i = 0; $i < $len; $i++) {
 			
 			$colNum = $params["iSortCol_{$i}"];
-			$colName = $params["mDataProp_{$colNum}"];
-			$colDir = $params["sSortDir_{$i}"] === "asc" ? Criteria::ASC : Criteria::DESC;
 			
-			//need to lowercase the column name for the syntax generated by propel
-			//to work properly in postgresql.
-			if (in_array($colName, $aliasedColumns)) {
-				$colName = strtolower($colName);
+			if ($params["bSortable_{$colNum}"] == "true") {
+				$colName = $params["mDataProp_{$colNum}"];
+				$colDir = $params["sSortDir_{$i}"] === "asc" ? Criteria::ASC : Criteria::DESC;
+					
+				//need to lowercase the column name for the syntax generated by propel
+				//to work properly in postgresql.
+				if (in_array($colName, $aliasedColumns)) {
+					$colName = strtolower($colName);
+				}
+					
+				$query->orderBy($colName, $colDir);
 			}
-			
-			$query->orderBy($colName, $colDir);
 		}
 		
 		//LIMIT OFFSET statements
@@ -591,6 +721,8 @@ class Application_Service_MediaService
 			$output[] = $item;
 		}
 		
+		self::enhanceDatatablesOutput($output);
+		
 		return $output;
 	}
 	
@@ -604,7 +736,7 @@ class Application_Service_MediaService
 		$m = $q->getModelName();
 		$q->withColumn("({$m}.Cueout - {$m}.Cuein)", "cuelength");
 		
-		$q = self::buildQuery($q, $params, $aliases);
+		$q = self::buildQuery($q, $params, $columns, $aliases);
 		$coll = $q->find();
 		
 		return self::createOutput($coll, $columns);
@@ -616,7 +748,7 @@ class Application_Service_MediaService
 		$aliases = self::getWebstreamColumnAliases();
 	
 		$q = WebstreamQuery::create();
-		$q = self::buildQuery($q, $params, $aliases);
+		$q = self::buildQuery($q, $params, $columns, $aliases);
 		$coll = $q->find();
 	
 		return self::createOutput($coll, $columns);
@@ -628,7 +760,7 @@ class Application_Service_MediaService
 		$aliases = self::getPlaylistColumnAliases();
 		
 		$q = PlaylistQuery::create();
-		$q = self::buildQuery($q, $params, $aliases);
+		$q = self::buildQuery($q, $params, $columns, $aliases);
 		$coll = $q->find();
 	
 		return self::createOutput($coll, $columns);
@@ -662,6 +794,57 @@ class Application_Service_MediaService
 		}
 	}
 	
+	public function createLibraryColumnsJavascript() {
+		
+		//set audio columns for display of data.
+		$columns = json_encode(self::makeDatatablesColumns('AudioFile'));
+		$script = "localStorage.setItem( 'datatables-audio-aoColumns', JSON.stringify($columns) ); ";
+		
+		//set webstream columns for display of data.
+		$columns = json_encode(self::makeDatatablesColumns('Webstream'));
+		$script .= "localStorage.setItem( 'datatables-webstream-aoColumns', JSON.stringify($columns) ); ";
+		
+		//set playlist columns for display of data.
+		$columns = json_encode(self::makeDatatablesColumns('Playlist'));
+		$script .= "localStorage.setItem( 'datatables-playlist-aoColumns', JSON.stringify($columns) ); ";
+		
+		return $script;
+	}
+	
+	public function createLibraryColumnSettingsJavascript() {
+	
+		$script = "";
+		
+		$settings = Application_Model_Preference::getAudioTableSetting();
+        if (!is_null($settings)) {
+            $data = json_encode($settings);
+            $script .= "localStorage.setItem( 'datatables-audio', JSON.stringify($data) ); ";
+        } 
+        else {
+        	$script .= "localStorage.setItem( 'datatables-audio', null ); ";
+        }
+        
+        $settings = Application_Model_Preference::getWebstreamTableSetting();
+        if (!is_null($settings)) {
+        	$data = json_encode($settings);
+        	$script .= "localStorage.setItem( 'datatables-webstream', JSON.stringify($data) ); ";
+        }
+        else {
+        	$script .= "localStorage.setItem( 'datatables-webstream', null ); ";
+        }
+        
+        $settings = Application_Model_Preference::getPlaylistTableSetting();
+        if (!is_null($settings)) {
+        	$data = json_encode($settings);
+        	$script .= "localStorage.setItem( 'datatables-playlist', JSON.stringify($data) ); ";
+        }
+        else {
+        	$script .= "localStorage.setItem( 'datatables-playlist', null ); ";
+        }
+	
+		return $script;
+	}
+	
 	/*
 	 * @param $obj MediaItem object.
 	 * @return $service proper service for this item type.
@@ -674,6 +857,16 @@ class Application_Service_MediaService
 		
 		$serviceClass = "Application_Service_{$type}Service";
 		return new $serviceClass();
+	}
+	
+	public function createContextMenu($mediaId) {
+		
+		$mediaItem = MediaItemQuery::create()->findPK($mediaId);
+		$obj = $mediaItem->getChildObject();
+		
+		$service = self::locateServiceType($mediaItem);
+		
+		return $service->createContextMenu($obj);
 	}
 	
 	public function getJPlayerPreviewPlaylist($mediaId) {

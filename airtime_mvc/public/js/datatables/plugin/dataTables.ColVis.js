@@ -253,9 +253,9 @@ ColVis.prototype = {
 		this.dom.button = $( '<button />', {
 				'class': !this.s.dt.bJUI ?
 					"ColVis_Button ColVis_MasterButton" :
-					"btn-toolbar btn btn-small dropdown-toggle ColVis_MasterButton"
+					"ColVis_Button ColVis_MasterButton ui-button ui-state-default"
 			} )
-			.append( '<span>'+this.s.buttonText+'</span><span class="caret"></span>' )
+			.append( '<span>'+this.s.buttonText+'</span>' )
 			.bind( this.s.activate=="mouseover" ? "mouseover" : "click", function (e) {
 				e.preventDefault();
 				that._fnCollectionShow();
