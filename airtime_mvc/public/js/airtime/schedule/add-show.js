@@ -106,20 +106,27 @@ function endDpSelect(dateText, inst) {
         inst.input.trigger('input');
 }
 
+<<<<<<< HEAD
 function createDateInput(el, onSelect) {
     var date;
 
     el.datepicker({
+=======
+function createDateInput(el, options) {
+	
+	var defaults = {
+>>>>>>> f259183... CC-5450 : Refactor Media Management (Classes/DB) in Airtime
         minDate: adjustDateToServerDate(new Date(), timezoneOffset),
-        onSelect: onSelect,
-        dateFormat: 'yy-mm-dd',
-        //i18n_months, i18n_days_short are in common.js
-        monthNames: i18n_months,
-        dayNamesMin: i18n_days_short,
-        closeText: $.i18n._('Close'),
-        //showButtonPanel: true,
         firstDay: calendarPref.weekStart
+<<<<<<< HEAD
         });
+=======
+	},
+	
+	settings = $.extend( {}, defaults, options );
+
+	el.datepicker(settings);
+>>>>>>> f259183... CC-5450 : Refactor Media Management (Classes/DB) in Airtime
 }
 
 function autoSelect(event, ui) {
@@ -492,9 +499,21 @@ function setAddShowEvents(form) {
     endDateVisibility();
     form.find("#add_show_no_end").click(endDateVisibility);
 
+<<<<<<< HEAD
     createDateInput(form.find("#add_show_start_date"), startDpSelect);
     createDateInput(form.find("#add_show_end_date_no_repeat"), endDpSelect);
     createDateInput(form.find("#add_show_end_date"), endDpSelect);
+=======
+	createDateInput(form.find("#add_show_start_date"), {
+		onSelect: startDpSelect
+	});
+	createDateInput(form.find("#add_show_end_date_no_repeat"), {
+		onSelect: endDpSelect
+	});
+	createDateInput(form.find("#add_show_end_date"), {
+		onSelect: endDpSelect
+	});
+>>>>>>> f259183... CC-5450 : Refactor Media Management (Classes/DB) in Airtime
 
     $("#add_show_start_time").timepicker({
         amPmText: ['', ''],
@@ -509,6 +528,7 @@ function setAddShowEvents(form) {
         hourText: $.i18n._("Hour"),
         minuteText: $.i18n._("Minute")
     });
+<<<<<<< HEAD
 
     form.find('input[name^="add_show_rebroadcast_date_absolute"]').datepicker({
         minDate: adjustDateToServerDate(new Date(), timezoneOffset),
@@ -520,6 +540,13 @@ function setAddShowEvents(form) {
         showButtonPanel: true,
         firstDay: calendarPref.weekStart
     });
+=======
+    
+    createDateInput(form.find('input[name^="add_show_rebroadcast_date_absolute"]'), {
+    	showButtonPanel: true
+    });
+    
+>>>>>>> f259183... CC-5450 : Refactor Media Management (Classes/DB) in Airtime
     form.find('input[name^="add_show_rebroadcast_time"]').timepicker({
         amPmText: ['', ''],
         defaultTime: '',
