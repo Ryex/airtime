@@ -12,17 +12,7 @@ class ApiController extends Zend_Controller_Action
 
     public function init()
     {
-        $ignoreAuth = array("live-info",
-            "live-info-v2",
-            "week-info",
-            "station-metadata",
-            "station-logo",
-            "show-history-feed",
-            "item-history-feed",
-            "shows",
-            "show-tracks",
-            "show-schedules"
-        );
+        $ignoreAuth = array("live-info", "week-info", "get-media");
 
         $params = $this->getRequest()->getParams();
         if (!in_array($params['action'], $ignoreAuth)) {
