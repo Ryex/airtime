@@ -10,6 +10,7 @@ class MediaController extends Zend_Controller_Action
         	->addActionContext('audio-feed', 'json')
         	->addActionContext('webstream-feed', 'json')
         	->addActionContext('playlist-feed', 'json')
+        	->addActionContext('delete', 'json')
             ->initContext();
 
     }
@@ -57,5 +58,18 @@ class MediaController extends Zend_Controller_Action
     	$this->view->iTotalDisplayRecords = count($r);
     	$this->view->iTotalRecords = count($r);
     	$this->view->media = $r;
+    }
+    
+    public function deleteAction()
+    {
+    	$ids = $this->_getParam('ids');
+    	
+    	try {
+	    	$mediaService = new Application_Service_MediaService();
+	    	$r = $mediaService->delete($ids);
+    	}
+    	catch (Exception $e) {
+    		$this->view->error = $e->getMessage();
+    	}
     }
 }

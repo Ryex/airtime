@@ -315,14 +315,21 @@ var AIRTIME = (function(AIRTIME) {
 
     	table.fnFilterOnReturn();
     }
+    
+    //start of context menu callbacks
+    mod.deleteItem = function(data) {
+    	console.log("deleting media " + data.id);
 
-    mod.downloadMedia = function(data) {
+    	mod.deleteMedia([data.id]);
+    };
+
+    mod.downloadItem = function(data) {
     	console.log("downloading media " + data.id);
 
     	document.location.href = data.url;
     };
 
-    mod.previewMedia = function(data) {
+    mod.previewItem = function(data) {
     	var mediaId = data.id;
 
     	console.log("previewing media " + mediaId);
@@ -336,13 +343,14 @@ var AIRTIME = (function(AIRTIME) {
             buildEditMetadataDialog(json.dialog);
         });
     };
+    //end of context menu callbacks
 
     function sendContextMenuRequest(data) {
 
     	console.log(data);
 
     	if (data.callback !== undefined) {
-    		mod[data.callback](data);
+    		mod[data.callback] && mod[data.callback](data);
     	}
     }
 
@@ -350,6 +358,12 @@ var AIRTIME = (function(AIRTIME) {
     	var $tab = $("div.ui-tabs-panel").not(".ui-tabs-hide");
 
     	return $tab.attr("id");
+    }
+
+    function getActiveDatatable() {
+    	var tabId = getActiveTabId();
+
+    	return $library.find("#"+tabId).find("table").dataTable();
     }
 
     //$el is a select table row <tr>
@@ -467,6 +481,20 @@ var AIRTIME = (function(AIRTIME) {
 
         delete chosenItems[tabId];
         mod.checkToolBarIcons();
+    };
+
+    //takes as array of media ids.
+    mod.deleteMedia = function(mediaIds) {
+    	var url = baseUrl + "media/delete",
+    		oTable = getActiveDatatable(),
+    		data = {
+	    		ids: mediaIds,
+	    		format: "json"
+    		};
+
+    	$.post(url, data, function(json){
+    		oTable.fnDraw();
+    	});
     };
 
     mod.createToolbarButtons = function() {
