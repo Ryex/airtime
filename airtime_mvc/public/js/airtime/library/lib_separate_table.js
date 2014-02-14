@@ -328,20 +328,22 @@ var AIRTIME = (function(AIRTIME) {
 					.data("aData", aData)
 					.attr("id", "media_row_"+aData.Id);
 	        },
+	        
+	        "fnDrawCallback": datatablesDrawCallback,
 
-	        "fnDrawCallback": datatablesDrawCallback
+	        "fnInitComplete": function(oSettings, json) {
+	        	//fnStateLoadParams will have already run.
+	        	//fix up advanced search from saved settings.
+	        	for (i = 0, len = abVisible.length; i < len; i++) {
+	        		setAdvancedSearchColumnDisplay(i, abVisible[i], config.type);
+	        	}
+
+	        	table.columnFilter({
+	        		aoColumns: searchConfig,
+	        		sPlaceHolder: "head:before"
+	        	});
+	        }
 		});
-
-    	//fnStateLoadParams will have already run.
-    	//fix up advanced search from saved settings.
-    	for (i = 0, len = abVisible.length; i < len; i++) {
-    		setAdvancedSearchColumnDisplay(i, abVisible[i], config.type);
-    	}
-
-    	table.columnFilter({
-    		aoColumns: searchConfig,
-    		sPlaceHolder: "head:before"
-    	});
 
     	table.fnFilterOnReturn();
     }
