@@ -40,7 +40,7 @@ var AIRTIME = (function(AIRTIME) {
 	
     	// process selected schedule rows to add media after.
 	    $("#show_builder_table tr.cursor-selected-row").each(function(i, el) {
-	    	var data = $(el).data("aData");
+	    	var data = $(el).prev().data("aData");
 	    	
 	    	aSchedIds.push( {
 	            "id" : data.id,
@@ -70,38 +70,6 @@ var AIRTIME = (function(AIRTIME) {
     
     mod.addButtonClick = function() {
     	scheduleMedia(mod.getVisibleChosen());
-    };
-    
-    mod.dblClickAdd = function(data) {
-        var i, 
-	        length, 
-	        temp, 
-	        aMediaIds = [], 
-	        aSchedIds = [], 
-	        aData = [];
-
-        // process selected media.
-        aMediaIds.push(data.Id);
-
-        $("#show_builder_table tr.cursor-selected-row").each(function(i, el) {
-            aData.push($(el).prev().data("aData"));
-        });
-
-        // process selected schedule rows to add media after.
-        for (i = 0, length = aData.length; i < length; i++) {
-            temp = aData[i];
-            aSchedIds.push( {
-                "id" : temp.id,
-                "instance" : temp.instance,
-                "timestamp" : temp.timestamp
-            });
-        }
-
-        if (aSchedIds.length == 0) {
-            alert($.i18n._("Please select a cursor position on timeline."));
-            return false;
-        }
-        AIRTIME.showbuilder.fnAdd(aMediaIds, aSchedIds);
     };
     
     return AIRTIME;

@@ -16,10 +16,9 @@ var AIRTIME = (function(AIRTIME) {
     
     mod.checkAddButton = function($pane) {
     	var $selected = $pane.find("."+mod.LIB_SELECTED_CLASS),
-    		$button = $pane.find("." + mod.LIB_ADD_CLASS),
-    		$playlistContentEl = $("#spl_sortable");
+    		$button = $pane.find("." + mod.LIB_ADD_CLASS);
     	
-    	if ($selected.length > 0 && $playlistContentEl.length > 0) {
+    	if ($selected.length > 0) {
     		AIRTIME.button.enableButton($button);
     	}
     	else {
@@ -42,26 +41,11 @@ var AIRTIME = (function(AIRTIME) {
     
     //data is the aData of the tr element.
     mod.dblClickAdd = function(data) {
-    	var $playlistContentEl = $("#spl_sortable");
-    	
-    	if ($playlistContentEl.length > 0) {
-    		addToPlaylist([data.Id]);
-    	}
+    	addToPlaylist([data.Id]);
     };
     
     mod.addButtonClick = function() {
     	addToPlaylist(mod.getVisibleChosen());
-    };
-    
-    mod.openPlaylist = function(data) {
-    	var mediaId = data.id;
-    	
-    	AIRTIME.playlist.edit(mediaId);
-    };
-    
-    mod.dblClickAdd = function(data) {
-    	
-    	
     };
     
     return AIRTIME;
