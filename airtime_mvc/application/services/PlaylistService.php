@@ -178,8 +178,7 @@ class Application_Service_PlaylistService
 	public function createContextMenu($playlist) {
 	
 		$id = $playlist->getId();
-		$baseUrl = Application_Common_OsPath::getBaseDir();
-	
+		
 		$menu = array();
 	
 		$menu["preview"] = array(
@@ -188,11 +187,17 @@ class Application_Service_PlaylistService
 			"id" => $id,
 			"callback" => "previewItem"
 		);
+		
+		$menu["edit"] = array(
+			"name"=> _("Edit"),
+			"icon" => "edit",
+			"id" => $id,
+			"callback" => "openPlaylist"
+		);
 	
 		$menu["delete"] = array(
 			"name" => _("Delete"),
 			"icon" => "delete",
-			"url" => $baseUrl."media/delete",
 			"id" => $id,
 			"callback" => "deleteItem"
 		);

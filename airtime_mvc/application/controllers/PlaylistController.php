@@ -1,5 +1,7 @@
 <?php
 
+use Airtime\MediaItem\PlaylistQuery;
+
 use Airtime\MediaItem\Playlist;
 
 class PlaylistController extends Zend_Controller_Action
@@ -62,31 +64,19 @@ class PlaylistController extends Zend_Controller_Action
 
     public function editAction()
     {
-        $id = $this->_getParam('id', null);
-        $type = $this->_getParam('type');
-        $objInfo = Application_Model_Library::getObjInfo($type);
-        Logging::info("editing {$type} {$id}");
+    	$id = $this->_getParam('id');
 
-        if (!is_null($id)) {
-            Application_Model_Library::changePlaylist($id, $type);
-        }
+    	$playlist = PlaylistQuery::create()->findPK($id);
 
-        try {
-            $obj = new $objInfo['className']($id);
-            $this->createFullResponse($obj);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
-
+    	$this->mediaService->setSessionMediaObject($playlist);
+    	$this->createFullResponse($playlist);
     }
 
     public function deleteAction()
     {
     	try {
     		$playlist = $this->getPlaylist();
-    		
+
     		$this->mediaService->delete($playlist->getId());
     		$this->mediaService->setSessionMediaObject(null);
 
