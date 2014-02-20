@@ -74,7 +74,10 @@ class LibraryController extends Zend_Controller_Action
         $script = "localStorage.setItem( 'datatables-audiofile-aoColumns', JSON.stringify($columns) ); ";
         $this->view->headScript()->appendScript($script);
         
-        $this->view->obj = $mediaService->getSessionMediaObject();
+        $pl = $mediaService->getSessionMediaObject();
+        if (isset($pl)) {
+        	$this->view->obj = new Presentation_Playlist($pl);
+        }
     }
     
     public function contextMenuAction()

@@ -1,9 +1,5 @@
 <?php
 
-use Airtime\MediaItem\Playlist;
-
-use Airtime\MediaItem\PlaylistPeer;
-
 class Presentation_Playlist {
 	
 	const LENGTH_FORMATTER_CLASS = "Format_HHMMSSULength";
@@ -35,49 +31,33 @@ class Presentation_Playlist {
 	
 	public function getLength() {
 		
-		$formatter = new Format_PlaylistLength($this->playlist);
-		return $formatter->getLength();
+		$length = $this->playlist->getLength();
+		$class = self::LENGTH_FORMATTER_CLASS;
+		$formatter = new $class($length);
+		
+		return $formatter->format(3);
 	}
 	
 	public function hasContent() {
 		
-		$type = $this->playlist->getClassKey();
+		$type = $this->playlist->getType();
 		
-		return $type === intval(PlaylistPeer::CLASSKEY_0) ? true: false;
+		return $type === 0 ? true: false;
 	}
 	
 	public function getContent() {
 		
-		if ($this->hasContent()) {
-			return $this->playlist->getContents();
-		}
+		return $this->playlist->getContents();
 	}
 	
 	public function getRules() {
 		
-		$form = new Application_Form_PlaylistRules();
-
-		$rules = $this->playlist->getRules();
+		$rules = new Application_Form_PlaylistRules();
 		
-		if (isset($rules[Playlist::RULE_CRITERIA])) {
-			$form->buildCriteriaOptions($rules[Playlist::RULE_CRITERIA]);
-		}
+		$rules->populate(array(
+			"pl_type" => $this->playlist->getType()		
+		));
 		
-		$criteriaFields = $form->getPopulateHelp();
-		
-		$playlistRules = array(
-			"pl_repeat_tracks" => $rules[Playlist::RULE_REPEAT_TRACKS],
-			"pl_my_tracks" => $rules[Playlist::RULE_USERS_TRACKS_ONLY],
-			"pl_order_column" => $rules[Playlist::RULE_ORDER][Playlist::RULE_ORDER_COLUMN],
-			"pl_order_direction" => $rules[Playlist::RULE_ORDER][Playlist::RULE_ORDER_DIRECTION],
-			"pl_limit_value" => $rules["limit"]["value"],
-			"pl_limit_options" => $rules["limit"]["unit"]
-		);
-		
-		$data = array_merge($criteriaFields, $playlistRules);
-		
-		$form->populate($data);
-		
-		return $form;
+		return $rules;
 	}
 }
