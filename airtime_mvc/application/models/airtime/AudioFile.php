@@ -5,6 +5,8 @@ namespace Airtime\MediaItem;
 use \Config;
 use \Exception;
 use \PropelException;
+use \PropelPDO;
+use \Logging;
 use Airtime\MediaItem\om\BaseAudioFile;
 use Airtime\CcMusicDirsQuery;
 
@@ -40,6 +42,28 @@ class AudioFile extends BaseAudioFile
 		'MDATA_KEY_TRACKNUMBER' => "TrackNumber",
 		'MDATA_KEY_CONDUCTOR' => "Conductor",
 		'MDATA_KEY_LANGUAGE' => "Language",
+	);
+
+	// Metadata Keys for files
+	// user editable metadata
+	private $_md = array (
+		'MDATA_KEY_TITLE' => "TrackTitle",
+		'MDATA_KEY_CREATOR' => "ArtistName",
+		'MDATA_KEY_SOURCE' => "AlbumTitle",
+		'MDATA_KEY_URL' => "InfoUrl",
+		'MDATA_KEY_GENRE' => "Genre",
+		'MDATA_KEY_MOOD' => "Mood",
+		'MDATA_KEY_LABEL' => "Label",
+		'MDATA_KEY_COMPOSER' => "Composer",
+		'MDATA_KEY_ISRC' => "IsrcNumber",
+		'MDATA_KEY_COPYRIGHT' => "Copyright",
+		'MDATA_KEY_YEAR' => "Year",
+		'MDATA_KEY_BPM' => "Bpm",
+		'MDATA_KEY_TRACKNUMBER' => "TrackNumber",
+		'MDATA_KEY_CONDUCTOR' => "Conductor",
+		'MDATA_KEY_LANGUAGE' => "Language",
+		'MDATA_KEY_LENGTH' => "Length",
+		'MDATA_KEY_ISRC' => "IsrcNumber",
 	);
 
 	public function getName() {
@@ -157,7 +181,23 @@ class AudioFile extends BaseAudioFile
 
 		return $this;
 	}
-	
+
+	/**
+	 * Get metadata as array.
+	 *
+	 * @return array
+	 */
+	public function getUserEditableMetadata()
+	{
+		$md = array();
+		foreach ($this->_userEditableMd as $mdColumn => $propelColumn) {
+			$method = "get$propelColumn";
+			$md[$mdColumn] = $this->$method();
+		}
+
+		return $md;
+	}
+
 	/**
 	 * Get metadata as array.
 	 *
@@ -166,7 +206,7 @@ class AudioFile extends BaseAudioFile
 	public function getMetadata()
 	{
 		$md = array();
-		foreach ($this->_userEditableMd as $mdColumn => $propelColumn) {
+		foreach ($this->_md as $mdColumn => $propelColumn) {
 			$method = "get$propelColumn";
 			$md[$mdColumn] = $this->$method();
 		}
@@ -178,7 +218,7 @@ class AudioFile extends BaseAudioFile
 		// If the file already exists we will update and make sure that
 		// it's marked as 'exists'.
 		$this->setFileExists(true);
-		$this->setFileHidden(false);
+		//$this->setFileHidden(false);
 		$this->setMetadata($md);
 
 		return $this;
@@ -247,7 +287,7 @@ class AudioFile extends BaseAudioFile
 		// digits is an OK result. CC-3771
 
 
-		if (strlen($v) > 4) {
+		if (is_string($v) && strlen($v) > 4) {
 			$v = substr($v, 0, 4);
 		}
 		if (!is_numeric($v)) {
@@ -307,34 +347,57 @@ class AudioFile extends BaseAudioFile
 		return array (
 			array (
 				"id" => $this->getId(),
-				"cliplength" => $this->getCueLength(),
-				"cuein" => $this->getCuein(),
-				"cueout" => $this->getCueout(),
-				"fadein" => \Application_Model_Preference::GetDefaultFadeIn(),
-				"fadeout" => \Application_Model_Preference::GetDefaultFadeOut(),
+				"cliplength" => $this->getSchedulingLength(),
+				"cuein" => $this->getSchedulingCueIn(),
+				"cueout" => $this->getSchedulingCueOut(),
+				"fadein" => $this->getSchedulingFadeIn(),
+				"fadeout" => $this->getSchedulingFadeOut(),
 			)
 		);
 	}
-	
+
 	public function preDelete(PropelPDO $con = null)
 	{
 		try {
+			Logging::info("in preDelete for Audiofile");
 			//fails if media is scheduled
 			//or current user does not have permission.
 			$canDelete = parent::preDelete($con);
-			
+
+			Logging::info("can delete file: {$canDelete}");
+
+			//remove from all playlists.
 			if ($canDelete) {
-				$this->setFileHidden(true);
-			}	
+				//$this->setFileHidden(true);
+
+				$mediaItem = $this->getMediaItem($con);
+				$contents = $mediaItem->getMediaContentsJoinPlaylist(null, $con);
+
+				//delete file from playlists
+				$contents->delete($con);
+
+				$idMap = array();
+				//recalculate playlist length.
+				foreach ($contents as $content) {
+					$playlist = $content->getPlaylist($con);
+					$playlistId = $playlist->getId();
+
+					if (!in_array($playlistId, $idMap)) {
+						$idMap[] = $playlistId;
+
+						//will update playlist length
+						//and last modified time.
+						//also fixes content positions
+						$playlist->save($con);
+					}
+				}
+			}
 		}
 		catch(Exception $e) {
-			Logging::warn("Failed to delete media item {$this->getId()}");
 			Logging::warn($e->getMessage());
+			throw $e;
 		}
-	
-		//always return false since we don't actually remove an audiofile from the database,
-		//we just set it to hidden = true/false and/or exists = true/false.
-		//returning false will make sure the entry isn't removed from the database.
-		return false;
+
+		return $canDelete;
 	}
 }
