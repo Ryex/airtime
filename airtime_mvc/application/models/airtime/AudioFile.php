@@ -44,6 +44,28 @@ class AudioFile extends BaseAudioFile
 		'MDATA_KEY_LANGUAGE' => "Language",
 	);
 
+	// Metadata Keys for files
+	// user editable metadata
+	private $_md = array (
+		'MDATA_KEY_TITLE' => "TrackTitle",
+		'MDATA_KEY_CREATOR' => "ArtistName",
+		'MDATA_KEY_SOURCE' => "AlbumTitle",
+		'MDATA_KEY_URL' => "InfoUrl",
+		'MDATA_KEY_GENRE' => "Genre",
+		'MDATA_KEY_MOOD' => "Mood",
+		'MDATA_KEY_LABEL' => "Label",
+		'MDATA_KEY_COMPOSER' => "Composer",
+		'MDATA_KEY_ISRC' => "IsrcNumber",
+		'MDATA_KEY_COPYRIGHT' => "Copyright",
+		'MDATA_KEY_YEAR' => "Year",
+		'MDATA_KEY_BPM' => "Bpm",
+		'MDATA_KEY_TRACKNUMBER' => "TrackNumber",
+		'MDATA_KEY_CONDUCTOR' => "Conductor",
+		'MDATA_KEY_LANGUAGE' => "Language",
+		'MDATA_KEY_LENGTH' => "Length",
+		'MDATA_KEY_ISRC' => "IsrcNumber",
+	);
+
 	public function getName() {
 		return $this->getTrackTitle();
 	}
@@ -159,7 +181,23 @@ class AudioFile extends BaseAudioFile
 
 		return $this;
 	}
-	
+
+	/**
+	 * Get metadata as array.
+	 *
+	 * @return array
+	 */
+	public function getUserEditableMetadata()
+	{
+		$md = array();
+		foreach ($this->_userEditableMd as $mdColumn => $propelColumn) {
+			$method = "get$propelColumn";
+			$md[$mdColumn] = $this->$method();
+		}
+
+		return $md;
+	}
+
 	/**
 	 * Get metadata as array.
 	 *
@@ -168,7 +206,7 @@ class AudioFile extends BaseAudioFile
 	public function getMetadata()
 	{
 		$md = array();
-		foreach ($this->_userEditableMd as $mdColumn => $propelColumn) {
+		foreach ($this->_md as $mdColumn => $propelColumn) {
 			$method = "get$propelColumn";
 			$md[$mdColumn] = $this->$method();
 		}
@@ -317,7 +355,7 @@ class AudioFile extends BaseAudioFile
 			)
 		);
 	}
-	
+
 	public function preDelete(PropelPDO $con = null)
 	{
 		try {
@@ -325,28 +363,28 @@ class AudioFile extends BaseAudioFile
 			//fails if media is scheduled
 			//or current user does not have permission.
 			$canDelete = parent::preDelete($con);
-			
+
 			Logging::info("can delete file: {$canDelete}");
-			
+
 			//remove from all playlists.
 			if ($canDelete) {
 				//$this->setFileHidden(true);
-				
+
 				$mediaItem = $this->getMediaItem($con);
 				$contents = $mediaItem->getMediaContentsJoinPlaylist(null, $con);
-				
+
 				//delete file from playlists
 				$contents->delete($con);
-				
+
 				$idMap = array();
 				//recalculate playlist length.
 				foreach ($contents as $content) {
 					$playlist = $content->getPlaylist($con);
 					$playlistId = $playlist->getId();
-					
+
 					if (!in_array($playlistId, $idMap)) {
 						$idMap[] = $playlistId;
-						
+
 						//will update playlist length
 						//and last modified time.
 						//also fixes content positions
@@ -359,7 +397,7 @@ class AudioFile extends BaseAudioFile
 			Logging::warn($e->getMessage());
 			throw $e;
 		}
-	
+
 		return $canDelete;
 	}
 }
