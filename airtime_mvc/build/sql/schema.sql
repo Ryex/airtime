@@ -69,11 +69,15 @@ CREATE TABLE "cc_show_instances"
     PRIMARY KEY ("id")
 );
 
-COMMENT ON TABLE "cc_show_instances" IS '';
+CREATE INDEX "show_instance_original_show_idx" ON "cc_show_instances" ("instance_id");
 
+CREATE INDEX "show_instance_starts_idx" ON "cc_show_instances" ("starts");
 
-SET search_path TO public;
------------------------------------------------------------------------------
+CREATE INDEX "show_instance_ends_idx" ON "cc_show_instances" ("ends");
+
+CREATE INDEX "show_instance_modified_idx" ON "cc_show_instances" ("modified_instance");
+
+-----------------------------------------------------------------------
 -- cc_show_days
 -----------------------------------------------------------------------
 
@@ -95,6 +99,8 @@ CREATE TABLE "cc_show_days"
     PRIMARY KEY ("id")
 );
 
+CREATE INDEX "show_days_show_id_idx" ON "cc_show_days" ("show_id");
+
 -----------------------------------------------------------------------
 -- cc_show_rebroadcast
 -----------------------------------------------------------------------
@@ -110,6 +116,8 @@ CREATE TABLE "cc_show_rebroadcast"
     PRIMARY KEY ("id")
 );
 
+CREATE INDEX "rebroadcast_show_id_idx" ON "cc_show_rebroadcast" ("show_id");
+
 -----------------------------------------------------------------------
 -- cc_show_hosts
 -----------------------------------------------------------------------
@@ -123,6 +131,10 @@ CREATE TABLE "cc_show_hosts"
     "subjs_id" INTEGER NOT NULL,
     PRIMARY KEY ("id")
 );
+
+CREATE INDEX "hosts_show_id_idx" ON "cc_show_hosts" ("show_id");
+
+CREATE INDEX "hosts_user_id_idx" ON "cc_show_hosts" ("subjs_id");
 
 -----------------------------------------------------------------------
 -- cc_pref
@@ -169,6 +181,12 @@ CREATE TABLE "cc_schedule"
 );
 
 CREATE INDEX "cc_schedule_instance_id_idx" ON "cc_schedule" ("instance_id");
+
+CREATE INDEX "cc_schedule_starts_idx" ON "cc_schedule" ("starts");
+
+CREATE INDEX "cc_schedule_ends_idx" ON "cc_schedule" ("ends");
+
+CREATE INDEX "cc_schedule_playout_status_idx" ON "cc_schedule" ("playout_status");
 
 -----------------------------------------------------------------------
 -- cc_subjs
@@ -369,6 +387,8 @@ CREATE TABLE "cc_playout_history_metadata"
     PRIMARY KEY ("id")
 );
 
+CREATE INDEX "playout_history_metadata_idx" ON "cc_playout_history_metadata" ("history_id");
+
 -----------------------------------------------------------------------
 -- cc_playout_history_template
 -----------------------------------------------------------------------
@@ -400,6 +420,8 @@ CREATE TABLE "cc_playout_history_template_field"
     "position" INTEGER NOT NULL,
     PRIMARY KEY ("id")
 );
+
+CREATE INDEX "playout_history_template_field_i" ON "cc_playout_history_template_field" ("template_id");
 
 -----------------------------------------------------------------------
 -- media_item
@@ -441,7 +463,7 @@ CREATE TABLE "media_audiofile"
     "album_title" VARCHAR(512),
     "genre" VARCHAR(64),
     "comments" TEXT,
-    "year" VARCHAR(16),
+    "year" INTEGER,
     "track_number" INTEGER,
     "channels" INTEGER,
     "bpm" INTEGER,
@@ -475,7 +497,7 @@ CREATE TABLE "media_audiofile"
     PRIMARY KEY ("id")
 );
 
-CREATE INDEX "audio_file_md5_idx" ON "media_audiofile" ("md5");
+CREATE INDEX "audiofile_directory_idx" ON "media_audiofile" ("directory");
 
 -----------------------------------------------------------------------
 -- media_webstream
@@ -534,14 +556,18 @@ CREATE TABLE "media_content"
     "playlist_id" INTEGER,
     "media_id" INTEGER,
     "position" INTEGER,
-    "trackoffset" FLOAT DEFAULT 0 NOT NULL,
-    "cliplength" interval DEFAULT '00:00:00',
+    "trackoffset" interval DEFAULT '00:00:00' NOT NULL,
+    "cliplength" interval DEFAULT '00:00:00' NOT NULL,
     "cuein" interval DEFAULT '00:00:00',
     "cueout" interval DEFAULT '00:00:00',
     "fadein" DECIMAL DEFAULT 0,
     "fadeout" DECIMAL DEFAULT 0,
     PRIMARY KEY ("id")
 );
+
+CREATE INDEX "media_content_playlist_idx" ON "media_content" ("playlist_id");
+
+CREATE INDEX "media_content_media_idx" ON "media_content" ("media_id");
 
 ALTER TABLE "cc_show_instances" ADD CONSTRAINT "cc_show_fkey"
     FOREIGN KEY ("show_id")
