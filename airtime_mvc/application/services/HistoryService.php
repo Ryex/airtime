@@ -25,7 +25,7 @@ class Application_Service_HistoryService
 	public function __construct()
 	{
 		$this->con = isset($con) ? $con : Propel::getConnection(CcPlayoutHistoryPeer::DATABASE_NAME);
-		$this->timezone = Application_Model_Preference::GetTimezone();
+		$this->timezone = Application_Model_Preference::GetUserTimezone();
 	}
 
 	public function getSupportedTemplateTypes()
@@ -134,6 +134,7 @@ class Application_Service_HistoryService
 				}
 			}
 
+			$row["history_id"] = $item->getDbId();
 			$row["checkbox"] = "";
 
 			$datatables[] = $row;
@@ -786,6 +787,11 @@ class Application_Service_HistoryService
 
 	/* id is an id in cc_playout_history */
 	public function makeHistoryItemForm($id, $populate=false) {
+		
+		$fieldMap = array(
+			HISTORY_ITEM_STARTS => "DbStarts", 
+			HISTORY_ITEM_ENDS => "DbEnds"
+		);
 
 		try {
 			$form = new Application_Form_EditHistoryItem();
@@ -797,7 +803,6 @@ class Application_Service_HistoryService
 				$formValues = array();
 
 				$historyRecord = CcPlayoutHistoryQuery::create()->findPk($id, $this->con);
-				$file = $historyRecord->getCcFiles($this->con);
 				$instance = $historyRecord->getCcShowInstances($this->con);
 
 				if (isset($instance)) {
@@ -808,10 +813,6 @@ class Application_Service_HistoryService
 				    $form->populateShowInstances($selOpts, $instance_id);
 				}
 
-				if (isset($file)) {
-					$f = Application_Model_StoredFile::createWithFile($file, $this->con);
-					$filemd = $f->getDbColMetadata();
-				}
 				$metadata = array();
 				$mds = $historyRecord->getCcPlayoutHistoryMetaDatas();
 				foreach ($mds as $md) {
@@ -828,12 +829,8 @@ class Application_Service_HistoryService
 
 					if (in_array($key, $required)) {
 
-						$method = "getDb".ucfirst($key);
+						$method = "get".$fieldMap[$key];
 						$value = $historyRecord->$method();
-					}
-					else if (isset($filemd) && $field["isFileMd"]) {
-
-						$value = $filemd[$key];
 					}
 					else if (isset($metadata[$key])) {
 						$value = $metadata[$key];
