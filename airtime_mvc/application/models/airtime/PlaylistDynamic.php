@@ -3,7 +3,6 @@
 namespace Airtime\MediaItem;
 
 use \PropelException;
-use \PropelPDO;
 
 /**
  * Skeleton subclass for representing a row from one of the subclasses of the 'media_playlist' table.
@@ -27,11 +26,6 @@ class PlaylistDynamic extends Playlist {
         $this->setClassKey(PlaylistPeer::CLASSKEY_1);
     }
     
-    public function buildContentItem($mediaId, $position, $cuein=null, $cueout=null, $fadein=null, $fadeout=null)
-    {
-    	throw new PropelException("Dynamic playlist does not have content");
-    }
-    
     //TODO get this based on the rule.
     public function getLength()
     {
@@ -44,39 +38,6 @@ class PlaylistDynamic extends Playlist {
     
     public function getContents(PropelPDO $con = null) {
     	throw new PropelException("Dynamic playlist does not have content");
-    }
-    
-    public function generateContent(PropelPDO $con) {
-    	throw new PropelException("Cannot generate a dynamic playlist");
-    }
-    
-    public function shuffleContent(PropelPDO $con) {
-    	throw new PropelException("Cannot shuffle a dynamic playlist");
-    }
-    
-    public function clearContent(PropelPDO $con) {
-    	throw new PropelException("Cannot clear a dynamic playlist");
-    }
-    
-    public function getScheduledContent(PropelPDO $con) {
-    	 
-    	$ids = parent::generateContent($con);
-    	$scheduled = array();
-
-    	foreach ($ids as $id) {
-    		$audioFile = AudioFileQuery::create()->findPK($id);
-    		
-    		$scheduled[] = array (
-    			"id" => $audioFile->getId(),
-				"cliplength" => $audioFile->getSchedulingLength(),
-				"cuein" => $audioFile->getSchedulingCueIn(),
-				"cueout" => $audioFile->getSchedulingCueOut(),
-				"fadein" => $audioFile->getSchedulingFadeIn(),
-				"fadeout" => $audioFile->getSchedulingFadeOut(),
-    		);
-    	}
-    	 
-    	return $scheduled;
     }
 
 } // PlaylistDynamic

@@ -1,7 +1,6 @@
 <?php
 
 use Airtime\MediaItem\PlaylistQuery;
-
 use Airtime\MediaItem\Playlist;
 
 class PlaylistController extends Zend_Controller_Action
@@ -34,7 +33,7 @@ class PlaylistController extends Zend_Controller_Action
     private function createUpdateResponse($playlist)
     {
     	$obj = new Presentation_Playlist($playlist);
-    	
+
         $this->view->length = $obj->getLength();
         $this->view->contents = $obj->getContent();
         $this->view->modified = $obj->getLastModifiedEpoch();
@@ -45,15 +44,19 @@ class PlaylistController extends Zend_Controller_Action
 
     private function createFullResponse($obj)
     {
-    	$this->view->obj = new Presentation_Playlist($obj);
-    	$this->view->html = $this->view->render('playlist/playlist.phtml');
+    	if (isset($obj)) {
+    		$this->view->obj = new Presentation_Playlist($obj);
+    	}
 
+    	$this->view->html = $this->view->render('playlist/playlist.phtml');
     	unset($this->view->obj);
     }
 
     public function newAction()
     {
-    	$playlist = new Playlist();
+    	$type = $this->_getParam('type');
+
+    	$playlist = $this->playlistService->createPlaylist($type);
     	$playlist->save();
 
     	$this->mediaService->setSessionMediaObject($playlist);
@@ -77,8 +80,8 @@ class PlaylistController extends Zend_Controller_Action
 
     		$this->mediaService->delete($playlist->getId());
     		$this->mediaService->setSessionMediaObject(null);
-
-    		$this->view->html = $this->view->render('playlist/none.phtml');
+    		 
+    		$this->createFullResponse(null);
     	}
     	catch (Exception $e) {
     		$this->view->error = $e->getMessage();

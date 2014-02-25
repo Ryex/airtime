@@ -2,13 +2,7 @@
 
 namespace Airtime\MediaItem;
 
-use Airtime\MediaItemQuery;
-
-use \Logging;
-use \Propel;
 use \PropelPDO;
-use \Criteria;
-use Airtime\MediaItem\MediaContentQuery;
 
 
 /**
@@ -32,44 +26,13 @@ class PlaylistStatic extends Playlist {
         parent::__construct();
         $this->setClassKey(PlaylistPeer::CLASSKEY_0);
     }
-    
-    public function buildContentItem($mediaItem, $position, $cuein=null, $cueout=null, $fadein=null, $fadeout=null) {
-    	$item = new MediaContent();
-    	$defaultCrossfade = \Application_Model_Preference::GetDefaultCrossfadeDuration();
-    	
-    	$cue = (isset($cuein)) ? $cuein : $mediaItem->getSchedulingCueIn();
-    	$item->setCuein($cue);
-    	
-    	$cue = (isset($cueout)) ? $cueout : $mediaItem->getSchedulingCueOut();
-    	$item->setCueout($cue);
-
-    	$fade = (isset($fadein)) ? $fadein : $mediaItem->getSchedulingFadeIn();
-    	$item->setFadein($fade);
-    
-    	$fade = (isset($fadeout)) ? $fadeout : $mediaItem->getSchedulingFadeOut();
-    	$item->setFadeout($fade);
-    
-    	$item->generateCliplength();
-    
-    	//need trackoffset to be zero for the first item.
-    	if ($position !== 0) {
-    		$item->setTrackOffset($defaultCrossfade);
-    	}
-    
-    	$item->setMediaItem($mediaItem);
-    	$item->setPosition($position);
-    
-    	return $item;
-    }
 
     /*
      * returns a list of media contents.
     */
     public function getContents(PropelPDO $con = null) {
-    	
-    	if (is_null($con)) {
-    		$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
-    	}
+    
+    	Logging::enablePropelLogging();
     
     	$q = MediaContentQuery::create();
     	$m = $q->getModelName();
@@ -83,6 +46,8 @@ class PlaylistStatic extends Playlist {
 	    	->joinWith("MediaItem.AudioFile", Criteria::LEFT_JOIN)
 	    	->joinWith("MediaItem.Webstream", Criteria::LEFT_JOIN)
 	    	->find($con);
+    
+    	Logging::disablePropelLogging();
     }
     
     /**
@@ -149,171 +114,24 @@ class PlaylistStatic extends Playlist {
     	return true;
     }
     
-    public function shuffleContent(PropelPDO $con) {
-
-    	$con->beginTransaction();
-    	
-    	try {
-    		$contents = $this->getMediaContents(null, $con);
-    		$count = count($contents);
-    		$order = array();
-    			
-    		for ($i = 0; $i < $count; $i++) {
-    			$order[] = $i;
-    		}
-    		shuffle($order);
-    			
-    		$i = 0;
-    		foreach ($contents as $content) {
-    			$content->setPosition($order[$i]);
-    			$i++;
-    		}
-    			
-    		$this->setMediaContents($contents, $con);
-    		$this->save($con);
-    	
-    		$con->commit();
-    	}
-    	catch (Exception $e) {
-    		$con->rollBack();
-    		Logging::error($e->getMessage());
-    		throw $e;
-    	}
-    }
+    public function getScheduledContent() {
     
-    public function clearContent(PropelPDO $con) {
-
-    	$con->beginTransaction();
-    	
-    	try {
-    		MediaContentQuery::create(null, $con)
-	    		->filterByPlaylist($this)
-	    		->delete($con);
-    			
-    		$this->save($con);
-    		$con->commit();
-    	}
-    	catch (Exception $e) {
-    		$con->rollBack();
-    		Logging::error($e->getMessage());
-    		throw $e;
-    	}
-    }
+    	$contents = $this->getMediaContents();
+    	$items = array();
     
-   /*
-    * @param $ids list of media ids to add to the end of the playlist.
-    */
-    public function addMedia(PropelPDO $con, $ids) {
-
-    	$con->beginTransaction();
-
-    	try {
-    		$position = $this->countMediaContents(null, false, $con);
-    		//run this just for the single query.
-    		$mediaToAdd = MediaItemQuery::create()->findPks($ids, $con);
-    		
-    		//need to maintain the order of the id, objects will be preloaded.
-    		foreach ($ids as $id) {
-    			
-    			$mediaItem = MediaItemQuery::create()->findPk($id, $con);
-    			$info = $mediaItem->getSchedulingInfo();
-    
-    			$cuein = $info["cuein"];
-    			$cueout = $info["cueout"];
-    			$fadein = $info["fadein"];
-    			$fadeout = $info["fadeout"];
-    			
-    			$mediaContent = $this->buildContentItem($mediaItem, $position, $cuein, $cueout, $fadein, $fadeout);
-    			$mediaContent->setPlaylist($this);
-    			$mediaContent->save($con);
-    
-    			$position++;
-    		}
-
-    		$this->save($con);
-    		$con->commit();
-    	}
-    	catch (Exception $e) {
-    		$con->rollBack();
-    		Logging::error($e->getMessage());
-    		throw $e;
-    	}
-    
-    	Logging::disablePropelLogging();
-    }
-    
-    public function savePlaylistContent(PropelPDO $con, $content, $replace=false)
-    {
-    	$con->beginTransaction();
-    
-    	try {
-    			
-    		$m = array();
-    		$currentContent = $this->getMediaContents(null, $con);
-    			
-    		if ($replace) {
-    			$currentContent->delete($con);
-    			$position = 0;
-    		}
-    		else {
-    			$position = count($currentContent);
-    		}
-    			
-    		foreach ($content as $item) {
-    
-    			$mediaId = $item["id"];
-    			$cuein = isset($item["cuein"]) ? $item["cuein"] : null;
-    			$cueout = isset($item["cueout"]) ? $item["cueout"] : null;
-    			$fadein = isset($item["fadein"]) ? $item["fadein"] : null;
-    			$fadeout = isset($item["fadeout"]) ? $item["fadeout"] : null;
-    
-    			$mediaItem = MediaItemQuery::create()->findPK($mediaId, $con);
-    			$mediaContent = $this->buildContentItem($mediaItem, $position, $cuein, $cueout, $fadein, $fadeout);
-    			$mediaContent->setPlaylist($this);
-    
-    			$res = $mediaContent->validate();
-    			if ($res === true) {
-    				$m[] = $mediaContent;
-    			}
-    			else {
-    				Logging::info($res);
-    				throw new Exception("invalid media content");
-    			}
-    
-    			$position++;
-    
-    			//save each content item in the transaction
-    			//first so that Playlist preSave can calculate
-    			//the new playlist length properly.
-    			$mediaContent->save($con);
-    		}
-	
-    		$con->commit();
-    	}
-    	catch (Exception $e) {
-    		$con->rollBack();
-    		Logging::error($e->getMessage());
-    		throw $e;
-    	}
-    }
-    
-    public function getScheduledContent(PropelPDO $con) {
-    	
-    	$contents = self::getContents($con);
-    	$scheduled = array();
-    	
     	foreach ($contents as $content) {
-    		$scheduled[] = array (
-				"id" => $content->getMediaId(),
-				"cliplength" => $content->getCliplength(),
-				"cuein" => $content->getCuein(),
-				"cueout" => $content->getCueout(),
-				"fadein" => $content->getFadein(),
-				"fadeout" => $content->getFadeout(),
-			);
+    		$data = array();
+    		$data["id"] = $content->getMediaId();
+    		$data["cliplength"] = $content->getCliplength();
+    		$data["cuein"] = $content->getCuein();
+    		$data["cueout"] = $content->getCueout();
+    		$data["fadein"] = $content->getFadein();
+    		$data["fadeout"] = $content->getFadeout();
+    
+    		$items[] = $data;
     	}
-    	
-    	return $scheduled;
+    
+    	return $items;
     }
     
 } // PlaylistStatic

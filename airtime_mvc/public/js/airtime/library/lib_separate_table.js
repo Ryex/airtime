@@ -11,7 +11,7 @@ var AIRTIME = (function(AIRTIME) {
     	LIB_SELECTED_CLASS = "lib-selected",
     	LIB_ADD_CLASS = "lib-add",
     	LIB_TRASH_CLASS = "lib-trash";
-    
+
     var template =
 		"<div id='advanced_search_<%= type %>_col_<%= index %>' class='control-group' <%= style %>>" +
         	"<label class='control-label'><%= title %></label>" +
@@ -679,16 +679,7 @@ var AIRTIME = (function(AIRTIME) {
     			makeWebstreamDialog(json.html);
     		}, "json");
     	});
-
-    	$library.on("click", "#lib_new_playlist", function(e) {
-    		var url = baseUrl+"playlist/new",
-    			data = {format: "json"};
-
-    		$.post(url, data, function(json) {
-    			AIRTIME.playlist.drawPlaylist(json);
-    		});
-    	});
-
+    	
     	$library.on("click", "input[type=checkbox]", function(e) {
     		e.preventDefault();
     		e.stopPropagation();

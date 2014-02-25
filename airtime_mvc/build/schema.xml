@@ -359,7 +359,7 @@
     <column name="hidden" phpName="FileHidden" type="BOOLEAN" defaultValue="false"/>
     <column name="is_scheduled" phpName="IsScheduled" type="BOOLEAN" defaultValue="false"/>
     <column name="is_playlist" phpName="IsPlaylist" type="BOOLEAN" defaultValue="false"/>
-    
+
     <foreign-key foreignTable="cc_music_dirs" name="audio_file_music_dir_fkey">
       <reference local="directory" foreign="id"/>
     </foreign-key>
@@ -374,12 +374,15 @@
     </behavior>
     <column name="url" phpName="Url" type="VARCHAR" size="512" required="true" />
   </table>
-
-  <table name="media_playlist" phpName="Playlist" namespace="MediaItem">
+  
+  <table name="media_playlist" phpName="Playlist" namespace="MediaItem" abstract="true">
     <behavior name="concrete_inheritance">
       <parameter name="extends" value="media_item" />
     </behavior>
-    <column name="type" phpName="Type" type="TINYINT" required="true" defaultValue="0"/>
+    <column name="class_key" type="INTEGER" inheritance="single">
+      <inheritance key="0" class="PlaylistStatic" extends="Playlist"/>
+      <inheritance key="1" class="PlaylistDynamic" extends="Playlist"/>
+    </column>
     <column name="rules" phpName="Rules" type="LONGVARCHAR" sqlType="text" required="true" default=""/>
   </table>
 

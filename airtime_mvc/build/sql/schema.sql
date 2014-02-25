@@ -529,7 +529,7 @@ DROP TABLE IF EXISTS "media_playlist" CASCADE;
 
 CREATE TABLE "media_playlist"
 (
-    "type" INT2 DEFAULT 0 NOT NULL,
+    "class_key" INTEGER,
     "rules" text DEFAULT '' NOT NULL,
     "id" INTEGER NOT NULL,
     "name" VARCHAR(128),
