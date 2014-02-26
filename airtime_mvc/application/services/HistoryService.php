@@ -1,5 +1,7 @@
 <?php
 
+use Airtime\MediaItem\AudioFileQuery;
+
 use Airtime\PlayoutHistory\CcPlayoutHistory;
 use Airtime\PlayoutHistory\CcPlayoutHistoryPeer;
 use Airtime\PlayoutHistory\CcPlayoutHistoryQuery;
@@ -8,6 +10,7 @@ use Airtime\PlayoutHistory\CcPlayoutHistoryTemplate;
 use Airtime\PlayoutHistory\CcPlayoutHistoryTemplatePeer;
 use Airtime\PlayoutHistory\CcPlayoutHistoryTemplateQuery;
 use Airtime\PlayoutHistory\CcPlayoutHistoryTemplateField;
+use Airtime\PlayoutHistory\CcPlayoutHistoryTemplateFieldPeer;
 
 use Airtime\CcShowHostsQuery;
 use Airtime\CcScheduleQuery;
@@ -24,14 +27,14 @@ class Application_Service_HistoryService
 	public function __construct()
 	{
 		$this->con = isset($con) ? $con : Propel::getConnection(CcPlayoutHistoryPeer::DATABASE_NAME);
-		$this->timezone = Application_Model_Preference::GetTimezone();
+		$this->timezone = Application_Model_Preference::GetUserTimezone();
 	}
 
 	public function getSupportedTemplateTypes()
 	{
 		return array(self::TEMPLATE_TYPE_ITEM, self::TEMPLATE_TYPE_FILE);
 	}
-	
+
 	private function getNeededFileMetadataColumns()
 	{
 		$template = $this->getConfiguredFileTemplate();
@@ -133,6 +136,7 @@ class Application_Service_HistoryService
 				}
 			}
 
+			$row["history_id"] = $item->getDbId();
 			$row["checkbox"] = "";
 
 			$datatables[] = $row;
@@ -145,399 +149,6 @@ class Application_Service_HistoryService
  			"history" => $datatables
 	 	);
 	 }
-
-	//opts is from datatables.
-	/*
-	public function getPlayedItemData($startDT, $endDT, $opts, $instanceId=null)
-	{
-		$mainSqlQuery = "";
-		$paramMap = array();
-		$sqlTypes = $this->getSqlTypes();
-
-		$start = $startDT->format("Y-m-d H:i:s");
-		$end = $endDT->format("Y-m-d H:i:s");
-
-		$template = $this->getConfiguredItemTemplate();
-		$fields = $template["fields"];
-		$required = $this->mandatoryItemFields();
-
-		$fields_filemd = array();
-		$filemd_keys = array();
-		$fields_general = array();
-		$general_keys = array();
-
-		foreach ($fields as $index=>$field) {
-
-			if (in_array($field["name"], $required)) {
-				continue;
-			}
-
-			if ($field["isFileMd"]) {
-				$fields_filemd[] = $field;
-				$filemd_keys[] = $field["name"];
-			}
-			else {
-				$fields_general[] = $field;
-				$general_keys[] = $field["name"];
-			}
-		}
-
-		//-----------------------------------------------------------------------
-		//Using the instance_id to filter the data.
-
-
-		$historyRange = "(".
-		"SELECT history.starts, history.ends, history.id AS history_id, history.instance_id".
-		" FROM cc_playout_history as history";
-
-		if (isset($instanceId)) {
-		    $historyRange.= " WHERE history.instance_id = :instance";
-		    $paramMap["instance"] = $instanceId;
-		}
-		else {
-		    $historyRange.= " WHERE history.starts >= :starts and history.starts < :ends";
-		    $paramMap["starts"] = $start;
-		    $paramMap["ends"] = $end;
-		}
-
-		$historyRange.= ") AS history_range";
-
-		$manualMeta = "(".
-		"SELECT %KEY%.value AS %KEY%, %KEY%.history_id".
-		" FROM (".
-		" SELECT * from cc_playout_history_metadata AS phm WHERE phm.key = :meta_%KEY%".
-		" ) AS %KEY%".
-		" ) AS %KEY%_filter";
-
-		$mainSelect = array(
-	        "history_range.starts",
-	        "history_range.ends",
-	        "history_range.history_id",
-		    "history_range.instance_id"
-		);
-		$mdFilters = array();
-
-		$numFileMdFields = count($fields_filemd);
-
-		if ($numFileMdFields > 0) {
-
-			//these 3 selects are only needed if $fields_filemd has some fields.
-			$fileSelect = array("history_file.history_id");
-			$nonNullFileSelect = array("file.id as file_id");
-			$nullFileSelect = array("null_file.history_id");
-
-			$fileMdFilters = array();
-
-			//populate the different dynamic selects with file info.
-			for ($i = 0; $i < $numFileMdFields; $i++) {
-
-				$field = $fields_filemd[$i];
-				$key = $field["name"];
-				$type = $sqlTypes[$field["type"]];
-
-				$fileSelect[] = "file_md.{$key}::{$type}";
-				$nonNullFileSelect[] = "file.{$key}::{$type}";
-				$nullFileSelect[] = "{$key}_filter.{$key}::{$type}";
-				$mainSelect[] = "file_info.{$key}::{$type}";
-
-				$fileMdFilters[] = str_replace("%KEY%", $key, $manualMeta);
-				$paramMap["meta_{$key}"] = $key;
-			}
-
-			//the files associated with scheduled playback in Airtime.
-			$historyFile = "(".
-			"SELECT history.id AS history_id, history.file_id".
-			" FROM cc_playout_history AS history".
-			" WHERE history.file_id IS NOT NULL".
-			") AS history_file";
-
-			$fileMd = "(".
-			"SELECT %NON_NULL_FILE_SELECT%".
-			" FROM cc_files AS file".
-			") AS file_md";
-
-			$fileMd = str_replace("%NON_NULL_FILE_SELECT%", join(", ", $nonNullFileSelect), $fileMd);
-
-			//null files are from manually added data (filling in webstream info etc)
-			$nullFile = "(".
-			"SELECT history.id AS history_id".
-			" FROM cc_playout_history AS history".
-			" WHERE history.file_id IS NULL".
-			") AS null_file";
-
-
-			//----------------------------------
-			//building the file inner query
-
-			$fileSqlQuery =
-			"SELECT ".join(", ", $fileSelect).
-			" FROM {$historyFile}".
-			" LEFT JOIN {$fileMd} USING (file_id)".
-			" UNION".
-			" SELECT ".join(", ", $nullFileSelect).
-			" FROM {$nullFile}";
-
-			foreach ($fileMdFilters as $filter) {
-
-				$fileSqlQuery.=
-				" LEFT JOIN {$filter} USING(history_id)";
-			}
-
-		}
-
-		for ($i = 0, $len = count($fields_general); $i < $len; $i++) {
-
-			$field = $fields_general[$i];
-			$key = $field["name"];
-			$type = $sqlTypes[$field["type"]];
-
-			$mdFilters[] = str_replace("%KEY%", $key, $manualMeta);
-			$paramMap["meta_{$key}"] = $key;
-			$mainSelect[] = "{$key}_filter.{$key}::{$type}";
-		}
-
-		$mainSqlQuery.=
-		"SELECT ".join(", ", $mainSelect).
-		" FROM {$historyRange}";
-
-		if (isset($fileSqlQuery)) {
-
-			$mainSqlQuery.=
-			" LEFT JOIN ( {$fileSqlQuery} ) as file_info USING(history_id)";
-		}
-
-		foreach ($mdFilters as $filter) {
-
-			$mainSqlQuery.=
-			" LEFT JOIN {$filter} USING(history_id)";
-		}
-
-		//----------------------------------------------------------------------
-		//need to count the total rows to tell Datatables.
-		$stmt = $this->con->prepare($mainSqlQuery);
-		foreach ($paramMap as $param => $v) {
-			$stmt->bindValue($param, $v);
-		}
-
-		if ($stmt->execute()) {
-			$totalRows = $stmt->rowCount();
-		}
-		else {
-			$msg = implode(',', $stmt->errorInfo());
-			throw new Exception("Error: $msg");
-		}
-
-		//------------------------------------------------------------------------
-		//Using Datatables parameters to sort the data.
-
-        if (empty($opts["iSortingCols"])) {
-		    $orderBys = array();
-        } else {
-            $numOrderColumns = $opts["iSortingCols"];
-            $orderBys = array();
-
-            for ($i = 0; $i < $numOrderColumns; $i++) {
-
-                $colNum = $opts["iSortCol_".$i];
-                $key = $opts["mDataProp_".$colNum];
-                $sortDir = $opts["sSortDir_".$i];
-
-                if (in_array($key, $required)) {
-
-                    $orderBys[] = "history_range.{$key} {$sortDir}";
-                }
-                else if (in_array($key, $filemd_keys)) {
-
-                    $orderBys[] = "file_info.{$key} {$sortDir}";
-                }
-                else if (in_array($key, $general_keys)) {
-
-                    $orderBys[] = "{$key}_filter.{$key} {$sortDir}";
-                }
-                else {
-                    //throw new Exception("Error: $key is not part of the template.");
-                }
-            }
-		}
-
-		if (count($orderBys) > 0) {
-
-			$orders = join(", ", $orderBys);
-
-			$mainSqlQuery.=
-			" ORDER BY {$orders}";
-		}
-
-		//---------------------------------------------------------------
-		//using Datatables parameters to add limits/offsets
-
-		 $displayLength = empty($opts["iDisplayLength"]) ? -1 : intval($opts["iDisplayLength"]);
-		//limit the results returned.
-		if ($displayLength !== -1) {
-			$mainSqlQuery.=
-			" OFFSET :offset LIMIT :limit";
-
-			$paramMap["offset"] = intval($opts["iDisplayStart"]);
-			$paramMap["limit"] = $displayLength;
-		}
-
-		$stmt = $this->con->prepare($mainSqlQuery);
-		foreach ($paramMap as $param => $v) {
-			$stmt->bindValue($param, $v);
-		}
-
-		$rows = array();
-		if ($stmt->execute()) {
-			$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-		}
-		else {
-			$msg = implode(',', $stmt->errorInfo());
-			throw new Exception("Error: $msg");
-		}
-
-		//-----------------------------------------------------------------------
-		//processing results.
-
-		$timezoneUTC = new DateTimeZone("UTC");
-		$timezoneLocal = new DateTimeZone($this->timezone);
-
-		$boolCast = array();
-		foreach ($fields as $index=>$field) {
-
-			if ($field["type"] == TEMPLATE_BOOLEAN) {
-				$boolCast[] = $field;
-			}
-		}
-
-		foreach ($rows as $index => &$result) {
-
-			foreach ($boolCast as $field) {
-				$result[$field['label']] = (bool) $result[$field['name']];
-			}
-
-			//need to display the results in the station's timezone.
-			$dateTime = new DateTime($result["starts"], $timezoneUTC);
-			$dateTime->setTimezone($timezoneLocal);
-			$result["starts"] = $dateTime->format("Y-m-d H:i:s");
-
-			//if ends is null we don't want it to default to "now"
-			if (isset($result["ends"])) {
-				$dateTime = new DateTime($result["ends"], $timezoneUTC);
-				$dateTime->setTimezone($timezoneLocal);
-				$result["ends"] = $dateTime->format("Y-m-d H:i:s");
-			}
-
-			if (isset($result[MDATA_KEY_DURATION])) {
-				$formatter = new HHMMSSULength($result[MDATA_KEY_DURATION]);
-				$result[MDATA_KEY_DURATION] = $formatter->format();
-			}
-
-			//need to add a checkbox..
-			$result["checkbox"] = "";
-
-			//$unicodeChar = '\u2612';
-			//$result["new"] = json_decode('"'.$unicodeChar.'"');
-			//$result["new"] = "U+2612";
-		}
-
-		return array(
-			"sEcho" => empty($opts["sEcho"]) ? null : intval($opts["sEcho"]),
-			//"iTotalDisplayRecords" => intval($totalDisplayRows),
-			"iTotalDisplayRecords" => intval($totalRows),
-			"iTotalRecords" => intval($totalRows),
-			"history" => $rows
-		);
-	}
-	*/
-
-	 /*
-	public function getFileSummaryData($startDT, $endDT, $opts)
-	{
-		$this->con->beginTransaction();
-
-		//LIMIT OFFSET statements
-		$limit = intval($opts["iDisplayLength"]);
-		$offset = intval($opts["iDisplayStart"]);
-
-		Logging::enablePropelLogging();
-
-		$query = CcPlayoutHistoryQuery::create();
-		$modelName = $query->getModelName();
-
-
-		$subQuery = CcPlayoutHistoryQuery::create()
-			->withColumn("count({$modelName}.DbMediaId)", "played")
-			->filterByDbStarts($startDT, Criteria::GREATER_EQUAL)
-			->filterByDbStarts($endDT, Criteria::LESS_EQUAL)
-			->groupBy("{$modelName}.DbMediaId")
-			//->select(array("{$modelName}.DbMediaId", "played"))
-			//->orderBy("played")
-			->select(array("DbMediaId", "played"))
-			->find();
-
-
-		$query
-			->joinWith("MediaItem")
-			//->withColumn("COUNT(MediaItem.Id)", "played")
-			//->withColumn("count({$modelName}.DbMediaId)", "played")
-			->withColumn("COUNT({$modelName}.DbMediaId) OVER (partition by {$modelName}.DbMediaId)", "played")
-			//Users of PostgreSQL will need to use the alternative method groupByClass($class)
-			//to force the grouping on all the columns of a given model whenever they use an aggregate function:
-			//http://propelorm.org/Propel/reference/model-criteria.html
-			//->groupBy("{$modelName}.DbMediaId")
-			//->groupByClass($modelName)
-			->filterByDbStarts($startDT, Criteria::GREATER_EQUAL)
-			->filterByDbStarts($endDT, Criteria::LESS_EQUAL);
-
-
-		$totalCount = $query->count($this->con);
-
-		$items = $query
-			->orderByDbStarts()
-			->_if($limit !== -1) //Datatables ALL
-				->limit($limit)
-				->offset($offset)
-			->_endif()
-			->find($this->con);
-
-		Logging::disablePropelLogging();
-
-		//TODO try to join this with audiofile somehow.
-		//$items->populateRelation('MediaItem');
-		//$items->populateRelation('MediaItem.AudioFile');
-
-		$neededColumns = $this->getNeededFileMetadataColumns();
-		$neededMetadata = array_keys($neededColumns);
-		$datatables = array();
-		foreach($items as $item) {
-			$row = $neededColumns;
-
-			$audiofile = $item->getMediaItem(null, $this->con)->getChildObject();
-			$metadata = $audiofile->getMetadata();
-			foreach ($neededMetadata as $key) {
-
-				if (in_array($key, $metadata)) {
-					$row[$key] = $metadata[$key];
-				}
-				else {
-					$row[$key] = null;
-				}
-			}
-
-			$row[HISTORY_ITEM_PLAYED] = $item->getPlayed();
-			$row["checkbox"] = "";
-
-			$datatables[] = $row;
-		}
-
-		return array(
- 			"sEcho" => intval($opts["sEcho"]),
- 			"iTotalDisplayRecords" => intval($totalCount),
- 			"iTotalRecords" => intval($totalCount),
- 			"history" => $datatables
-	 	);
-	}
-	*/
 
 	public function getFileSummaryData($startDT, $endDT, $opts)
 	{
@@ -786,6 +397,11 @@ class Application_Service_HistoryService
 	/* id is an id in cc_playout_history */
 	public function makeHistoryItemForm($id, $populate=false) {
 
+		$fieldMap = array(
+			HISTORY_ITEM_STARTS => "DbStarts",
+			HISTORY_ITEM_ENDS => "DbEnds"
+		);
+
 		try {
 			$form = new Application_Form_EditHistoryItem();
 			$template = $this->getConfiguredItemTemplate();
@@ -796,7 +412,6 @@ class Application_Service_HistoryService
 				$formValues = array();
 
 				$historyRecord = CcPlayoutHistoryQuery::create()->findPk($id, $this->con);
-				$file = $historyRecord->getCcFiles($this->con);
 				$instance = $historyRecord->getCcShowInstances($this->con);
 
 				if (isset($instance)) {
@@ -807,10 +422,6 @@ class Application_Service_HistoryService
 				    $form->populateShowInstances($selOpts, $instance_id);
 				}
 
-				if (isset($file)) {
-					$f = Application_Model_StoredFile::createWithFile($file, $this->con);
-					$filemd = $f->getDbColMetadata();
-				}
 				$metadata = array();
 				$mds = $historyRecord->getCcPlayoutHistoryMetaDatas();
 				foreach ($mds as $md) {
@@ -827,12 +438,8 @@ class Application_Service_HistoryService
 
 					if (in_array($key, $required)) {
 
-						$method = "getDb".ucfirst($key);
+						$method = "get".$fieldMap[$key];
 						$value = $historyRecord->$method();
-					}
-					else if (isset($filemd) && $field["isFileMd"]) {
-
-						$value = $filemd[$key];
 					}
 					else if (isset($metadata[$key])) {
 						$value = $metadata[$key];
@@ -871,8 +478,8 @@ class Application_Service_HistoryService
 			$required = $this->mandatoryFileFields();
 			$form->createFromTemplate($template["fields"], $required);
 
-		    $file = Application_Model_StoredFile::RecallById($id, $this->con);
-		    $md = $file->getDbColMetadata();
+		    $file = AudioFileQuery::create()->findPK($id, $this->con);
+		    $md = $file->getMetadata();
 
 		    $prefix = Application_Form_EditHistoryFile::ID_PREFIX;
 		    $formValues = array();
@@ -906,7 +513,7 @@ class Application_Service_HistoryService
 
 		try {
 
-			$file = Application_Model_StoredFile::RecallById($id, $this->con);
+			$file = AudioFileQuery::create()->findPk($id, $this->con);
 
 			$prefix = Application_Form_EditHistoryFile::ID_PREFIX;
 			$prefix_len = strlen($prefix);
@@ -920,7 +527,11 @@ class Application_Service_HistoryService
 				$md[$key] = $value;
 			}
 
-			$file->setDbColMetadata($md);
+			Logging::info($md);
+
+			$file->setMetadata($md);
+			$file->save($this->con);
+
 			$this->con->commit();
 		}
 		catch (Exception $e) {
@@ -1290,7 +901,7 @@ class Application_Service_HistoryService
 		$fields[] = array("name" => MDATA_KEY_TITLE, "label"=> _("Title"), "type" => TEMPLATE_STRING, "isFileMd" => true); //these fields can be populated from an associated file.
 		$fields[] = array("name" => MDATA_KEY_CREATOR, "label"=> _("Creator"), "type" => TEMPLATE_STRING, "isFileMd" => true);
 
-		$template["name"] = "Log Sheet ".date("Y-m-d H:i:s")." Template";
+		$template["name"] = "Log Sheet ".gmdate("c")." Template";
 		$template["fields"] = $fields;
 
 		return $template;
@@ -1311,7 +922,7 @@ class Application_Service_HistoryService
 		$fields[] = array("name" => MDATA_KEY_COMPOSER, "label"=> _("Composer"), "type" => TEMPLATE_STRING, "isFileMd" => true);
 		$fields[] = array("name" => MDATA_KEY_COPYRIGHT, "label"=> _("Copyright"), "type" => TEMPLATE_STRING, "isFileMd" => true);
 
-		$template["name"] = "File Summary ".date("Y-m-d H:i:s")." Template";
+		$template["name"] = "File Summary ".gmdate("c")." Template";
 		$template["fields"] = $fields;
 
 		return $template;

@@ -77,29 +77,10 @@ class PlaylistController extends Zend_Controller_Action
     {
     	try {
     		$playlist = $this->getPlaylist();
-
-    		$this->mediaService->delete($playlist->getId());
+    		$playlist->delete();
     		$this->mediaService->setSessionMediaObject(null);
-    		 
+
     		$this->createFullResponse(null);
-    	}
-    	catch (Exception $e) {
-    		$this->view->error = $e->getMessage();
-    	}
-    }
-
-    public function addItemsAction()
-    {
-    	$ids = $this->_getParam('ids');
-
-    	Logging::info("adding items");
-    	Logging::info($ids);
-
-    	try {
-    		$playlist = $this->getPlaylist();
-
-    		$this->playlistService->addMedia($playlist, $ids, true);
-    		$this->createUpdateResponse($playlist);
     	}
     	catch (Exception $e) {
     		$this->view->error = $e->getMessage();
@@ -110,8 +91,7 @@ class PlaylistController extends Zend_Controller_Action
     {
     	try {
     		$playlist = $this->getPlaylist();
-
-    		$this->playlistService->clearPlaylist($playlist);
+    		$playlist->clear();
     		$this->createUpdateResponse($playlist);
     	}
     	catch (Exception $e) {
@@ -123,8 +103,7 @@ class PlaylistController extends Zend_Controller_Action
     {
     	try {
     		$playlist = $this->getPlaylist();
-
-    		$this->playlistService->shufflePlaylist($playlist);
+    		$playlist->shuffle();
     		$this->createUpdateResponse($playlist);
     	}
     	catch (Exception $e) {
@@ -141,7 +120,22 @@ class PlaylistController extends Zend_Controller_Action
     	try {
     		$playlist = $this->getPlaylist();
 
-    		$this->playlistService->savePlaylist($playlist, $info);
+    		if (isset($info["name"])) {
+    			$playlist->setName($info["name"]);
+    		}
+
+    		if (isset($info["description"])) {
+    			$playlist->setDescription($info["description"]);
+    		}
+
+    		if (isset($info["rules"])) {
+    			$playlist->setRules($info["rules"]);
+    		}
+
+    		if (isset($info["content"])) {
+    			$playlist->savePlaylistContent($info["content"]);
+    		}
+
     		$this->createUpdateResponse($playlist);
     	}
     	catch (Exception $e) {

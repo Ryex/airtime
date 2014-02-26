@@ -7,11 +7,7 @@ var AIRTIME = (function(AIRTIME){
 	var mod = AIRTIME.playlist;
 	
 	function cleanString(string) {
-		var pattern = /\r\n/g,
-			s;
-		
-		s = string.replace(pattern, "");
-		return s.trim();
+		return string.trim();
 	}
 	
 	function isTimeValid(time) {
@@ -41,12 +37,14 @@ var AIRTIME = (function(AIRTIME){
 			$error,
 			$dd = $span.parent();
 		
+		$dd.find(".edit-error").remove();
+		
 		if (!isFadeValid(fade)) {
 			$error = createErrorSpan($.i18n._("please put in a time in seconds '00 (.0)'"));
 			$dd.append($error);
 		}
 		else {
-			$dd.find(".edit-error").remove();
+			$dd.data("fade", fade);
 		}
 	}
 	
@@ -56,12 +54,14 @@ var AIRTIME = (function(AIRTIME){
 			$error,
 			$dd = $span.parent();
 		
+		$dd.find(".edit-error").remove();
+		
 		if (!isTimeValid(cue)) {
 			$error = createErrorSpan($.i18n._("please put in a time '00:00:00 (.000)'"));
 			$dd.append($error);
 		}
 		else {
-			$dd.find(".edit-error").remove();
+			setCue($dd, cue);
 		}
 	}
 	
@@ -85,22 +85,11 @@ var AIRTIME = (function(AIRTIME){
 		return time;
 	}
 	
-	function setCues($li, cuein, cueout) {
-		var cueinSec = cueToSec(cuein),
-			cueoutSec = cueToSec(cueout);
+	function setCue($dd, cue) {
+		var cueSec = cueToSec(cue);
 		
-		$li.find('.spl_cue_in')
-			.data("cue", cuein)
-			.find(".spl_text_input")
-				.text(cuein);
-		
-		$li.find('.spl_cue_out')
-			.data("cue", cueout)
-			.find(".spl_text_input")
-				.text(cueout);
-		
-		$li.find('.spl_cue_in').data("cueSec", cueinSec);
-		$li.find('.spl_cue_out').data("cueSec", cueoutSec);
+		$dd.data("cue", cue)
+			.data("cueSec", cueSec);
 	}
 	
 	function getEntryDetails(entryId) {
@@ -127,7 +116,7 @@ var AIRTIME = (function(AIRTIME){
 		}
 		
 		info["name"] = cleanString($("#playlist_name").text());
-		info["description"] = $("#playlist_description").val();
+		info["description"] = cleanString($("#playlist_description").val());
 		info["contents"] = entries;
 		
 		info["rules"] = {
@@ -142,25 +131,36 @@ var AIRTIME = (function(AIRTIME){
 		return info;
 	}
 	
-	mod.redrawPlaylist = function redrawPlaylist(data) {
+	function makeSortable() {
+		var $contents = $("#spl_sortable");
 		
-		$wrapper = $("div.wrapper");
-		$playlist = $("#side_playlist");
+		$contents.sortable({
+			items: 'li',
+			handle: 'div.list-item-container'
+		});
+	}
+	
+	mod.redrawPlaylist = function redrawPlaylist(data) {
+		var $wrapper = $("div.wrapper"),
+			$playlist = $("#side_playlist");
+		
 		$playlist.detach();
 		
-		$playlist.find("#playlist_name").text(data.name);
 		$playlist.find("#playlist_lastmod").val(data.modified);
-		$playlist.find("#playlist_description").val(data.description);
 		$playlist.find("#playlist_length").text(data.length);
-		$playlist.find("#spl_sortable").html(data.html);
+		$playlist.find("#spl_sortable").html(data.html).sortable("refresh");
 		
 		$wrapper.append($playlist);
 	};
 	
 	mod.drawPlaylist = function drawPlaylist(data) {
-		$playlist = $("#side_playlist");
+		var $playlist = $("#side_playlist");
 		
-		$playlist.empty().append(data.html);
+		$playlist
+			.empty()
+			.append(data.html);
+		
+		makeSortable();
 	};
 	
 	function showCuesWaveform(e) {
@@ -192,9 +192,14 @@ var AIRTIME = (function(AIRTIME){
 		
 		function saveDialog() {
         	var cueIn = $html.find('.editor-cue-in').html(),
-        		cueOut = $html.find('.editor-cue-out').html();
+        		cueOut = $html.find('.editor-cue-out').html(),
+        		$ddIn = $li.find('.spl_cue_in'),
+        		$ddOut = $li.find('.spl_cue_out');
         	
-        	setCues($li, cueIn, cueOut);
+        	setCue($ddIn, cueIn);
+        	$ddIn.find(".spl_text_input").text(cueIn);
+        	setCue($ddOut, cueOut);
+        	$ddOut.find(".spl_text_input").text(cueOut);
         	removeDialog();
         }
 		
@@ -260,26 +265,28 @@ var AIRTIME = (function(AIRTIME){
 	
 	mod.addItems = function(mediaIds) {
 		
-		var url = baseUrl+"playlist/add-items",
+		var content = $.map(mediaIds, function(value, index) {
+			return {"id": value};
+		});
+		
+		var url = baseUrl+"playlist/save",
 			data = {
 				format: "json",
-				media: mediaIds
+				serialized: {
+					content: content
+				}
 			};
 		
 		$.post(url, data, function(json) {
-			
+			mod.redrawPlaylist(json);
 		});
 	};
 	
 	mod.onReady = function() {
 		
-		var $playlist = $("#side_playlist"),
-			$contents = $("#spl_sortable");
+		var $playlist = $("#side_playlist");
 		
-		$contents.sortable({
-			items: 'li',
-			handle: 'div.list-item-container'
-		});
+		makeSortable();
 		
 		$playlist.on("click", "#lib-new-pl-static", function(e) {
     		var url = baseUrl+"playlist/new",
@@ -350,8 +357,8 @@ var AIRTIME = (function(AIRTIME){
 		});
 		
 		$playlist.on("click", "#spl_save", function(e) {
-			
-			var order = $contents.sortable("toArray"),
+			var $contents = $("#spl_sortable"),
+				order = $contents.sortable("toArray"),
 				url = baseUrl+"playlist/save",
 				data,
 				$errors = $playlist.find(".edit-error");
