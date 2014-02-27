@@ -457,7 +457,7 @@ SQL;
     {
         $durationSeconds = $this->getDurationSecs();
         $timeSeconds = $this->getTimeScheduledSecs();
-    
+
         if ($durationSeconds != 0) { //Prevent division by zero if the show duration is somehow zero.
             $percent = ceil(($timeSeconds / $durationSeconds) * 100);
         } else {
@@ -486,7 +486,7 @@ SQL;
         return $returnStr;
     }
 
-    public static function getContentCount($p_start, $p_end) 
+    public static function getContentCount($p_start, $p_end)
     {
         $sql = <<<SQL
 SELECT instance_id,
@@ -510,6 +510,7 @@ SQL;
 
     }
 
+    //TODO this sucks.
     public static function getIsFull($p_start, $p_end)
     {
         $sql = <<<SQL
@@ -532,28 +533,8 @@ SQL;
         return $isFilled;
     }
 
-    public function showEmpty()
-    {
-        $sql = <<<SQL
-SELECT s.starts
-FROM cc_schedule AS s
-WHERE s.instance_id = :instance_id
-  AND s.playout_status >= 0
-  AND ((s.stream_id IS NOT NULL)
-       OR (s.file_id IS NOT NULL)) LIMIT 1
-SQL;
-        # TODO : use prepareAndExecute properly
-        $res = Application_Common_Database::prepareAndExecute($sql,
-            array( ':instance_id' => $this->_instanceId ), 'all' );
-        # TODO : A bit retarded. fix this later
-        foreach ($res as $r) {
-            return false;
-        }
-        return true;
-
-    }
-
-    public function getShowListContent($timezone = null)
+    //TODO get rid of this
+    public function getShowListContent()
     {
         $con = Propel::getConnection();
 
@@ -604,10 +585,10 @@ SQL;
             ':instance_id2' => $this->_instanceId
         ));
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-       
+
         if (isset($timezone)) {
             $displayTimezone = new DateTimeZone($timezone);
-        } else { 
+        } else {
             $userTimezone = Application_Model_Preference::GetUserTimezone();
             $displayTimezone = new DateTimeZone($userTimezone);
         }
