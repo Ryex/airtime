@@ -70,11 +70,6 @@ class MediaItem extends BaseMediaItem implements \Interface_Schedulable
 		return array_pop($a);
 	}
 	
-	public function getCreator() {
-		$obj = $this->getChildObject();
-		return $obj->getCreator();
-	}
-	
 	public function getURI() {
 		$obj = $this->getChildObject();
 		return $obj->getURI();

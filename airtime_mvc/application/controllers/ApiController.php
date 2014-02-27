@@ -572,14 +572,11 @@ class ApiController extends Zend_Controller_Action
 
     public function notifyMediaItemStartPlayAction()
     {
-        $schedule_id = $this->_getParam("media_id");
-        Logging::debug("Received notification of new schedule item start: $schedule_id");
-
-        $scheduleService = new Application_Service_SchedulerService();
-        $scheduleService->updateMediaPlayedStatus($schedule_id);
+        $scheduleId = $this->_getParam("media_id");
+        Logging::debug("Received notification of new schedule item start: $scheduleId");
 
         $historyService = new Application_Service_HistoryService();
-        $historyService->insertHistoryItem($schedule_id);
+        $historyService->insertHistoryItem($scheduleId);
 
         $this->_helper->json->sendJson(array("status"=>1, "message"=>""));
     }
@@ -996,7 +993,7 @@ class ApiController extends Zend_Controller_Action
 
                     $watchDir = Application_Model_MusicDir::getDirByPath($rd);
                     // get all the files that is under $dirPath
-                    
+
                     //TODO fix this file stuff up, make sure delete can work here.
                     $service = new Application_Service_AudioFileService();
                     $files = $service->listAllFiles($dir->getId(), false);
