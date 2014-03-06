@@ -46,7 +46,7 @@ class Presentation_Playlist {
 		
 		$type = $this->playlist->getClassKey();
 		
-		return $type === PlaylistPeer::CLASSKEY_0 ? true: false;
+		return $type === intval(PlaylistPeer::CLASSKEY_0) ? true: false;
 	}
 	
 	public function getContent() {
@@ -57,13 +57,20 @@ class Presentation_Playlist {
 	public function getRules() {
 		
 		$form = new Application_Form_PlaylistRules();
-		
+
 		$rules = $this->playlist->getRules();
+		$form->buildCriteriaOptions($rules[Playlist::RULE_CRITERIA]);
 		
-		$form->populate(array(
+		$criteriaFields = $form->getPopulateHelp();
+		
+		$playlistRules = array(
 			"pl_repeat_tracks" => $rules[Playlist::RULE_REPEAT_TRACKS],
-			"pl_my_tracks" => $rules[Playlist::RULE_USERS_TRACKS_ONLY]	
-		));
+			"pl_my_tracks" => $rules[Playlist::RULE_USERS_TRACKS_ONLY]
+		);
+		
+		$data = array_merge($criteriaFields, $playlistRules);
+		
+		$form->populate($data);
 		
 		return $form;
 	}
