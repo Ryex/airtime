@@ -98,6 +98,18 @@ class PlaylistController extends Zend_Controller_Action
     		$this->view->error = $e->getMessage();
     	}
     }
+    
+    public function generateAction()
+    {
+    	try {
+    		$playlist = $this->getPlaylist();
+    		$playlist->generate();
+    		$this->createUpdateResponse($playlist);
+    	}
+    	catch (Exception $e) {
+    		$this->view->error = $e->getMessage();
+    	}
+    }
 
     public function shuffleAction()
     {
