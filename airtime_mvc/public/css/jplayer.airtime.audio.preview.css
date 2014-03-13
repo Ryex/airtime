@@ -1,7 +1,5 @@
 @CHARSET "UTF-8";
 
-/* End of non-ui fields **/
-
 div.jp-audio,
 div.jp-video {
 
@@ -73,14 +71,9 @@ div.jp-audio div.jp-type-playlist div.jp-interface {
 }
 
 .jp-time-wrap .jp-current {
-    font-size: 12px;
-    color: #fff;
-    text-decoration: none;
-    overflow: hidden;
-    display: block;
-    text-overflow: ellipsis;
-    height: 19px;
-    white-space: nowrap;
+	font-size: 12px;
+	color: #fff;
+	text-decoration: none;
 }
 
 .jp-time-wrap .jp-current .jp-artist {
@@ -137,7 +130,7 @@ div.jp-interface ul.jp-controls li span {
 	display: block;
 }
 
-.jp-audio .ui-state-default .ui-icon {
+.jp-audio jp-video-270p .ui-state-default .ui-icon {
 	background-image: none;
 }
 
@@ -163,43 +156,11 @@ div.jp-interface ul.jp-controls li span {
 
 .jp-mute {
 	text-indent: -9999px;
+	margin: 0 auto;
 	width: 12px;
-	position: absolute;
-	left: 0px;
 }
 
 .jp-mute span {
-    background: url("images/player/mute_icon.png") center no-repeat;
-	background-size: 100%;
-    display: block;
-    width: 12px;
-    height: 11px;
-}
-
-.jp-unmute {
-	text-indent: -9999px;
-	width: 12px;
-	position: absolute;
-	left: 0px;
-}
-
-div.jp-unmute > span {
-    background: url("images/player/unmute_icon.png") center no-repeat;
-	background-size: 100%;
-    display: block;
-    width: 12px;
-    height: 11px;
-}
-
-.jp-volume-max {
-	text-indent: -9999px;
-	width: 12px;
-	position: absolute;
-	top: 0px;
-	right: 0px;
-}
-
-div.jp-volume-max > span {
     background: url("images/player/volume_icon.png") center no-repeat;
 	background-size: 100%;
     display: block;
@@ -266,10 +227,6 @@ div.jp-volume-max > span {
 	border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
-.playlist_icon.selected span {
-    background: url("images/player/playlist_close.png") center no-repeat;
-}
-
 .playlist_arrows a {
 	display: block;
 	text-indent: -9999px;
@@ -294,6 +251,20 @@ div.jp-volume-max > span {
     background: url("images/player/playlist_prev.png") center no-repeat;
 	left: 10px;
 	top: 28px;
+}
+
+div.jp-unmute span {
+    background: url("jplayer.png") -60px -90px no-repeat;
+}
+div.jp-unmute span:hover {
+    background: url("jplayer.png") -90px -90px no-repeat;
+}
+
+div.jp-volume-max span {
+    background: url("jplayer.png") 0 -112px no-repeat;
+}
+div.jp-volume-max span:hover {
+    background: url("jplayer.png") -30px -112px no-repeat;
 }
 
 
@@ -361,10 +332,9 @@ div.jp-audio div.jp-type-single a.jp-unmute {
 
 div.jp-volume-block {
 	float: right;
-	margin-top: 13px;
+	margin-top: 12px;
 	margin-right: 22px;
 	width: 72px;
-	position: relative;
 }
 
 div.jp-volume-bar {
@@ -373,7 +343,7 @@ div.jp-volume-bar {
 	width: 70px;
 	height: 5px;
 	cursor: pointer;
-	margin-top: 17px;
+	margin-top: 8px;
 }
 div.jp-audio div.jp-volume-bar {
 	border-color: #262526 #262526 #5E5E5E;
@@ -387,6 +357,9 @@ div.jp-volume-bar-value {
 	height:5px;
 }
 
+div.jp-volume-max {
+	margin-left: 65px;
+}
 
 /* @end */
 
@@ -419,41 +392,19 @@ div.jp-title {
 	text-align:center;
 }
 
-div.jp-playlist { 
-	width: 100%; 
-	background-color: rgba(39, 39, 39, 0.9); 
-	overflow: hidden; 
-	height: 0px; 
-	position: relative; 
-	-webkit-transition: all 200ms ease; 
-	-moz-transition: all 200ms ease; 
-	-o-transition: all 200ms ease; 
-	transition: all 200ms ease; 
-	white-space: nowrap; 
-	overflow-x: scroll; 
-}
-
-div.jp-playlist::-webkit-scrollbar { 
-	width: 8px; 
-	height: 8px; 
-}
-
-div.jp-playlist::-webkit-scrollbar-track { 
-	background-color: transparent; 
-}
-
-div.jp-playlist::-webkit-scrollbar-thumb { 
-	background-color: #797979; 
-	-webkit-border-radius: 10px; 
-	-moz-border-radius: 10px; 
-	border-radius: 10px; 
-}
-
-div.jp-playlist::-webkit-scrollbar-thumb:hover { 
-	background-color: #9B9B9B; 
+div.jp-playlist {
+	width:100%;
+	height: 75px;
+	background-color: rgba(39, 39, 39, 0.9);
+	text-align: center;
+	overflow: hidden;
+	height: 0px;
+	display: none;
+	position: relative;
 }
 
 div.jp-playlist.open {
+	display: block;
 	height: 75px;
 }
 
@@ -475,28 +426,11 @@ div.jp-title li {
 }
 
 div.jp-playlist li {
-	position: relative;
 	display: inline-block;
 	width: 125px;
-	margin: 10px 10px 0px 10px;
+	margin: 10px 10px;
+	overflow: hidden;
 	text-align: left;
-}
-
-.jp-playlist ul li .jp-playlist-item-remove {
-	display: none !important;
-}
-
-.jp-playlist ul li:hover .jp-playlist-item-remove {
-	display: inline !important;
-	position: absolute; 
-	right: -4px; 
-	top: -4px; 
-	width: 13px; 
-	height: 13px; 
-	text-align: center; 
-	display: block; 
-	text-indent: -9999px; 
-	background-image: url("images/player/remove_icon.png");
 }
 
 div.jp-playlist li .jp-playlist-item {
