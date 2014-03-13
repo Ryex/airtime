@@ -4,7 +4,11 @@ namespace Airtime\MediaItem;
 
 use Airtime\MediaItemQuery;
 
+use \Logging;
+use \Propel;
 use \PropelPDO;
+use \Criteria;
+use Airtime\MediaItem\MediaContentQuery;
 
 
 /**
@@ -63,8 +67,6 @@ class PlaylistStatic extends Playlist {
     */
     public function getContents(PropelPDO $con = null) {
     
-    	Logging::enablePropelLogging();
-    
     	$q = MediaContentQuery::create();
     	$m = $q->getModelName();
     
@@ -77,8 +79,6 @@ class PlaylistStatic extends Playlist {
 	    	->joinWith("MediaItem.AudioFile", Criteria::LEFT_JOIN)
 	    	->joinWith("MediaItem.Webstream", Criteria::LEFT_JOIN)
 	    	->find($con);
-    
-    	Logging::disablePropelLogging();
     }
     
     /**
@@ -167,20 +167,58 @@ class PlaylistStatic extends Playlist {
     
     public function generate() {
     	
+    	Logging::enablePropelLogging();
+    	
     	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
     	$con->beginTransaction();
     	 
     	try {
     		
     		$ruleSet = $this->getRules();
+    		$criteria = isset($ruleSet["criteria"]) ? $ruleSet["criteria"] : array();
+    		Logging::info($criteria);
     		
     		$query = AudioFileQuery::create();
     		$criteriaRules = parent::getCriteriaRules($query);
+    		
+    		$conditionAnd = array();
+    		$conNum = 0;
+    		foreach ($criteria as $andBlock) {
+    			$conditionOr = array();
+    			
+    			foreach ($andBlock as $orBlock) {
+    				$rule = $criteriaRules[$orBlock["modifier"]];
+    				
+    				$column = $orBlock["criteria"];
+    				$input1 = $orBlock["input1"];
+    				$input2 = isset($orBlock["input2"]) ? $orBlock["input2"] : null;
+    				
+    				$condition = $rule($column, $input1, $input2);
+    				
+    				$conditionOr[] = $condition;
+    			}
+    			
+    			$query->combine($conditionOr, 'or', $conNum);
+    			$conditionAnd[] = $conNum;
+    			$conNum++;
+    		}
+    		
+    		$query->where($conditionAnd, 'and');
+    		
+    		$order = $ruleSet["order"];
+    		if ($order["column"] != "") {
+    			
+    			$query->orderBy($order["column"], $order["direction"]);
+    		}
+    		
+    		$files = $query->find();
+
+    		Logging::disablePropelLogging();
     		 
-    		$con->commit();
+    		//$con->commit();
     	}
     	catch (Exception $e) {
-    		$con->rollBack();
+    		//$con->rollBack();
     		Logging::error($e->getMessage());
     		throw $e;
     	}
