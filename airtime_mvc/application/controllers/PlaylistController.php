@@ -95,7 +95,7 @@ class PlaylistController extends Zend_Controller_Action
     	$con->beginTransaction();
 
     	try {
-    		$playlist = $this->getPlaylist(); 
+    		$playlist = $this->getPlaylist();
     		$playlist->clearContent($con);
     		$this->createUpdateResponse($playlist);
 
@@ -122,9 +122,7 @@ class PlaylistController extends Zend_Controller_Action
     		$con->commit();
 
     		$this->createUpdateResponse($playlist);
-
-    		//$playlist->save($con);
-
+    		
     		Logging::disablePropelLogging();
     	}
     	catch (Exception $e) {
