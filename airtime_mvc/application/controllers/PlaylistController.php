@@ -2,6 +2,7 @@
 
 use Airtime\MediaItem\PlaylistQuery;
 use Airtime\MediaItem\Playlist;
+use Airtime\MediaItem\PlaylistPeer;
 
 class PlaylistController extends Zend_Controller_Action
 {
@@ -17,6 +18,7 @@ class PlaylistController extends Zend_Controller_Action
             ->addActionContext('close-playlist', 'json')
             ->addActionContext('save', 'json')
             ->addActionContext('shuffle', 'json')
+            ->addActionContext('generate', 'json')
             ->addActionContext('clear', 'json')
             ->initContext();
 
@@ -89,36 +91,64 @@ class PlaylistController extends Zend_Controller_Action
 
     public function clearAction()
     {
+    	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
+    	$con->beginTransaction();
+
     	try {
-    		$playlist = $this->getPlaylist();
-    		$playlist->clear();
+    		$playlist = $this->getPlaylist(); 
+    		$playlist->clearContent($con);
     		$this->createUpdateResponse($playlist);
+
+    		$con->commit();
     	}
     	catch (Exception $e) {
+    		$con->rollBack();
     		$this->view->error = $e->getMessage();
     	}
     }
 
     public function generateAction()
     {
+    	Logging::enablePropelLogging();
+
+    	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
+    	$con->beginTransaction();
+
     	try {
+
     		$playlist = $this->getPlaylist();
-    		$playlist->generate();
+    		$mediaIds = $playlist->generateContent($con);
+    		$playlist->addMedia($con, $mediaIds);
+    		$con->commit();
+
     		$this->createUpdateResponse($playlist);
+
+    		//$playlist->save($con);
+
+    		Logging::disablePropelLogging();
     	}
     	catch (Exception $e) {
+    		$con->rollBack();
+    		Logging::error($e->getFile().$e->getLine());
+    		Logging::error($e->getMessage());
     		$this->view->error = $e->getMessage();
     	}
     }
 
     public function shuffleAction()
     {
+    	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
+    	$con->beginTransaction();
+
     	try {
     		$playlist = $this->getPlaylist();
-    		$playlist->shuffle();
+    		$playlist->shuffleContent($con);
     		$this->createUpdateResponse($playlist);
+
+    		$con->commit();
     	}
     	catch (Exception $e) {
+    		$con->rollBack();
     		$this->view->error = $e->getMessage();
     	}
     }
@@ -153,7 +183,7 @@ class PlaylistController extends Zend_Controller_Action
     		if (isset($info["description"])) {
     			$playlist->setDescription($info["description"]);
     		}
-    		
+
     		//$form = new Application_Form_PlaylistRules();
     		//$form->buildCriteriaOptions($info["rules"]["criteria"]);
 
