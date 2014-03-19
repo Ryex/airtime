@@ -145,105 +145,6 @@ class PlaylistStatic extends Playlist {
     	return true;
     }
     
-    public function getScheduledContent() {
-    
-    	$contents = $this->getMediaContents();
-    	$items = array();
-    
-    	foreach ($contents as $content) {
-    		$data = array();
-    		$data["id"] = $content->getMediaId();
-    		$data["cliplength"] = $content->getCliplength();
-    		$data["cuein"] = $content->getCuein();
-    		$data["cueout"] = $content->getCueout();
-    		$data["fadein"] = $content->getFadein();
-    		$data["fadeout"] = $content->getFadeout();
-    
-    		$items[] = $data;
-    	}
-    
-    	return $items;
-    }
-    
-    public function generateContent(PropelPDO $con) {
-    	 
-    	try {
-    		
-    		self::clearContent($con);
-    		
-    		$ruleSet = $this->getRules();
-    		$criteria = isset($ruleSet["criteria"]) ? $ruleSet["criteria"] : array();
-    		Logging::info($criteria);
-    		
-    		$query = AudioFileQuery::create();
-    		$m = $query->getModelName();
-    		
-    		$query->withColumn("({$m}.Cueout - {$m}.Cuein)", "cuelength");
-    		
-    		$criteriaRules = parent::getCriteriaRules($query);
-    		
-    		$conditionAnd = array();
-    		$conNum = 0;
-    		foreach ($criteria as $andBlock) {
-    			$conditionOr = array();
-    			
-    			foreach ($andBlock as $orBlock) {
-    				$rule = $criteriaRules[$orBlock["modifier"]];
-    				
-    				$column = $orBlock["criteria"];
-    				$input1 = $orBlock["input1"];
-    				$input2 = isset($orBlock["input2"]) ? $orBlock["input2"] : null;
-    				
-    				$condition = $rule($column, $input1, $input2);
-    				
-    				$conditionOr[] = $condition;
-    			}
-    			
-    			$query->combine($conditionOr, 'or', $conNum);
-    			$conditionAnd[] = $conNum;
-    			$conNum++;
-    		}
-    		
-    		$query->where($conditionAnd, 'and');
-    		
-    		//order by a chosen column or by random.
-    		$order = $ruleSet["order"];
-    		if ($order["column"] != "") {
-    			$query->orderBy($order["column"], $order["direction"]);
-    		}
-    		else {
-    			$query->addAscendingOrderByColumn('random()');
-    		}
-    		
-    		//filter length using the subquery to take advantage of window columns 
-    		//added for length selection purposes.
-    		//using window function on subquery so that the ORDER BY statement can be run
-    		//(need this incase it's order by random())
-    		$windowedQuery = AudioFileQuery::create()
-    			->addSelectQuery($query, "mainfilter")
-    			->withColumn("SUM(mainfilter.cuelength) OVER (rows between unbounded preceding and current row)", "agglength");
-    		
-    		$limitedQuery = AudioFileQuery::create()
-    			->addSelectQuery($windowedQuery, "windowedfilter");
-    		
-    		$this->addLimitRule($limitedQuery);
-    		
-    		$files = $limitedQuery->find();
-
-    		$ids = array();
-    		foreach ($files as $file) {
-    			$ids[] = $file->getId();
-    		}
-
-    		return $ids;	
-    	}
-    	catch (Exception $e) {
-    		Logging::error($e->getFile().$e->getLine());
-    		Logging::error($e->getMessage());
-    		throw $e;
-    	}
-    }
-    
     public function shuffleContent(PropelPDO $con) {
 
     	$con->beginTransaction();
@@ -337,9 +238,8 @@ class PlaylistStatic extends Playlist {
     	Logging::disablePropelLogging();
     }
     
-    public function savePlaylistContent($content, $replace=false)
+    public function savePlaylistContent(PropelPDO $con, $content, $replace=false)
     {
-    	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
     	$con->beginTransaction();
     
     	try {
@@ -383,9 +283,7 @@ class PlaylistStatic extends Playlist {
     			//the new playlist length properly.
     			$mediaContent->save($con);
     		}
-    			
-    		$this->save($con);
-    			
+	
     		$con->commit();
     	}
     	catch (Exception $e) {
@@ -393,6 +291,25 @@ class PlaylistStatic extends Playlist {
     		Logging::error($e->getMessage());
     		throw $e;
     	}
+    }
+    
+    public function getScheduledContent(PropelPDO $con) {
+    	
+    	$contents = self::getContents($con);
+    	$scheduled = array();
+    	
+    	foreach ($contents as $content) {
+    		$scheduled[] = array (
+				"id" => $content->getMediaId(),
+				"cliplength" => $content->getCliplength(),
+				"cuein" => $content->getCuein(),
+				"cueout" => $content->getCueout(),
+				"fadein" => $content->getFadein(),
+				"fadeout" => $content->getFadeout(),
+			);
+    	}
+    	
+    	return $scheduled;
     }
     
 } // PlaylistStatic
