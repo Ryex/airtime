@@ -49,7 +49,7 @@ class ShowbuilderController extends Zend_Controller_Action
         $this->view->headLink()->appendStylesheet($baseUrl.'css/jquery.contextMenu.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/datatables/css/dataTables.colVis.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/datatables/css/dataTables.colReorder.css?'.$CC_CONFIG['airtime_version']);
-        
+
         $refer_sses = new Zend_Session_Namespace('referrer');
 
         if ($request->isPost()) {
@@ -131,7 +131,7 @@ class ShowbuilderController extends Zend_Controller_Action
 
             $this->view->headScript()->appendFile($baseUrl.'js/airtime/library/events/lib_showbuilder.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         	$this->view->headScript()->appendFile($baseUrl.'js/airtime/library/lib_separate_table.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
-        	
+
         	//set media columns for display of data.
         	$mediaService = new Application_Service_MediaService();
         	$this->view->headScript()->appendScript($mediaService->createLibraryColumnsJavascript());
@@ -220,7 +220,7 @@ class ShowbuilderController extends Zend_Controller_Action
         }
 
         $displayTimeZone = new DateTimeZone(Application_Model_Preference::GetTimezone());
-        
+
         $start = $instance->getDbStarts(null);
         $start->setTimezone($displayTimeZone);
         $end = $instance->getDbEnds(null);
@@ -236,7 +236,7 @@ class ShowbuilderController extends Zend_Controller_Action
 
         $this->view->dialog = $this->view->render('showbuilder/builderDialog.phtml');
     }
-    
+
     public function checkBuilderFeedAction()
     {
         $request = $this->getRequest();
@@ -245,7 +245,7 @@ class ShowbuilderController extends Zend_Controller_Action
         $timestamp = intval($request->getParam("timestamp", -1));
         $instances = $request->getParam("instances", array());
 
-        list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
+        list($startsDT, $endsDT) = $this->getStartEnd();
 
         $opts = array("myShows" => $my_shows, "showFilter" => $show_filter);
         $showBuilder = new Application_Model_ShowBuilder($startsDT, $endsDT, $opts);
@@ -259,7 +259,7 @@ class ShowbuilderController extends Zend_Controller_Action
     public function builderFeedAction()
     {
     	$current_time = time();
-    	
+
         $request = $this->getRequest();
         $show_filter = intval($request->getParam("showFilter", 0));
         $show_instance_filter = intval($request->getParam("showInstanceFilter", 0));
