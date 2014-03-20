@@ -9,7 +9,7 @@ class LibraryController extends Zend_Controller_Action
     public function init()
     {
         $ajaxContext = $this->_helper->getHelper('AjaxContext');
-        $ajaxContext->addActionContext('contents-feed', 'json')
+        $ajaxContext
                     ->addActionContext('delete', 'json')
                     ->addActionContext('duplicate', 'json')
                     ->addActionContext('delete-group', 'json')
@@ -17,7 +17,6 @@ class LibraryController extends Zend_Controller_Action
                     ->addActionContext('get-file-metadata', 'html')
                     ->addActionContext('upload-file-soundcloud', 'json')
                     ->addActionContext('get-upload-to-soundcloud-status', 'json')
-                    ->addActionContext('set-num-entries', 'json')
                     ->addActionContext('edit-file-md', 'json')
                     ->initContext();
     }
@@ -41,20 +40,16 @@ class LibraryController extends Zend_Controller_Action
 
         $this->view->headScript()->appendFile($baseUrl.'js/airtime/buttons/buttons.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/airtime/utilities/utilities.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
+        $this->view->headScript()->appendFile($baseUrl.'js/airtime/library/events/lib_playlistbuilder.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/airtime/library/lib_separate_table.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
-        //$this->view->headScript()->appendFile($baseUrl.'js/airtime/library/library.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
-        //$this->view->headScript()->appendFile($baseUrl.'js/airtime/library/events/library_playlistbuilder.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
-
+        $this->view->headScript()->appendFile($baseUrl.'js/airtime/playlist/playlist.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');  
+        
         $this->view->headLink()->appendStylesheet($baseUrl.'css/media_library.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/jquery.contextMenu.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/datatables/css/dataTables.colVis.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/datatables/css/dataTables.colReorder.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/waveform.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/playlist_builder.css?'.$CC_CONFIG['airtime_version']);
-
-        //$this->view->headScript()->appendFile($baseUrl.'js/airtime/library/spl.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
-        //$this->view->headScript()->appendFile($baseUrl.'js/airtime/playlist/smart_blockbuilder.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
-        $this->view->headScript()->appendFile($baseUrl.'js/airtime/playlist/playlist.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
 
         $this->view->headScript()->appendFile($baseUrl.'js/waveformplaylist/observer/observer.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/waveformplaylist/config.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
@@ -70,9 +65,8 @@ class LibraryController extends Zend_Controller_Action
             
         //set audio columns for display of data.
         $mediaService = new Application_Service_MediaService();
-        $columns = json_encode($mediaService->makeDatatablesColumns('Audio'));
-        $script = "localStorage.setItem( 'datatables-audiofile-aoColumns', JSON.stringify($columns) ); ";
-        $this->view->headScript()->appendScript($script);
+        $this->view->headScript()->appendScript($mediaService->createLibraryColumnsJavascript());
+        $this->view->headScript()->appendScript($mediaService->createLibraryColumnSettingsJavascript());
         
         $pl = $mediaService->getSessionMediaObject();
         if (isset($pl)) {
@@ -85,24 +79,8 @@ class LibraryController extends Zend_Controller_Action
     	$baseUrl = Application_Common_OsPath::getBaseDir();
     	$id = intval($this->_getParam('id'));
     	
-    	$menu = array();
-    	
-    	/*
-    	$menu["pl_add"] = array(
-    		"name" => _("Add to Playlist"), 
-    		"requestUrl" => $baseUrl."playlist/add-items",
-    		"requestType" => "POST",
-    		"requestData" => array("ids" => array($id)),
-    		"callback" => "AIRTIME.playlist.redrawPlaylist"
-    	);
-    	*/
-    	
-    	$menu["preview"] = array(
-    		"name" => _("Preview"),
-    		"icon" => "play",
-    		"id" => $id,
-    		"callback" => "previewMedia"
-    	);
+    	$mediaService = new Application_Service_MediaService();
+    	$menu = $mediaService->createContextMenu($id);
     	    	
     	if (empty($menu)) {
     		$menu["noaction"] = array("name"=>_("No action available"));
@@ -343,19 +321,6 @@ class LibraryController extends Zend_Controller_Action
 
         $newPl->setfades($plFadeIn, $plFadeOut);
         $newPl->setName(sprintf(_("Copy of %s"), $originalPl->getName()));
-    }
-
-    public function contentsFeedAction()
-    {
-        $params = $this->getRequest()->getParams();
-
-        # terrible name for the method below. it does not only search files.
-        $r = Application_Model_StoredFile::searchLibraryFiles($params);
-
-        $this->view->sEcho = $r["sEcho"];
-        $this->view->iTotalDisplayRecords = $r["iTotalDisplayRecords"];
-        $this->view->iTotalRecords = $r["iTotalRecords"];
-        $this->view->files = $r["aaData"];
     }
 
     public function editFileMdAction()
