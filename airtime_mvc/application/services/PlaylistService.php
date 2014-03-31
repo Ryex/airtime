@@ -1,12 +1,10 @@
 <?php
 
 use Airtime\MediaItem\MediaContentQuery;
-
-use Airtime\MediaItem\PlaylistPeer;
-
-use Airtime\MediaItemQuery;
-
 use Airtime\MediaItem\MediaContent;
+use Airtime\MediaItem\PlaylistPeer;
+use Airtime\MediaItem\Playlist;
+use Airtime\MediaItemQuery;
 
 class Application_Service_PlaylistService
 {
@@ -69,13 +67,6 @@ class Application_Service_PlaylistService
 			
 			if (isset($info["description"])) {
 				$playlist->setDescription($info["description"]);
-			}
-			
-			//$form = new Application_Form_PlaylistRules();
-			//$form->buildCriteriaOptions($info["rules"]["criteria"]);
-			
-			if (isset($info["rules"])) {
-				$playlist->setRules($info["rules"]);
 			}
 			
 			//only save content for static playlists
