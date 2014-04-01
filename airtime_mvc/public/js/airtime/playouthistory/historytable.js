@@ -7,7 +7,7 @@ var AIRTIME = (function(AIRTIME) {
     mod = AIRTIME.history;
 
     var $historyContentDiv;
-    
+
     var historyStartsDatetimeId = "his_item_HISTORY_ITEM_STARTS";
     var historyEndsDatetimeId = "his_item_HISTORY_ITEM_ENDS";
 
@@ -801,12 +801,23 @@ var AIRTIME = (function(AIRTIME) {
 				tab.always();
 			}
     	});
+    	
+    	//shortcut to open edit dialog.
+    	$historyContentDiv.on("dblclick", "tr", function(e) {
+    		var editUrl = $(this).data('url-edit');
+
+    		$.post(editUrl, {format: "json"}, function(json) {
+
+    			makeHistoryDialog(json.dialog);
+
+    		}, "json");
+    	});
 
     	// begin context menu initialization.
         $.contextMenu({
             selector: '#history_content td:not(.his_checkbox)',
-            trigger: "left",
-            ignoreRightClick: true,
+            trigger: "right",
+            ignoreRightClick: false,
 
             build: function($el, e) {
                 var items = {},
