@@ -301,8 +301,8 @@ var AIRTIME = (function(AIRTIME) {
 			"sPaginationType": "full_numbers",
 			"bJQueryUI": true,
 			"bAutoWidth": true,
-			
-			"sDom": 'Rlf<"btn-table-search"><"dt-process-rel"r><"H"<"library_toolbar"C>><"dataTables_scrolling"t><"F"ip>',
+
+			"sDom": 'Rlf<"dt-process-rel"r><"H"<"library_toolbar"C>><"dataTables_scrolling"t><"F"ip>',
 
 			"oColVis": {
 				"sAlign": "right",
@@ -346,7 +346,7 @@ var AIRTIME = (function(AIRTIME) {
 	        	});
 
 	        	//append a search button
-	        	$panel.find(".dataTables_filter").append('<button class="btn btn-search" type="button">Search</button>');
+	        	$panel.find(".dataTables_filter").append('<button class="btn btn-small btn-search" type="button">Search</button>');
 
 	        	//only search on enter.
 	        	$panel.on("keypress", ".advanced_search input", function(e) {
