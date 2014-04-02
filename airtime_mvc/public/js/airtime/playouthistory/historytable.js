@@ -392,8 +392,8 @@ var AIRTIME = (function(AIRTIME) {
             $nRow.data('url-delete', deleteUrl);
 
         	for (b in booleans) {
-
-            	text = aData[b] ? checkedCheckBox : emptyCheckBox;
+            	
+            	text = aData[b] === "1" ? checkedCheckBox : emptyCheckBox;
             	text = text + " " + booleans[b];
 
             	$nRow.find(".his_"+b).html(text);
@@ -533,7 +533,7 @@ var AIRTIME = (function(AIRTIME) {
 
     		return $el;
     	}
-    	
+
     	function fileSave() {
     		var data = $hisDialogEl.serializeArray();
     		var url = baseUrl+"Playouthistory/update-file-item/format/json";
