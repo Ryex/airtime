@@ -13,7 +13,8 @@ class Presentation_JPlayerItemAudioFile extends Presentation_JPlayerItem
 		$item =  array(
 			"title" => $this->media->getName(),
 			"artist" => $this->media->getCreator(),
-			$mime => $this->media->getURI()
+			$mime => $this->media->getURI(),
+			"mime" => $this->media->getMime()
 		);
 
 		return array($item);
