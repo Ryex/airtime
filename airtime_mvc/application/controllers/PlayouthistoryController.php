@@ -101,10 +101,13 @@ class PlayouthistoryController extends Zend_Controller_Action
 	        
             list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
     		
+    		$limit = intval($params["iDisplayLength"]);
+    		$offset = intval($params["iDisplayStart"]);
+    		
 	        $historyService = new Application_Service_HistoryService();
-	        $r = $historyService->getPlayedItemData($startsDT, $endsDT, $params, $instance);
+	        $r = $historyService->getPlayedItemData($startsDT, $endsDT, $instance, $offset, $limit);
 
-	        $this->view->sEcho = $r["sEcho"];
+	        $this->view->sEcho = intval($params["sEcho"]);
 	        $this->view->iTotalDisplayRecords = $r["iTotalDisplayRecords"];
 	        $this->view->iTotalRecords = $r["iTotalRecords"];
 	        $this->view->history = $r["history"];

@@ -92,11 +92,13 @@ class Application_Service_CalendarService
             $currentShowId = count($currentShow) == 1 ? $currentShow[0]["id"] : null;
             $showIsLinked = $this->ccShow->isLinked();
 
-            //user can add/remove content if the show has not ended
-            if ($now < $end && ($isAdminOrPM || $isHostOfShow) && !$this->ccShowInstance->isRecorded()) {
-                //if the show is not linked OR if the show is linked AND not the current playing show
-                //the user can add/remove content
-                if (!$showIsLinked || ($showIsLinked  && $currentShowId != $this->ccShow->getDbId())) {
+                    $menu["schedule"] = array(
+                        "name"=> _("Add / Remove Content"),
+                        "icon" => "add-remove-content",
+                        "url" => $baseUrl."showbuilder/builder-dialog/");
+                //if the show is linked and it's not currently playing the user can add/remove content
+                }
+                elseif ($showIsLinked  && $currentShowId != $this->ccShow->getDbId()) {
 
                     $menu["schedule"] = array(
                         "name"=> _("Add / Remove Content"),
