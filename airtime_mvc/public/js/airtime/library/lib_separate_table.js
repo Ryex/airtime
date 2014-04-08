@@ -204,7 +204,7 @@ var AIRTIME = (function(AIRTIME) {
     }
 
     function datatablesDrawCallback(oSettings) {
-    	
+
     	highlightChosen();
     	mod.checkToolBarIcons();
     }
@@ -753,11 +753,11 @@ var AIRTIME = (function(AIRTIME) {
         });
 
     	$library.on("mousedown", 'td:not(.library_checkbox)', function(e) {
-    		e.preventDefault();
-    		e.stopPropagation();
-
     		//only trigger context menu on right click.
     		if (e.which === 3) {
+    			e.preventDefault();
+        		e.stopPropagation();
+
     			var $el = $(this);
 
     			$el.contextMenu({x: e.pageX, y: e.pageY});
