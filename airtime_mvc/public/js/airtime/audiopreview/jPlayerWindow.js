@@ -70,6 +70,7 @@ var AIRTIME = (function(AIRTIME) {
             //solution: "flash, html",
             preload: "none",
             wmode: "window",
+            remainingDuration: true,
             size: {
                 width: "0px",
                 height: "0px",
