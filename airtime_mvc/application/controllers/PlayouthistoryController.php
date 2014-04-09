@@ -18,14 +18,57 @@ class PlayouthistoryController extends Zend_Controller_Action
             ->addActionContext('update-file-item', 'json')
             ->initContext();
     }
-    
+
+    private function getStartEnd()
+    {
+    	$request = $this->getRequest();
+
+    	$userTimezone = new DateTimeZone(Application_Model_Preference::GetUserTimezone());
+    	$utcTimezone = new DateTimeZone("UTC");
+    	$utcNow = new DateTime("now", $utcTimezone);
+
+    	$start = $request->getParam("start");
+    	$end = $request->getParam("end");
+
+    	if (empty($start) || empty($end)) {
+    		$startsDT = clone $utcNow;
+    		$startsDT->sub(new DateInterval("P1D"));
+    		$endsDT = clone $utcNow;
+    	}
+    	else {
+
+    		try {
+    			$startsDT = new DateTime($start, $userTimezone);
+    			$startsDT->setTimezone($utcTimezone);
+
+    			$endsDT = new DateTime($end, $userTimezone);
+    			$endsDT->setTimezone($utcTimezone);
+
+    			if ($startsDT > $endsDT) {
+    				throw new Exception("start greater than end");
+    			}
+    		}
+    		catch (Exception $e) {
+    			Logging::info($e);
+    			Logging::info($e->getMessage());
+
+    			$startsDT = clone $utcNow;
+    			$startsDT->sub(new DateInterval("P1D"));
+    			$endsDT = clone $utcNow;
+    		}
+
+    	}
+
+    	return array($startsDT, $endsDT);
+    }
+
     public function indexAction()
     {
         $CC_CONFIG = Config::getConfig();
         $baseUrl = Application_Common_OsPath::getBaseDir();
 
-        list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($this->getRequest());
-       
+        list($startsDT, $endsDT) = $this->getStartEnd();
+
         $userTimezone = new DateTimeZone(Application_Model_Preference::GetUserTimezone());
         $startsDT->setTimezone($userTimezone);
         $endsDT->setTimezone($userTimezone);
@@ -43,7 +86,6 @@ class PlayouthistoryController extends Zend_Controller_Action
         $this->view->headScript()->appendFile($baseUrl.'js/contextmenu/jquery.contextMenu.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/js/jquery.dataTables.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.pluginAPI.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
-        $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.fnSetFilteringDelay.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/TableTools-2.1.5/js/ZeroClipboard.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/TableTools-2.1.5/js/TableTools.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
 
@@ -75,8 +117,8 @@ class PlayouthistoryController extends Zend_Controller_Action
 	        $request = $this->getRequest();
     		$params = $request->getParams();
     		$instance = $request->getParam("instance_id", null);
-	        
-            list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
+
+    		list($startsDT, $endsDT) = $this->getStartEnd();
 
 	        $historyService = new Application_Service_HistoryService();
 	        $r = $historyService->getFileSummaryData($startsDT, $endsDT, $params);
@@ -98,12 +140,12 @@ class PlayouthistoryController extends Zend_Controller_Action
     		$request = $this->getRequest();
     		$params = $request->getParams();
     		$instance = $request->getParam("instance_id", null);
-	        
-            list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
-    		
+
+    		list($startsDT, $endsDT) = $this->getStartEnd();
+
     		$limit = intval($params["iDisplayLength"]);
     		$offset = intval($params["iDisplayStart"]);
-    		
+
 	        $historyService = new Application_Service_HistoryService();
 	        $r = $historyService->getPlayedItemData($startsDT, $endsDT, $instance, $offset, $limit);
 
@@ -124,8 +166,8 @@ class PlayouthistoryController extends Zend_Controller_Action
     		$request = $this->getRequest();
     		$params = $request->getParams();
     		$instance = $request->getParam("instance_id", null);
-	        
-            list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
+
+    		list($startsDT, $endsDT) = $this->getStartEnd();
 
     		$historyService = new Application_Service_HistoryService();
     		$shows = $historyService->getShowList($startsDT, $endsDT);
