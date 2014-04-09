@@ -105,8 +105,8 @@ var AIRTIME = (function(AIRTIME) {
             	$(".jp-current").html(html);
             }
         });
-
-    	$( "#open_playlist" ).click(function() {
+    	
+    	$("#open_playlist").click(function() {
     	    $(".jp-playlist").toggleClass("open");
     	    $(this).toggleClass("selected");
     	});
