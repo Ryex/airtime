@@ -81,7 +81,6 @@ class ScheduleController extends Zend_Controller_Action
         //Start Show builder JS/CSS requirements
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/js/jquery.dataTables.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.pluginAPI.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
-        $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.fnSetFilteringDelay.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.ColVis.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.ColReorder.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.FixedColumns.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
@@ -348,20 +347,20 @@ class ScheduleController extends Zend_Controller_Action
                     $originalDateTime->format("l, F jS"),
                     $originalDateTime->format("G:i"));
         }
-        
+
         $historyService = new Application_Service_HistoryService();
         $columns = $historyService->getDatatablesLogSheetColumns();
         $contents = $historyService->getPlayedItemData(null, null, $showInstanceId);
-        
+
         //remove the checkbox column.
         array_shift($columns);
-        
+
         $this->view->itemColumns = $columns;
         $this->view->itemContents = $contents;
 
         $this->view->dialog = $this->view->render('schedule/show-content-dialog.phtml');
         $this->view->showTitle = htmlspecialchars($show->getName());
-        
+
         unset($this->view->columns);
         unset($this->view->contents);
     }
