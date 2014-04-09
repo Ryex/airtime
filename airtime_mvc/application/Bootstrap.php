@@ -60,35 +60,7 @@ class Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         $view = $this->getResource('view');
         $baseUrl = Application_Common_OsPath::getBaseDir();
 
-        $view->headScript()->appendScript("var baseUrl = '$baseUrl';");
-        $this->_initTranslationGlobals($view);
-
-        $user = Application_Model_User::GetCurrentUser();
-        if (!is_null($user)){
-            $userType = $user->getType();
-        } else {
-            $userType = "";
-        }
-        $view->headScript()->appendScript("var userType = '$userType';");
-    }
-
-    /**
-     * Ideally, globals should be written to a single js file once
-     * from a php init function. This will save us from having to
-     * reinitialize them every request
-     */
-    private function _initTranslationGlobals($view) {
-        $view->headScript()->appendScript("var PRODUCT_NAME = '" . PRODUCT_NAME . "';");
-        $view->headScript()->appendScript("var USER_MANUAL_URL = '" . USER_MANUAL_URL . "';");
-        $view->headScript()->appendScript("var COMPANY_NAME = '" . COMPANY_NAME . "';");
-    }
-
-    protected function _initUpgrade() {
-        /* We need to wrap this here so that we aren't checking when we're running the unit test suite
-         */
-        if (getenv("AIRTIME_UNIT_TEST") != 1) {
-            UpgradeManager::checkIfUpgradeIsNeeded(); //This will do the upgrade too if it's needed...
-        }
+        $view->headScript()->appendScript("var baseUrl = '$baseUrl'");
     }
 
     protected function _initHeadLink()
@@ -134,10 +106,10 @@ class Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         $view->headScript()->appendFile($baseUrl.'locale/general-translation-table?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $view->headScript()->appendFile($baseUrl.'locale/datatables-translation-table?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $view->headScript()->appendScript("$.i18n.setDictionary(general_dict)");
-        
+
         $view->headScript()->appendFile($baseUrl.'js/timepicker/jquery-ui-timepicker-addon.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
-        
-        
+
+
         $view->headScript()->appendScript("var baseUrl='$baseUrl'");
 
 		//These timezones are needed to adjust javascript Date objects on the client to make sense to the user's set timezone
@@ -162,7 +134,7 @@ class Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         $view->headScript()->appendFile($baseUrl.'js/tipsy/jquery.tipsy.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
 
         $view->headScript()->appendFile($baseUrl.'js/airtime/common/common.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
-        
+
         //scripts for the jPlayer preview bar.
         $view->headScript()->appendFile($baseUrl.'js/jplayer/jplayer.playlist.min.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
         $view->headScript()->appendFile($baseUrl.'js/airtime/audiopreview/jPlayerWindow.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
