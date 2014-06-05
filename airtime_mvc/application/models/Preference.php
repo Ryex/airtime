@@ -1279,7 +1279,12 @@ class Application_Model_Preference
         }
 
         $ds = unserialize($v);
-
+        
+        
+        if (is_null($ds) || !is_array($ds)) {
+            return $id;
+        }
+        
         if (!array_key_exists('ColReorder', $ds)) {
             return $id;
         }
