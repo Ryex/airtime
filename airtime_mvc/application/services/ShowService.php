@@ -1054,6 +1054,9 @@ SQL;
                 );
                 $origStartDateTime->setTimezone(new DateTimeZone("UTC"));
                 $ccShowInstance = $this->getInstance($origStartDateTime);
+                if (!$ccShowInstance) {
+                    throw new Exception("Could not find show instance with start time: ".$origStartDateTime->format("Y-m-d H:i:s"));
+                }
             }
 
             $ccShowInstance->setDbShowId($this->ccShow->getDbId());
