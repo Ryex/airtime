@@ -17,7 +17,6 @@ class LoginController extends Zend_Controller_Action
         
         Application_Model_Locale::configureLocalization($request->getcookie('airtime_locale', 'en_CA'));
         $auth = Zend_Auth::getInstance();
-        Application_Model_Auth::pinSessionToClient($auth);
         
         if ($auth->hasIdentity())
         {
@@ -98,7 +97,6 @@ class LoginController extends Zend_Controller_Action
     public function logoutAction()
     {
         $auth = Zend_Auth::getInstance();
-        Application_Model_Auth::pinSessionToClient($auth);
         $auth->clearIdentity();
         $this->_redirect('showbuilder/index');
     }
@@ -191,7 +189,6 @@ class LoginController extends Zend_Controller_Action
             $auth->invalidateTokens($user, 'password.restore');
 
             $zend_auth = Zend_Auth::getInstance();
-            Application_Model_Auth::pinSessionToClient($zend_auth);
             $zend_auth->clearIdentity();
 
             $authAdapter = Application_Model_Auth::getAuthAdapter();
