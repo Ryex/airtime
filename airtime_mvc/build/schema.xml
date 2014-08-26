@@ -148,12 +148,12 @@
     <column name="instance_id" phpName="DbInstanceId" type="INTEGER" required="true"/>
     <column name="playout_status" phpName="DbPlayoutStatus" type="SMALLINT" required="true" defaultValue="1"/>
     <column name="broadcasted" phpName="DbBroadcasted" type="SMALLINT" required="true" defaultValue="0"/>
-    <!-- Broadcasted is set to 1 when show and master source are not on. 
+    <!-- Broadcasted is set to 1 when show and master source are not on.
          We need to know this for logging playout history. (It only gets logged when
          broadcasted = 1)
     -->
     <column name="position" phpName="DbPosition" type="INTEGER" required="true" default="0" />
-    
+
     <foreign-key foreignTable="cc_show_instances" name="cc_show_inst_fkey" onDelete="CASCADE">
       <reference local="instance_id" foreign="id"/>
     </foreign-key>
@@ -250,12 +250,7 @@
       <reference local="mount_name_id" foreign="id"/>
     </foreign-key>
   </table>
-  <table name="cc_locale" phpName="CcLocale">
-    <column name="id" phpName="DbId" primaryKey="true" type="INTEGER" autoIncrement="true" required="true" />
-    <column name="locale_code" phpName="DbLocaleCode" type="VARCHAR" size="16" required="true" />
-    <column name="locale_lang" phpName="DbLocaleLang" type="VARCHAR" size="128" required="true" />
-  </table>
-  <table name="cc_playout_history" phpName="CcPlayoutHistory" namespace="PlayoutHistory">
+  <table name="cc_playout_history" phpName="CcPlayoutHistory">
     <column name="id" phpName="DbId" primaryKey="true" type="INTEGER" autoIncrement="true" required="true" />
     <column name="media_id" phpName="DbMediaId" type="INTEGER" required="false"/>
     <column name="starts" phpName="DbStarts" type="TIMESTAMP" required="true"/>
@@ -303,7 +298,7 @@
       <index-column name="template_id"/>
     </index>
   </table>
-  
+
   <table name="media_item" phpName="MediaItem">
     <behavior name="timestampable" />
     <column name="id" phpName="Id" primaryKey="true" type="INTEGER" autoIncrement="true" required="true" />
@@ -320,11 +315,11 @@
       <reference local="owner_id" foreign="id"/>
     </foreign-key>
   </table>
-  
+
   <table name="media_audiofile" phpName="AudioFile" namespace="MediaItem">
     <behavior name="concrete_inheritance">
       <parameter name="extends" value="media_item" />
-    </behavior> 
+    </behavior>
     <column name="directory" phpName="Directory" type="INTEGER" required="false"/>
     <column name="filepath" phpName="Filepath" type="LONGVARCHAR" required="false" defaultValue=""/>
     <column name="md5" phpName="Md5" type="CHAR" size="32" required="false"/>
@@ -354,7 +349,7 @@
     <column name="silan_check" phpName="IsSilanChecked" type="BOOLEAN" defaultValue="false"/>
     <column name="file_exists" phpName="FileExists" type="BOOLEAN" required="false" defaultValue="true"/>
     <column name="hidden" phpName="FileHidden" type="BOOLEAN" defaultValue="false"/>
-    
+
     <foreign-key foreignTable="cc_music_dirs" name="audio_file_music_dir_fkey">
       <reference local="directory" foreign="id"/>
     </foreign-key>
@@ -365,14 +360,14 @@
       <index-column name="filepath"/>
     </index>
   </table>
-  
+
   <table name="media_webstream" phpName="Webstream" namespace="MediaItem">
     <behavior name="concrete_inheritance">
       <parameter name="extends" value="media_item" />
     </behavior>
     <column name="url" phpName="Url" type="VARCHAR" size="512" required="true" />
   </table>
-  
+
   <table name="media_playlist" phpName="Playlist" namespace="MediaItem" abstract="true">
     <behavior name="concrete_inheritance">
       <parameter name="extends" value="media_item" />
@@ -408,5 +403,5 @@
       <index-column name="media_id"/>
     </index>
   </table>
-  
+
 </database>
