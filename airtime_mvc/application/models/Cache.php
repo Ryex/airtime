@@ -2,7 +2,6 @@
 
 class Cache
 {
-
 	private function createCacheKey($key, $isUserValue, $userId = null) {
 
 		$CC_CONFIG = Config::getConfig();
@@ -35,27 +34,13 @@ class Cache
 
 	public function store($key, $value, $isUserValue, $userId = null) {
 
-        $cache = self::getMemcached();
-		$cacheKey = self::createCacheKey($key, $userId);
-
-		return $cache->set($cacheKey, $value);
+		//$cacheKey = self::createCacheKey($key, $userId);
+		return false; ///apc_store($cacheKey, $value);
 	}
 
 	public function fetch($key, $isUserValue, $userId = null) {
 
-	    $cache = self::getMemcached();
-		$cacheKey = self::createCacheKey($key, $isUserValue, $userId);
-		$value = $cache->get($cacheKey);
-
-		$found = true;
-		if ($cache->getResultCode() == Memcached::RES_NOTFOUND) {
-            $found = false;
-		}
-
-		//need to return something to distinguish a cache miss from a stored "false" preference.
-		return array(
-		   "found" => $found,
-		   "value" => $value,
-		);
+		//$cacheKey = self::createCacheKey($key, $isUserValue, $userId);
+		return false; //apc_fetch($cacheKey);
 	}
 }
