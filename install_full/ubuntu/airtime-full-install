@@ -29,6 +29,8 @@ echo "----------------------------------------------------"
 
 dist=`lsb_release -is`
 code=`lsb_release -cs`
+apache2 -v | grep "2\.4" > /dev/null
+apacheversion=$?
 
 #enable squeeze backports to get lame packages
 if [ "$dist" = "Debian" -a "$code" = "squeeze" ]; then
@@ -68,7 +70,7 @@ apt-get -y --force-yes install libmp3lame-dev lame icecast2
 
 #Debian Squeeze only has zendframework package. Newer versions of Ubuntu have zend-framework package.
 #Ubuntu Lucid has both zendframework and zend-framework. Difference appears to be that zendframework is for
-#1.10 and zend-framework is 1.11 
+#1.10 and zend-framework is 1.11
 if [ "$dist" = "Debian" ]; then
     apt-get -y --force-yes install zendframework
 else
@@ -77,7 +79,7 @@ fi
 
 #get the "timeout" unix command
 if [ "$code" = "lucid" ]; then
-    apt-get -y --force-yes install timeout 
+    apt-get -y --force-yes install timeout
 else
     apt-get -y --force-yes install coreutils
 fi
@@ -89,9 +91,9 @@ fi
 
 #Install some plugin packages on Ubuntu Saucy.
 if [ "$dist" = "Ubuntu" -a "$code" = "saucy" ]; then
-    apt-get -y --force-yes install php5-json 
+    apt-get -y --force-yes install php5-json
     apt-get -y --force-yes install liquidsoap-plugin-alsa liquidsoap-plugin-ao liquidsoap-plugin-faad liquidsoap-plugin-flac liquidsoap-plugin-icecast liquidsoap-plugin-lame liquidsoap-plugin-mad liquidsoap-plugin-ogg liquidsoap-plugin-opus liquidsoap-plugin-portaudio liquidsoap-plugin-pulseaudio liquidsoap-plugin-taglib liquidsoap-plugin-voaacenc liquidsoap-plugin-vorbis
- 
+
 fi
 
 #Install packages back-ported by Sourcefabric
@@ -107,7 +109,7 @@ if [ "$server" = "nginx" ]; then
     echo "2.1 NGINX Config File"
     echo "----------------------------------------------------"
     if [ ! -f /etc/nginx/sites-available/airtime ]; then
-        cp $SCRIPTPATH/../nginx/airtime-vhost /etc/nginx/sites-available/airtime 
+        cp $SCRIPTPATH/../nginx/airtime-vhost /etc/nginx/sites-available/airtime
         ln -s /etc/nginx/sites-available/airtime /etc/nginx/sites-enabled/airtime
         service nginx reload
     else
@@ -119,7 +121,7 @@ if [ "$server" = "nginx" ]; then
     echo "2.2 Airtime php pool file"
     echo "----------------------------------------------------"
     if [ ! -f /etc/php5/fpm/pool.d/airtime.conf ]; then
-        cp $SCRIPTPATH/../php5-fpm/airtime.conf /etc/php5/fpm/pool.d/airtime.conf 
+        cp $SCRIPTPATH/../php5-fpm/airtime.conf /etc/php5/fpm/pool.d/airtime.conf
         service php5-fpm reload
     else
         echo "Airtime php pool file already exists..."
@@ -130,32 +132,30 @@ else
     echo "----------------------------------------------------"
     echo "2.1 Apache Config File"
     echo "----------------------------------------------------"
-    
-    vregex='(Apache\/2\.4)'
-    apachev=`apache2 -v | grep 'Server version'`
-    echo "$apachev"
-    
-    if [[ "$apachev" =~ $vregex ]]
-    then
-        #Apache is version 2.4
-        
-        if [ ! -f /etc/apache2/sites-available/airtime.conf ]; then
-            echo "Creating Apache config for Airtime..."
-            cp $SCRIPTPATH/../apache/2.4/airtime-vhost /etc/apache2/sites-available/airtime.conf   
-        else
-            echo "Apache config for Airtime already exists..."
-        fi
+
+    if [ "$apacheversion" != "1" ]; then
+	airtimeconfigfile="airtime.conf"
+    else
+	airtimeconfigfile="airtime"
+    fi
+
+    if [ ! -f /etc/apache2/sites-available/$airtimeconfigfile ]; then
+        echo "Creating Apache config for Airtime..."
+
+	cp $SCRIPTPATH/../apache/airtime-vhost /etc/apache2/sites-available/$airtimeconfigfile
+        a2dissite 000-default
+        a2ensite airtime
     else
         #Apache is older, use 2.2 config.
-        
+
         if [ ! -f /etc/apache2/sites-available/airtime ]; then
             echo "Creating Apache config for Airtime..."
-            cp $SCRIPTPATH/../apache/2.2/airtime-vhost /etc/apache2/sites-available/airtime   
+            cp $SCRIPTPATH/../apache/2.2/airtime-vhost /etc/apache2/sites-available/airtime
         else
             echo "Apache config for Airtime already exists..."
         fi
     fi
-    
+
     a2ensite airtime
 
     if [ ! -d /usr/share/airtime/public ]; then
@@ -216,4 +216,7 @@ echo "----------------------------------------------------"
 echo "5. Run Airtime Install"
 echo "----------------------------------------------------"
 cd $SCRIPTPATH/../../install_minimal
+
+# Restart apache to clear php cache
+service apache2 restart
 ./airtime-install
