@@ -8,6 +8,7 @@ class Application_Form_SmartBlockCriteria extends Zend_Form_SubForm
     private $criteriaOptions;
     private $stringCriteriaOptions;
     private $numericCriteriaOptions;
+    private $sortOptions;
     private $limitOptions;
 
     /* We need to know if the criteria value will be a string
@@ -125,6 +126,17 @@ class Application_Form_SmartBlockCriteria extends Zend_Form_SubForm
             );
         }
         return $this->limitOptions;
+    }
+        private function getSortOptions()
+    {
+        if (!isset($this->sortOptions)) {
+            $this->sortOptions = array(
+                "random"   => _("random"),
+                "newest" => _("newest"),
+                "oldest"   => _("oldest")
+            );
+        }
+        return $this->sortOptions;
     }
 
 
@@ -292,6 +304,15 @@ class Application_Form_SmartBlockCriteria extends Zend_Form_SubForm
         }
         $this->addElement($repeatTracks);
 
+        $sort = new Zend_Form_Element_Select('sp_sort_options');
+        $sort->setAttrib('class', 'sp_input_select')
+              ->setDecorators(array('viewHelper'))
+              ->setMultiOptions($this->getSortOptions());
+        if (isset($storedCrit["sort"])) {
+            $sort->setValue($storedCrit["sort"]["value"]);
+        }
+        $this->addElement($sort);
+        
         $limit = new Zend_Form_Element_Select('sp_limit_options');
         $limit->setAttrib('class', 'sp_input_select')
               ->setDecorators(array('viewHelper'))
@@ -348,7 +369,7 @@ class Application_Form_SmartBlockCriteria extends Zend_Form_SubForm
 
     public function preValidation($params)
     {
-        $data = Application_Model_Block::organizeSmartPlyalistCriteria($params['data']);
+        $data = Application_Model_Block::organizeSmartPlaylistCriteria($params['data']);
         // add elelments that needs to be added
         // set multioption for modifier according to criteria_field
         $modRowMap = array();
