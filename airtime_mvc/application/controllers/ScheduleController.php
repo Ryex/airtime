@@ -258,7 +258,9 @@ class ScheduleController extends Zend_Controller_Action
 
     public function getCurrentPlaylistAction()
     {
-        $range = Application_Model_Schedule::getDashboardInfo();
+        $range = Application_Model_Schedule::GetPlayOrderRangeOld();
+        $show = Application_Model_Show::getCurrentShow();
+
 
         /* Convert all UTC times to localtime before sending back to user. */
         $range["schedulerTime"] = Application_Common_DateHelper::UTCStringToUserTimezoneString($range["schedulerTime"]);
