@@ -733,6 +733,101 @@ class ApiController extends Zend_Controller_Action
         $this->view->watched_dirs = $watchedDirsPath;
     }
 
+    public function dispatchMetadata($md, $mode)
+    {
+        $return_hash = array();
+        Application_Model_Preference::SetImportTimestamp();
+
+        $con = Propel::getConnection(CcFilesPeer::DATABASE_NAME);
+        $con->beginTransaction();
+        try {
+            // create also modifies the file if it exists
+            if ($mode == "create") {
+                $filepath = $md['MDATA_KEY_FILEPATH'];
+                $filepath = Application_Common_OsPath::normpath($filepath);
+                $file = Application_Model_StoredFile::RecallByFilepath($filepath, $con);
+                if (is_null($file)) {
+                    $file = Application_Model_StoredFile::Insert($md, $con);
+                } else {
+                    // If the file already exists we will update and make sure that
+                    // it's marked as 'exists'.
+                    $file->setFileExistsFlag(true);
+                    $file->setFileHiddenFlag(false);
+                    $file->setMetadata($md);
+                }
+                if ($md['is_record'] != 0) {
+                    $this->uploadRecordedActionParam($md['MDATA_KEY_TRACKNUMBER'], $file->getId());
+                }
+
+            } elseif ($mode == "modify") {
+                $filepath = $md['MDATA_KEY_FILEPATH'];
+                $file = Application_Model_StoredFile::RecallByFilepath($filepath, $con);
+
+                //File is not in database anymore.
+                if (is_null($file)) {
+                    $return_hash['error'] = sprintf(_("File does not exist in %s"), PRODUCT_NAME);
+                }
+                //Updating a metadata change.
+                else {
+                    //CC-5207 - restart media-monitor causes it to reevaluate all
+                    //files in watched directories, and reset their cue-in/cue-out
+                    //values. Since media-monitor has nothing to do with cue points
+                    //let's unset it here. Note that on mode == "create", we still
+                    //want media-monitor sending info about cue_out which by default
+                    //will be equal to length of track until silan can take over.
+                    unset($md['MDATA_KEY_CUE_IN']);
+                    unset($md['MDATA_KEY_CUE_OUT']);
+
+                    $file->setMetadata($md);
+                }
+            } elseif ($mode == "moved") {
+                $file = Application_Model_StoredFile::RecallByFilepath(
+                    $md['MDATA_KEY_ORIGINAL_PATH'], $con);
+
+                if (is_null($file)) {
+                    $return_hash['error'] = sprintf(_('File does not exist in %s'), PRODUCT_NAME);
+                } else {
+                    $filepath = $md['MDATA_KEY_FILEPATH'];
+                    //$filepath = str_replace("\\", "", $filepath);
+                    $file->setFilePath($filepath);
+                }
+            } elseif ($mode == "delete") {
+                $filepath = $md['MDATA_KEY_FILEPATH'];
+                $filepath = str_replace("\\", "", $filepath);
+                $file = Application_Model_StoredFile::RecallByFilepath($filepath, $con);
+
+                if (is_null($file)) {
+                    $return_hash['error'] = sprintf(_('File does not exist in %s'), PRODUCT_NAME);
+                    Logging::warn("Attempt to delete file that doesn't exist.
+                        Path: '$filepath'");
+                } else {
+                    $file->deleteByMediaMonitor();
+                }
+            } elseif ($mode == "delete_dir") {
+                $filepath = $md['MDATA_KEY_FILEPATH'];
+                //$filepath = str_replace("\\", "", $filepath);
+                $files = Application_Model_StoredFile::RecallByPartialFilepath($filepath, $con);
+
+                foreach ($files as $file) {
+                    $file->deleteByMediaMonitor();
+                }
+                $return_hash['success'] = 1;
+            }
+
+            if (!isset($return_hash['error'])) {
+                $return_hash['fileid'] = is_null($file) ? '-1' : $file->getId();
+            }
+            $con->commit();
+        } catch (Exception $e) {
+            Logging::warn("rolling back");
+            Logging::warn($e->getMessage());
+            $con->rollback();
+            $return_hash['error'] = $e->getMessage();
+        }
+        return $return_hash;
+    }
+
+
     public function reloadMetadataGroupAction()
     {
         // extract all file metadata params from the request.
