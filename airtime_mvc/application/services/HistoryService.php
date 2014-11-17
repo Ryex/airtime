@@ -50,22 +50,79 @@ class Application_Service_HistoryService
 			}
 		}
 
-		return $cols;
-	}
+		for ($i = 0, $len = count($fields_general); $i < $len; $i++) {
 
-	private function getNeededItemMetadataColumns()
-	{
-		$template = $this->getConfiguredItemTemplate();
-		$fields = $template["fields"];
-		$cols = array();
-		$notCols = array(HISTORY_ITEM_STARTS, HISTORY_ITEM_ENDS);
+			$field = $fields_general[$i];
+			$key = $field["name"];
+			$type = $sqlTypes[$field["type"]];
 
-		foreach ($fields as $field) {
-			$name = $field["name"];
+			$mdFilters[] = str_replace("%KEY%", $key, $manualMeta);
+			$paramMap["meta_{$key}"] = $key;
+			$mainSelect[] = "{$key}_filter.{$key}::{$type}";
+		}
 
-			if (!in_array($name, $notCols)) {
-				$cols[$name] = null;
-			}
+		$mainSqlQuery.=
+		"SELECT ".join(", ", $mainSelect).
+		" FROM {$historyRange}";
+
+		if (isset($fileSqlQuery)) {
+
+			$mainSqlQuery.=
+			" LEFT JOIN ( {$fileSqlQuery} ) as file_info USING(history_id)";
+		}
+
+		foreach ($mdFilters as $filter) {
+
+			$mainSqlQuery.=
+			" LEFT JOIN {$filter} USING(history_id)";
+		}
+
+		//----------------------------------------------------------------------
+		//need to count the total rows to tell Datatables.
+		$stmt = $this->con->prepare($mainSqlQuery);
+		foreach ($paramMap as $param => $v) {
+			$stmt->bindValue($param, $v);
+		}
+
+		if ($stmt->execute()) {
+			$totalRows = $stmt->rowCount();
+		}
+		else {
+			$msg = implode(',', $stmt->errorInfo());
+			throw new Exception("Error: $msg");
+		}
+
+		//------------------------------------------------------------------------
+		//Using Datatables parameters to sort the data.
+
+        if (empty($opts["iSortingCols"])) {
+		    $orderBys = array();
+        } else {
+            $numOrderColumns = $opts["iSortingCols"];
+            $orderBys = array();
+
+            for ($i = 0; $i < $numOrderColumns; $i++) {
+
+                $colNum = $opts["iSortCol_".$i];
+                $key = $opts["mDataProp_".$colNum];
+                $sortDir = $opts["sSortDir_".$i];
+
+                if (in_array($key, $required)) {
+
+                    $orderBys[] = "history_range.{$key} {$sortDir}";
+                }
+                else if (in_array($key, $filemd_keys)) {
+
+                    $orderBys[] = "file_info.{$key} {$sortDir}";
+                }
+                else if (in_array($key, $general_keys)) {
+
+                    $orderBys[] = "{$key}_filter.{$key} {$sortDir}";
+                }
+                else {
+                    //throw new Exception("Error: $key is not part of the template.");
+                }
+            }
 		}
 
 		return $cols;
@@ -85,7 +142,15 @@ class Application_Service_HistoryService
 	 			->filterByDbStarts($endDT, Criteria::LESS_EQUAL)
 		 	->_endif();
 
-	 	$totalCount = $query->count($this->con);
+		 $displayLength = empty($opts["iDisplayLength"]) ? -1 : intval($opts["iDisplayLength"]);
+		//limit the results returned.
+		if ($displayLength !== -1) {
+			$mainSqlQuery.=
+			" OFFSET :offset LIMIT :limit";
+
+			$paramMap["offset"] = intval($opts["iDisplayStart"]);
+			$paramMap["limit"] = $displayLength;
+		}
 
 		$items = $query
 		 	->orderByDbStarts()
@@ -138,12 +203,14 @@ class Application_Service_HistoryService
 			$datatables[] = $row;
 		}
 
-	 	return array(
- 			"iTotalDisplayRecords" => intval($totalCount),
- 			"iTotalRecords" => intval($totalCount),
- 			"history" => $datatables
-	 	);
-	 }
+		return array(
+			"sEcho" => empty($opts["sEcho"]) ? null : intval($opts["sEcho"]),
+			//"iTotalDisplayRecords" => intval($totalDisplayRows),
+			"iTotalDisplayRecords" => intval($totalRows),
+			"iTotalRecords" => intval($totalRows),
+			"history" => $rows
+		);
+	}
 
 	public function getFileSummaryData($startDT, $endDT, $opts)
 	{
@@ -291,9 +358,13 @@ class Application_Service_HistoryService
 		);
 	}
 
-	public function getShowList($startDT, $endDT)
+	public function getShowList($startDT, $endDT, $userId = null)
 	{
-		$user = Application_Model_User::getCurrentUser();
+        if (empty($userId)) {
+		    $user = Application_Model_User::getCurrentUser();
+        } else {
+            $user = new Application_Model_User($userId);
+        }
 		$shows = Application_Model_Show::getShows($startDT, $endDT);
 
 		Logging::info($startDT->format("Y-m-d H:i:s"));
@@ -302,7 +373,7 @@ class Application_Service_HistoryService
 		Logging::info($shows);
 
 		//need to filter the list to only their shows
-		if ($user->isHost()) {
+		if ((!empty($user)) && ($user->isHost())) {
 
 			$showIds = array();
 
@@ -362,13 +433,13 @@ class Application_Service_HistoryService
 		$this->con->beginTransaction();
 
 		try {
-			
+
 			// we need to update 'broadcasted' column as well
 			// check the current switch status
 			$live_dj = Application_Model_Preference::GetSourceSwitchStatus('live_dj') == 'on';
 			$master_dj = Application_Model_Preference::GetSourceSwitchStatus('master_dj') == 'on';
 			$scheduled_play = Application_Model_Preference::GetSourceSwitchStatus('scheduled_play') == 'on';
-			
+
 			$scheduledItem = CcScheduleQuery::create()
 				->filterByPrimaryKey($schedId)
 				->joinWith("MediaItem", Criteria::LEFT_JOIN)
@@ -377,30 +448,30 @@ class Application_Service_HistoryService
 			if (isset($scheduledItem)) {
 
 				$scheduledItem->setDbMediaItemPlayed(true);
-					
+
 				//not sure how well this broadcasted column actually is at doing anything.
 				if (!$live_dj && !$master_dj && $scheduled_play) {
 					$scheduledItem->setDbBroadcasted(1);
-					
+
 					$mediaItem = $scheduledItem->getMediaItem($this->con);
 					$media = $mediaItem->getChildObject();
-						
+
 					//set a 'last played' timestamp for media item
 					$utcNow = new DateTime("now", new DateTimeZone("UTC"));
 					$media->setLastPlayedTime($utcNow);
-					
+
 					$playcount = $mediaItem->getPlayCount();
 					$media->setPlayCount($playcount + 1);
-					
+
 					$media->save($this->con);
 					$scheduledItem->save($this->con);
-					
+
 					$type = $mediaItem->getType();
 					$strategy = "Strategy_{$type}HistoryItem";
-					
+
 					$insertStrategy = new $strategy();
 					$insertStrategy->insertHistoryItem($schedId, $this->con, $opts);
-				}	
+				}
 			}
 
 			$this->con->commit();
@@ -412,9 +483,9 @@ class Application_Service_HistoryService
 
 	/* id is an id in cc_playout_history */
 	public function makeHistoryItemForm($id, $populate=false) {
-		
+
 		$fieldMap = array(
-			HISTORY_ITEM_STARTS => "DbStarts", 
+			HISTORY_ITEM_STARTS => "DbStarts",
 			HISTORY_ITEM_ENDS => "DbEnds"
 		);
 
@@ -542,12 +613,12 @@ class Application_Service_HistoryService
 				$key = substr($index, $prefix_len);
 				$md[$key] = $value;
 			}
-			
+
 			Logging::info($md);
 
 			$file->setMetadata($md);
 			$file->save($this->con);
-			
+
 			$this->con->commit();
 		}
 		catch (Exception $e) {
