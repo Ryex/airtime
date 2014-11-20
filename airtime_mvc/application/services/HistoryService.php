@@ -167,11 +167,19 @@ class Application_Service_HistoryService
 		$timezoneUTC = new DateTimeZone("UTC");
 		$timezoneLocal = new DateTimeZone($this->timezone);
 
-		$neededColumns = $this->getNeededItemMetadataColumns();
-		$neededMetadata = array_keys($neededColumns);
-		$datatables = array();
-		foreach($items as $item) {
-			$row = $neededColumns;
+		$boolCast = array();
+		foreach ($fields as $index=>$field) {
+
+			if ($field["type"] == TEMPLATE_BOOLEAN) {
+				$boolCast[] = $field;
+			}
+		}
+
+		foreach ($rows as $index => &$result) {
+
+			foreach ($boolCast as $field) {
+				$result[$field['label']] = (bool) $result[$field['name']];
+			}
 
 			//need to display the results in the station's timezone.
 			$start = $item->getDbStarts(null);
