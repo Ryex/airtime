@@ -17,14 +17,14 @@ class Config {
 
                 "rootDir" => __DIR__."/../.."
         );
-        
+
         //In the unit testing environment, we always want to use our local airtime.conf in airtime_mvc/application/test:
         if (getenv('AIRTIME_UNIT_TEST') == '1') {
             $filename = "airtime.conf";
         } else {
             $filename = isset($_SERVER['AIRTIME_CONF']) ? $_SERVER['AIRTIME_CONF'] : "/etc/airtime/airtime.conf";
         }
-        
+
         $values = parse_ini_file($filename, true);
 
         // Name of the web server user
@@ -34,7 +34,7 @@ class Config {
         $CC_CONFIG['baseDir'] = $values['general']['base_dir'];
         $CC_CONFIG['baseUrl'] = $values['general']['base_url'];
         $CC_CONFIG['basePort'] = $values['general']['base_port'];
-        $CC_CONFIG['phpDir'] = $values['general']['airtime_dir'];
+//        $CC_CONFIG['phpDir'] = $values['general']['airtime_dir'];
 
         $CC_CONFIG['cache_ahead_hours'] = $values['general']['cache_ahead_hours'];
 
@@ -58,7 +58,7 @@ class Config {
         $CC_CONFIG['soundcloud-connection-wait'] = $values['soundcloud']['time_between_retries'];
 
         if (!isset($values['memcached'])) {
-            die("Fatal Error: [memcached] section missing from your airtime.conf.<br>" . 
+            die("Fatal Error: [memcached] section missing from your airtime.conf.<br>" .
                 "Please see the default airtime.conf for an example.");
         }
         $CC_CONFIG['memcached']['servers'] = $values['memcached']['servers'];
