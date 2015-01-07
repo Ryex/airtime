@@ -318,14 +318,8 @@ loud "          * Installing Airtime Services *            "
 loud "-----------------------------------------------------"
 
 verbose "\n * Installing liquidsoap and python..."
-loudCmd "apt-get -y --force-yes install liquidsoap python python-pip python-virtualenv"
+loudCmd "apt-get -y --force-yes install liquidsoap python python-pip"
 loudCmd "pip install setuptools"
-verbose "...Done"
-
-verbose "\n * Activating virtualenv..."
-${AIRTIMEROOT}/python_apps/python-virtualenv/virtualenv-install.sh
-virtualenv_bin="/usr/lib/airtime/airtime_virtualenv/bin/"
-. ${virtualenv_bin}activate
 verbose "...Done"
 
 verbose "\n * Creating /usr/lib/airtime..."
@@ -381,10 +375,6 @@ ln -sf /usr/bin/liquidsoap /usr/bin/airtime-liquidsoap
 verbose "...Done"
 
 initctl reload-configuration
-
-verbose "\n * Deactivating virtualenv..."
-deactivate
-verbose "...Done"
 
 if [ ! -d /var/log/airtime ]; then
     loud "\n-----------------------------------------------------"
