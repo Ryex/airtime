@@ -20,9 +20,10 @@ require_once "OsPath.php";
 require_once "Database.php";
 require_once "Timezone.php";
 require_once "Auth.php";
-require_once __DIR__.'/forms/helpers/ValidationTypes.php';
+require_once __DIR__ . '/forms/helpers/ValidationTypes.php';
 require_once __DIR__.'/forms/helpers/CustomDecorators.php';
-require_once __DIR__.'/controllers/plugins/RabbitMqPlugin.php';
+require_once __DIR__ . '/controllers/plugins/RabbitMqPlugin.php';
+require_once __DIR__ . '/upgrade/Upgrades.php';
 
 require_once (APPLICATION_PATH . "logging/Logging.php");
 Logging::setLogPath('/var/log/airtime/zendphp.log');
@@ -80,6 +81,14 @@ class Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         $view->headScript()->appendScript("var PRODUCT_NAME = '" . PRODUCT_NAME . "';");
         $view->headScript()->appendScript("var USER_MANUAL_URL = '" . USER_MANUAL_URL . "';");
         $view->headScript()->appendScript("var COMPANY_NAME = '" . COMPANY_NAME . "';");
+    }
+
+    protected function _initUpgrade() {
+        Logging::info("Checking if upgrade is needed...");
+        if (AIRTIME_CODE_VERSION > Application_Model_Preference::GetAirtimeVersion()) {
+            $upgradeManager = new UpgradeManager();
+            $upgradeManager->runUpgrades(array(new AirtimeUpgrader252()), (__DIR__ . "/controllers"));
+        }
     }
 
     protected function _initHeadLink()
