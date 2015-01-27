@@ -1525,24 +1525,27 @@ SQL;
                     $i++;
                 }
             }
-            
+
             // check if file exists
             $qry->add("file_exists", "true", Criteria::EQUAL);
             $qry->add("hidden", "false", Criteria::EQUAL);
-        if (isset($storedCrit['sort'])) {
-            $sortTracks = $storedCrit['sort']['value'];
-        }
-        if ($sortTracks == 'newest') {
-            $qry->addDescendingOrderByColumn('utime');
-        }
-        else if ($sortTracks == 'oldest') {
-            $qry->addAscendingOrderByColumn('utime');
-        }
-        else {
-            $qry->addAscendingOrderByColumn('random()');
-        }
+            $sortTracks = 'random';
+            if (isset($storedCrit['sort'])) {
+                $sortTracks = $storedCrit['sort']['value'];
+            }
+            if ($sortTracks == 'newest') {
+                $qry->addDescendingOrderByColumn('utime');
+            }
+            else if ($sortTracks == 'oldest') {
+                $qry->addAscendingOrderByColumn('utime');
+            }
+            else if ($sortTracks == 'random') {
+                $qry->addAscendingOrderByColumn('random()');
+            } else {
+                Logging::warning("Unimplemented sortTracks type in ".__FILE__);
+            }
 
-    }
+        }
         // construct limit restriction
         $limits = array();
         
