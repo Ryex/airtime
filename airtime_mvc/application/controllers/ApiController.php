@@ -8,22 +8,17 @@ class ApiController extends Zend_Controller_Action
 
     public function init()
     {
-<<<<<<< HEAD
-        $ignoreAuth = array("live-info", "live-info-v2", "week-info",
-                    "station-metadata", "station-logo");
-=======
-        $ignoreAuth = array("live-info", 
-            "live-info-v2", 
-            "week-info", 
-            "station-metadata", 
+        $ignoreAuth = array("live-info",
+            "live-info-v2",
+            "week-info",
+            "station-metadata",
             "station-logo",
-            "show-history-feed", 
+            "show-history-feed",
             "item-history-feed",
             "shows",
             "show-tracks",
             "show-schedules"
         );
->>>>>>> added shows, show-schedules, show-preview, show-history-feed, item-history-feed endpoints to the HTTP api to be used via NewscoopAirtimePlugin
 
         $params = $this->getRequest()->getParams();
         if (!in_array($params['action'], $ignoreAuth)) {
@@ -1389,9 +1384,9 @@ class ApiController extends Zend_Controller_Action
             $request = $this->getRequest();
             $params = $request->getParams();
             $userId = $request->getParam("user_id", null);
- 
+
             list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
-            
+
             $historyService = new Application_Service_HistoryService();
             $shows = $historyService->getShowList($startsDT, $endsDT, $userId);
 
@@ -1415,8 +1410,8 @@ class ApiController extends Zend_Controller_Action
             $params = $request->getParams();
             $showId = $request->getParam("show_id", null);
             $results = array();
- 
-            if (empty($showId)) {            
+
+            if (empty($showId)) {
                 $shows = CcShowQuery::create()->find();
                 foreach($shows as $show) {
                     $results[] = $show->getShowInfo();
@@ -1433,19 +1428,19 @@ class ApiController extends Zend_Controller_Action
             Logging::info($e->getMessage());
         }
     }
-   
+
     /**
      * display show schedule for given show_id
      *
      * @return json array
      */
-    public function showSchedulesAction() 
+    public function showSchedulesAction()
     {
         try {
             $request = $this->getRequest();
             $params = $request->getParams();
             $showId = $request->getParam("show_id", null);
- 
+
             list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
 
             if ((!isset($showId)) || (!is_numeric($showId))) {
@@ -1454,7 +1449,7 @@ class ApiController extends Zend_Controller_Action
                     array("jsonrpc" => "2.0", "error" => array("code" => 400, "message" => "missing invalid type for required show_id parameter. use type int.".$showId))
                 );
             }
-            
+
             $shows = Application_Model_Show::getShows($startsDT, $endsDT, FALSE, $showId);
 
             // is this a valid show?
@@ -1472,7 +1467,7 @@ class ApiController extends Zend_Controller_Action
         }
 
     }
-    
+
     /**
      * displays track listing for given instance_id
      *
@@ -1493,7 +1488,7 @@ class ApiController extends Zend_Controller_Action
 
         $showInstance = new Application_Model_ShowInstance($instanceId);
         $showInstanceContent = $showInstance->getShowListContent($prefTimezone);
-        
+
         // is this a valid show instance with content?
         if (empty($showInstanceContent)) {
             $this->_helper->json->sendJson(
@@ -1522,5 +1517,5 @@ class ApiController extends Zend_Controller_Action
         $this->_helper->json($result);
 
     }
-    
+
 }

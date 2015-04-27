@@ -43,19 +43,6 @@ class Logging {
         }
     }
 
-<<<<<<< HEAD
-    public static function info($p_msg)
-    {
-        $bt = debug_backtrace();
-
-        $caller = array_shift($bt);
-        $file = basename($caller['file']);
-        $line = $caller['line'];
-
-        $caller = array_shift($bt);
-        $function = $caller['function'];
-
-=======
     /** @param debugMode Prints the function name, file, and line number. This is slow as it uses debug_backtrace()
      *                   so don't use it unless you need it.
      */
@@ -82,46 +69,21 @@ class Logging {
 
         return $linePrefix;
     }
-    
+
     public static function info($p_msg)
     {
->>>>>>> Refactored the logging class to reduce code, use error levels correctly, and improve performance.
         $logger = self::getLogger();
         $logger->info(self::getLinePrefix() . self::toString($p_msg));
     }
 
     public static function warn($p_msg)
     {
-<<<<<<< HEAD
-        $bt = debug_backtrace();
-
-        $caller = array_shift($bt);
-        $file = basename($caller['file']);
-        $line = $caller['line'];
-
-        $caller = array_shift($bt);
-        $function = $caller['function'];
-
-=======
->>>>>>> Refactored the logging class to reduce code, use error levels correctly, and improve performance.
         $logger = self::getLogger();
         $logger->warn(self::getLinePrefix() . self::toString($p_msg));
     }
 
     public static function error($p_msg)
     {
-<<<<<<< HEAD
-        $bt = debug_backtrace();
-
-        $caller = array_shift($bt);
-        $file = basename($caller['file']);
-        $line = $caller['line'];
-
-        $caller = array_shift($bt);
-        $function = $caller['function'];
-
-=======
->>>>>>> Refactored the logging class to reduce code, use error levels correctly, and improve performance.
         $logger = self::getLogger();
         $logger->err(self::getLinePrefix(true) .  self::toString($p_msg));
     }
@@ -131,19 +93,6 @@ class Logging {
         if (!(defined('APPLICATION_ENV') && APPLICATION_ENV == "development")) {
             return;
         }
-
-<<<<<<< HEAD
-        $bt = debug_backtrace();
-
-        $caller = array_shift($bt);
-        $file = basename($caller['file']);
-        $line = $caller['line'];
-
-        $caller = array_shift($bt);
-        $function = $caller['function'];
-
-=======
->>>>>>> Refactored the logging class to reduce code, use error levels correctly, and improve performance.
         $logger = self::getLogger();
         $logger->debug(self::getLinePrefix(true) . self::toString($p_msg));
     }
@@ -222,4 +171,3 @@ class Logging {
     }
 
 }
-
