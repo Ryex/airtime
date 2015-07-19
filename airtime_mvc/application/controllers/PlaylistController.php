@@ -164,8 +164,14 @@ class PlaylistController extends Zend_Controller_Action
     		$this->view->obj = new Presentation_Playlist($obj);
     	}
 
-    	$this->view->html = $this->view->render('playlist/playlist.phtml');
-    	unset($this->view->obj);
+        try {
+            $obj = new $objInfo['className']($id);
+            $this->createFullResponse($obj);
+        } catch (PlaylistNotFoundException $e) {
+            $this->playlistNotFound($type);
+        } catch (Exception $e) {
+            $this->playlistUnknownError($e);
+        }
     }
 
     public function newAction()
