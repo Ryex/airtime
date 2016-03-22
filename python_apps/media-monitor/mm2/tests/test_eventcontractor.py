@@ -27,11 +27,11 @@ class TestMMP(unittest.TestCase):
 
         self.assertFalse( ev.register(e2) )
 
-        self.assertEqual( len(ev.store.keys()), 1 )
+        self.assertEqual( len(list(ev.store.keys())), 1 )
 
         delete_ev = e1.safe_pack()[0]
-        self.assertEqual( delete_ev['mode'], u'delete')
-        self.assertEqual( len(ev.store.keys()), 0 )
+        self.assertEqual( delete_ev['mode'], 'delete')
+        self.assertEqual( len(list(ev.store.keys())), 0 )
 
         e3 = DeleteFile( FakePyinotify('horse.mp3') ).proxify()
         self.assertTrue( ev.register(e3) )
@@ -47,12 +47,12 @@ class TestMMP(unittest.TestCase):
                 DeleteFile( FakePyinotify(p) ),
                 NewFile( FakePyinotify(p) ),
                 NewFile( FakePyinotify(p) ), ]
-        events = map(lambda x: x.proxify(), events)
+        events = [x.proxify() for x in events]
         actual_events = []
         for e in events:
             if ev.register(e):
                 actual_events.append(e)
-        self.assertEqual( len(ev.store.keys()), 1 )
+        self.assertEqual( len(list(ev.store.keys())), 1 )
         #packed = [ x.safe_pack() for x in actual_events ]
 
 if __name__ == '__main__': unittest.main()

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import pure         as mmp
+from . import pure         as mmp
 import os
-from log            import Loggable
-from exceptions     import CouldNotCreateIndexFile
+from .log            import Loggable
+from .exceptions     import CouldNotCreateIndexFile
 from ..saas.thread  import InstanceInheritingThread
 
 class Toucher(Loggable):

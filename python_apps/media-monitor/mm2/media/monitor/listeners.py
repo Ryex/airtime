@@ -3,12 +3,12 @@ import pyinotify
 from pydispatch import dispatcher
 from functools import wraps
 
-import pure as mmp
-from pure import IncludeOnly
-from events import OrganizeFile, NewFile, MoveFile, DeleteFile, \
+from . import pure as mmp
+from .pure import IncludeOnly
+from .events import OrganizeFile, NewFile, MoveFile, DeleteFile, \
                                  DeleteDir, MoveDir,\
                                  DeleteDirWatch
-from log import Loggable
+from .log import Loggable
 from ..saas.thread import getsig, user
 # Note: Because of the way classes that inherit from pyinotify.ProcessEvent
 # interact with constructors. you should only instantiate objects from them
@@ -29,7 +29,7 @@ class FileMediator(Loggable):
 def mediate_ignored(fn):
     @wraps(fn)
     def wrapped(self, event, *args,**kwargs):
-        event.pathname = unicode(event.pathname, "utf-8")
+        event.pathname = str(event.pathname, "utf-8")
         if user().file_mediator.is_ignored(event.pathname):
             user().file_mediator.logger.info("Ignoring: '%s' (once)" % event.pathname)
             user().file_mediator.unignore(event.pathname)

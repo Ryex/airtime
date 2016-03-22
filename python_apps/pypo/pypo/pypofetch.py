@@ -11,15 +11,15 @@ import subprocess
 import signal
 from datetime import datetime
 import traceback
-import pure
+from . import pure
 
-from Queue import Empty
+from queue import Empty
 from threading import Thread
 from subprocess import Popen, PIPE
 
 from api_clients import api_client
 from std_err_override import LogWriter
-from timeout import ls_timeout
+from .timeout import ls_timeout
 
 
 def keyboardInterruptHandler(signum, frame):
@@ -67,7 +67,7 @@ class PypoFetch(Thread):
                 """
                 self.logger.debug("Cache dir does not exist. Creating...")
                 os.makedirs(dir)
-        except Exception, e:
+        except Exception as e:
             pass
 
         self.schedule_data = []
@@ -122,7 +122,7 @@ class PypoFetch(Thread):
                 if self.listener_timeout < 0:
                     self.listener_timeout = 0
             self.logger.info("New timeout: %s" % self.listener_timeout)
-        except Exception, e:
+        except Exception as e:
             top = traceback.format_exc()
             self.logger.error('Exception: %s', e)
             self.logger.error("traceback: %s", top)
@@ -153,13 +153,13 @@ class PypoFetch(Thread):
         self.logger.debug('Getting information needed on bootstrap from Airtime')
         try:
             info = self.api_client.get_bootstrap_info()
-        except Exception, e:
+        except Exception as e:
             self.logger.error('Unable to get bootstrap info.. Exiting pypo...')
             self.logger.error(str(e))
 
         self.logger.debug('info:%s', info)
         commands = []
-        for k, v in info['switch_status'].iteritems():
+        for k, v in info['switch_status'].items():
             commands.append(self.switch_source_temp(k, v))
 
         stream_format = info['stream_label']
@@ -196,11 +196,11 @@ class PypoFetch(Thread):
                     tn.read_all()
                     self.logger.info("Liquidsoap is up and running")
                     break
-                except Exception, e:
+                except Exception as e:
                     #sleep 0.5 seconds and try again
                     time.sleep(0.5)
 
-        except Exception, e:
+        except Exception as e:
             self.logger.error(e)
         finally:
             if self.telnet_lock.locked():
@@ -215,7 +215,7 @@ class PypoFetch(Thread):
         setting = sorted(setting.items())
         try:
             fh = open('/etc/airtime/liquidsoap.cfg', 'r')
-        except IOError, e:
+        except IOError as e:
             #file does not exist
             self.restart_liquidsoap()
             return
@@ -257,25 +257,25 @@ class PypoFetch(Thread):
         self.logger.info("Looking for changes...")
         # look for changes
         for k, s in setting:
-            if "output_sound_device" in s[u'keyname'] or "icecast_vorbis_metadata" in s[u'keyname']:
-                dump, stream = s[u'keyname'].split('_', 1)
+            if "output_sound_device" in s['keyname'] or "icecast_vorbis_metadata" in s['keyname']:
+                dump, stream = s['keyname'].split('_', 1)
                 state_change_restart[stream] = False
                 # This is the case where restart is required no matter what
-                if (existing[s[u'keyname']] != str(s[u'value'])):
-                    self.logger.info("'Need-to-restart' state detected for %s...", s[u'keyname'])
+                if (existing[s['keyname']] != str(s['value'])):
+                    self.logger.info("'Need-to-restart' state detected for %s...", s['keyname'])
                     restart = True;
-            elif "master_live_stream_port" in s[u'keyname'] or "master_live_stream_mp" in s[u'keyname'] or "dj_live_stream_port" in s[u'keyname'] or "dj_live_stream_mp" in s[u'keyname'] or "off_air_meta" in s[u'keyname']:
-                if (existing[s[u'keyname']] != s[u'value']):
-                    self.logger.info("'Need-to-restart' state detected for %s...", s[u'keyname'])
+            elif "master_live_stream_port" in s['keyname'] or "master_live_stream_mp" in s['keyname'] or "dj_live_stream_port" in s['keyname'] or "dj_live_stream_mp" in s['keyname'] or "off_air_meta" in s['keyname']:
+                if (existing[s['keyname']] != s['value']):
+                    self.logger.info("'Need-to-restart' state detected for %s...", s['keyname'])
                     restart = True;
             else:
-                stream, dump = s[u'keyname'].split('_', 1)
-                if "_output" in s[u'keyname']:
-                    if (existing[s[u'keyname']] != s[u'value']):
-                        self.logger.info("'Need-to-restart' state detected for %s...", s[u'keyname'])
+                stream, dump = s['keyname'].split('_', 1)
+                if "_output" in s['keyname']:
+                    if (existing[s['keyname']] != s['value']):
+                        self.logger.info("'Need-to-restart' state detected for %s...", s['keyname'])
                         restart = True;
                         state_change_restart[stream] = True
-                    elif (s[u'value'] != 'disabled'):
+                    elif (s['value'] != 'disabled'):
                         state_change_restart[stream] = True
                     else:
                         state_change_restart[stream] = False
@@ -283,14 +283,14 @@ class PypoFetch(Thread):
                     # setting inital value
                     if stream not in change:
                         change[stream] = False
-                    if not (s[u'value'] == existing[s[u'keyname']]):
-                        self.logger.info("Keyname: %s, Current value: %s, New Value: %s", s[u'keyname'], existing[s[u'keyname']], s[u'value'])
+                    if not (s['value'] == existing[s['keyname']]):
+                        self.logger.info("Keyname: %s, Current value: %s, New Value: %s", s['keyname'], existing[s['keyname']], s['value'])
                         change[stream] = True
 
         # set flag change for sound_device alway True
         self.logger.info("Change:%s, State_Change:%s...", change, state_change_restart)
 
-        for k, v in state_change_restart.items():
+        for k, v in list(state_change_restart.items()):
             if k == "sound_device" and v:
                 restart = True
             elif v and change[k]:
@@ -328,7 +328,7 @@ class PypoFetch(Thread):
             tn.write('exit\n')
 
             output = tn.read_all()
-        except Exception, e:
+        except Exception as e:
             self.logger.error(str(e))
         finally:
             self.telnet_lock.release()
@@ -362,7 +362,7 @@ class PypoFetch(Thread):
             tn.write(command)
             tn.write('exit\n')
             tn.read_all()
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Exception %s", e)
         finally:
             self.telnet_lock.release()
@@ -379,7 +379,7 @@ class PypoFetch(Thread):
             tn.write(command)
             tn.write('exit\n')
             tn.read_all()
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Exception %s", e)
         finally:
             self.telnet_lock.release()
@@ -397,11 +397,11 @@ class PypoFetch(Thread):
                 tn.write(command)
                 tn.write('exit\n')
                 tn.read_all()
-            except Exception, e:
+            except Exception as e:
                 self.logger.error(str(e))
             finally:
                 self.telnet_lock.release()
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Exception %s", e)
 
     """
@@ -427,7 +427,7 @@ class PypoFetch(Thread):
             download_dir = self.cache_dir
             try:
                 os.makedirs(download_dir)
-            except Exception, e:
+            except Exception as e:
                 pass
 
             media_copy = {}
@@ -436,7 +436,7 @@ class PypoFetch(Thread):
                 if (media_item['type'] == 'file'):
                     self.sanity_check_media_item(media_item)
                     fileExt = os.path.splitext(media_item['uri'])[1]
-                    dst = os.path.join(download_dir, unicode(media_item['id']) + fileExt)
+                    dst = os.path.join(download_dir, str(media_item['id']) + fileExt)
                     media_item['dst'] = dst
                     media_item['file_ready'] = False
                     media_filtered[key] = media_item
@@ -449,7 +449,7 @@ class PypoFetch(Thread):
 
 
             self.media_prepare_queue.put(copy.copy(media_filtered))
-        except Exception, e: self.logger.error("%s", e)
+        except Exception as e: self.logger.error("%s", e)
 
         # Send the data to pypo-push
         self.logger.debug("Pushing to pypo-push")
@@ -458,7 +458,7 @@ class PypoFetch(Thread):
 
         # cleanup
         try: self.cache_cleanup(media)
-        except Exception, e: self.logger.error("%s", e)
+        except Exception as e: self.logger.error("%s", e)
 
     #do basic validation of file parameters. Useful for debugging
     #purposes
@@ -493,7 +493,7 @@ class PypoFetch(Thread):
             media_item = media[mkey]
             if media_item['type'] == 'file':
                 fileExt = os.path.splitext(media_item['uri'])[1]
-                scheduled_file_set.add(unicode(media_item["id"]) + fileExt)
+                scheduled_file_set.add(str(media_item["id"]) + fileExt)
 
         expired_files = cached_file_set - scheduled_file_set
 
@@ -511,7 +511,7 @@ class PypoFetch(Thread):
                     self.logger.info("File '%s' removed" % path)
                 else:
                     self.logger.info("File '%s' not removed. Still busy!" % path)
-            except Exception, e:
+            except Exception as e:
                 self.logger.error("Problem removing file '%s'" % f)
                 self.logger.error(traceback.format_exc())
 
@@ -570,10 +570,10 @@ class PypoFetch(Thread):
 
                 message = self.fetch_queue.get(block=True, timeout=self.listener_timeout)
                 self.handle_message(message)
-            except Empty, e:
+            except Empty as e:
                 self.logger.info("Queue timeout. Fetching schedule manually")
                 self.persistent_manual_schedule_fetch(max_attempts=5)
-            except Exception, e:
+            except Exception as e:
                 top = traceback.format_exc()
                 self.logger.error('Exception: %s', e)
                 self.logger.error("traceback: %s", top)

@@ -15,11 +15,11 @@ def generate_liquidsoap_config(ss):
     for d in data:
         key = d['keyname']
 
-        str_buffer = d[u'keyname'] + " = "
-        if d[u'type'] == 'string':
+        str_buffer = d['keyname'] + " = "
+        if d['type'] == 'string':
             val = '"%s"' % d['value']
         else:
-            val = d[u'value']
+            val = d['value']
             val = val if len(val) > 0 else "0"
         str_buffer = "%s = %s\n" % (key, val)
         fh.write(str_buffer.encode('utf-8'))
@@ -41,8 +41,8 @@ def run():
             ss = ac.get_stream_setting()
             generate_liquidsoap_config(ss)
             successful = True
-        except Exception, e:
-            print "Unable to connect to the Airtime server."
+        except Exception as e:
+            print("Unable to connect to the Airtime server.")
             logging.error(str(e))
             logging.error("traceback: %s", traceback.format_exc())
             if attempts == max_attempts:

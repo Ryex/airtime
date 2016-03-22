@@ -4,13 +4,13 @@ import os
 from pydispatch     import dispatcher
 
 from os.path        import normpath
-from events         import PathChannel
-from log            import Loggable
-from listeners      import StoreWatchListener, OrganizeListener
-from handler        import ProblemFileHandler
-from organizer      import Organizer
+from .events         import PathChannel
+from .log            import Loggable
+from .listeners      import StoreWatchListener, OrganizeListener
+from .handler        import ProblemFileHandler
+from .organizer      import Organizer
 from ..saas.thread  import InstanceInheritingThread, getsig
-import pure         as mmp
+from . import pure         as mmp
 
 
 class ManagerTimeout(InstanceInheritingThread,Loggable):
@@ -103,7 +103,7 @@ class Manager(Loggable):
         if not self.has_watch(path):
             wd = self.wm.add_watch(path, pyinotify.ALL_EVENTS, rec=True,
                     auto_add=True, proc_fun=listener)
-            if wd: self.__wd_path[path] = wd.values()[0]
+            if wd: self.__wd_path[path] = list(wd.values())[0]
 
     def __create_organizer(self, target_path, recorded_path):
         """ creates an organizer at new destination path or modifies the
@@ -183,11 +183,11 @@ class Manager(Loggable):
         store_paths = mmp.expand_storage(store)
         # First attempt to make sure that all paths exist before adding any
         # watches
-        for path_type, path in store_paths.iteritems():
+        for path_type, path in store_paths.items():
             try: mmp.create_dir(path)
             except mmp.FailedToCreateDir as e: self.unexpected_exception(e)
 
-        os.chmod(store_paths['organize'], 0775) 
+        os.chmod(store_paths['organize'], 0o775) 
 
         self.set_problem_files_path(store_paths['problem_files'])
         self.set_imported_path(store_paths['imported'])

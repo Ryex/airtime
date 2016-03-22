@@ -137,7 +137,7 @@ def calculate_replay_gain(file_path):
                     search = re.search(r'REPLAYGAIN_TRACK_GAIN=(.*) dB', out)
                 else: logger.warn("metaflac not found")
 
-    except Exception, e:
+    except Exception as e:
         logger.error(str(e))
     finally:
         #no longer need the temp, file simply remove it.
@@ -158,4 +158,4 @@ def calculate_replay_gain(file_path):
 # Example of running from command line:
 # python replay_gain.py /path/to/filename.mp3
 if __name__ == "__main__":
-    print calculate_replay_gain(sys.argv[1])
+    print(calculate_replay_gain(sys.argv[1]))

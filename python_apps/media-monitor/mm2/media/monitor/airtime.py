@@ -9,11 +9,11 @@ import os
 import copy
 import time
 
-from exceptions         import BadSongFile, InvalidMetadataElement, DirectoryIsNotListed
-from metadata           import Metadata
-from log                import Loggable
-from syncdb             import AirtimeDB
-from bootstrap          import Bootstrapper
+from .exceptions         import BadSongFile, InvalidMetadataElement, DirectoryIsNotListed
+from .metadata           import Metadata
+from .log                import Loggable
+from .syncdb             import AirtimeDB
+from .bootstrap          import Bootstrapper
 
 from ..saas.thread      import apc, user
 
@@ -164,7 +164,7 @@ class AirtimeMessageReceiver(Loggable):
         try:
             # id is always an integer but in the dictionary the key is always a
             # string
-            self.__request_now_bootstrap( unicode(msg['id']) )
+            self.__request_now_bootstrap( str(msg['id']) )
         except DirectoryIsNotListed as e:
             self.fatal_exception("Bad rescan request", e)
         except Exception as e:

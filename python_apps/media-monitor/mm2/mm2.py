@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
-from media.saas.launcher import setup_global, launch_instance, setup_logger
-from media.monitor.config import MMConfig
+from .media.saas.launcher import setup_global, launch_instance, setup_logger
+from .media.monitor.config import MMConfig
 
 def main(global_config, log_config):
     """ function to run hosted install """
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     args = docopt(__doc__,version="mm1.99")
     for k in ['--apiclient','--config','--log']:
         if not os.path.exists(args[k]):
-            print("'%s' must exist" % args[k])
+            print(("'%s' must exist" % args[k]))
             sys.exit(0)
     print("Running mm1.99")
     main(args['--config'],args['--apiclient'],args['--log'])

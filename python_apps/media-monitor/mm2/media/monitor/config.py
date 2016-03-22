@@ -3,8 +3,8 @@ import os
 import copy
 from configobj import ConfigObj
 
-from exceptions import NoConfigFile, ConfigAccessViolation
-import pure as mmp
+from .exceptions import NoConfigFile, ConfigAccessViolation
+from . import pure as mmp
 
 class MMConfig(object):
     def __init__(self, path):

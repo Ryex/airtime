@@ -2,12 +2,12 @@
 import time
 import copy
 
-from handler         import ReportHandler
-from log             import Loggable
-from exceptions      import BadSongFile
-from eventcontractor import EventContractor
-from events          import EventProxy
-from request         import ThreadedRequestSync, RequestSync
+from .handler         import ReportHandler
+from .log             import Loggable
+from .exceptions      import BadSongFile
+from .eventcontractor import EventContractor
+from .events          import EventProxy
+from .request         import ThreadedRequestSync, RequestSync
 from ..saas.thread   import InstanceInheritingThread, getsig
 
 class TimeoutWatcher(InstanceInheritingThread,Loggable):

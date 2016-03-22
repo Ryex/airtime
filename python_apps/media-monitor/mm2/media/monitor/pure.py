@@ -16,17 +16,18 @@ import operator as op
 
 from os.path   import normpath
 from itertools import takewhile
+import imp
 # you need to import reduce in python 3
 try: from functools import reduce
 except: pass
 from configobj import ConfigObj
 
-from exceptions import FailedToSetLocale, FailedToCreateDir
+from .exceptions import FailedToSetLocale, FailedToCreateDir
 
-supported_extensions = [u"mp3", u"ogg", u"oga", u"flac", u"wav",
-                        u'm4a', u'mp4', 'opus']
+supported_extensions = ["mp3", "ogg", "oga", "flac", "wav",
+                        'm4a', 'mp4', 'opus']
 
-unicode_unknown = u'unknown'
+unicode_unknown = 'unknown'
 
 path_md = ['MDATA_KEY_TITLE', 'MDATA_KEY_CREATOR', 'MDATA_KEY_SOURCE',
             'MDATA_KEY_TRACKNUMBER', 'MDATA_KEY_BITRATE']
@@ -38,12 +39,12 @@ class LazyProperty(object):
     """
     def __init__(self,fget):
         self.fget      = fget
-        self.func_name = fget.__name__
+        self.__name__ = fget.__name__
 
     def __get__(self,obj,cls):
         if obj is None: return None
         value = self.fget(obj)
-        setattr(obj,self.func_name,value)
+        setattr(obj,self.__name__,value)
         return value
 
 class IncludeOnly(object):
@@ -74,7 +75,7 @@ def partition(f, alist):
     >>> partition(lambda x : x > 3, [1,2,3,4,5,6])
     ([4, 5, 6], [1, 2, 3])
     """
-    return (filter(f, alist), filter(lambda x: not f(x), alist))
+    return (list(filter(f, alist)), [x for x in alist if not f(x)])
 
 def is_file_supported(path):
     """
@@ -95,7 +96,7 @@ def is_airtime_recorded(md):
     """ Takes a metadata dictionary and returns True if it belongs to a
     file that was recorded by Airtime. """
     if not 'MDATA_KEY_CREATOR' in md: return False
-    return md['MDATA_KEY_CREATOR'] == u'Airtime Show Recorder'
+    return md['MDATA_KEY_CREATOR'] == 'Airtime Show Recorder'
 
 def read_wave_duration(path):
     """ Read the length of .wav file (mutagen does not handle this) """
@@ -152,7 +153,7 @@ def no_extension_basename(path):
     >>> no_extension_basename('a.b.c.d.mp3')
     u'a.b.c.d'
     """
-    base = unicode(os.path.basename(path))
+    base = str(os.path.basename(path))
     if extension(base) == "": return base
     else: return '.'.join(base.split(".")[0:-1])
 
@@ -199,7 +200,7 @@ def apply_rules_dict(d, rules):
     dictionary with the rules applied. If a rule returns none then it's
     not applied """
     new_d = copy.deepcopy(d)
-    for k, rule in rules.iteritems():
+    for k, rule in rules.items():
         if k in d:
             new_val = rule(d[k])
             if new_val is not None: new_d[k] = new_val
@@ -222,11 +223,11 @@ def remove_whitespace(dictionary):
     """ Remove values that empty whitespace in the dictionary """
     nd = copy.deepcopy(dictionary)
     bad_keys = []
-    for k,v in nd.iteritems():
+    for k,v in nd.items():
         if hasattr(v,'strip'):
             stripped = v.strip()
             # ghetto and maybe unnecessary
-            if stripped == '' or stripped == u'': bad_keys.append(k)
+            if stripped == '' or stripped == '': bad_keys.append(k)
     for bad_key in bad_keys: del nd[bad_key]
     return nd
 
@@ -289,13 +290,13 @@ def organized_path(old_path, root_path, orig_md):
                         normal_md['MDATA_KEY_BITRATE'], ext)
         filepath = os.path.join(root_path, yyyy, mm, dd, fname_base)
     elif len(normal_md['MDATA_KEY_TRACKNUMBER']) == 0:
-        fname = u'%s-%s.%s' % (normal_md['MDATA_KEY_TITLE'],
+        fname = '%s-%s.%s' % (normal_md['MDATA_KEY_TITLE'],
                 normal_md['MDATA_KEY_BITRATE'], ext)
         path = os.path.join(root_path, normal_md['MDATA_KEY_CREATOR'],
                             normal_md['MDATA_KEY_SOURCE'] )
         filepath = os.path.join(path, fname)
     else: # The "normal" case
-        fname = u'%s-%s-%s.%s' % (normal_md['MDATA_KEY_TRACKNUMBER'],
+        fname = '%s-%s-%s.%s' % (normal_md['MDATA_KEY_TRACKNUMBER'],
                                   normal_md['MDATA_KEY_TITLE'],
                                   normal_md['MDATA_KEY_BITRATE'], ext)
         path = os.path.join(root_path, normal_md['MDATA_KEY_CREATOR'],
@@ -320,12 +321,12 @@ def file_md5(path,max_length=100):
 
 def encode_to(obj, encoding='utf-8'):
     # TODO : add documentation + unit tests for this function
-    if isinstance(obj, unicode): obj = obj.encode(encoding)
+    if isinstance(obj, str): obj = obj.encode(encoding)
     return obj
 
 def convert_dict_value_to_utf8(md):
     """ formats a dictionary to send as a request to api client """
-    return dict([(item[0], encode_to(item[1], "utf-8")) for item in md.items()])
+    return dict([(item[0], encode_to(item[1], "utf-8")) for item in list(md.items())])
 
 def get_system_locale(locale_path='/etc/default/locale'):
     """ Returns the configuration object for the system's default
@@ -348,7 +349,7 @@ def configure_locale(config):
             new_locale = lang
         else: new_locale = default_locale
         locale.setlocale(locale.LC_ALL, new_locale)
-    reload(sys)
+    imp.reload(sys)
     sys.setdefaultencoding("UTF-8")
     current_locale_encoding = locale.getlocale()[1].lower()
     if current_locale_encoding not in ['utf-8', 'utf8']:
@@ -452,28 +453,28 @@ def toposort(data):
             'three' : set()
         ]
     """
-    for k, v in data.items():
+    for k, v in list(data.items()):
         v.discard(k) # Ignore self dependencies
-    extra_items_in_deps = reduce(set.union, data.values()) - set(data.keys())
+    extra_items_in_deps = reduce(set.union, list(data.values())) - set(data.keys())
     data.update(dict((item,set()) for item in extra_items_in_deps))
     while True:
-        ordered = set(item for item,dep in data.items() if not dep)
+        ordered = set(item for item,dep in list(data.items()) if not dep)
         if not ordered: break
         for e in sorted(ordered): yield e
-        data = dict((item,(dep - ordered)) for item,dep in data.items()
+        data = dict((item,(dep - ordered)) for item,dep in list(data.items())
                 if item not in ordered)
     assert not data, "A cyclic dependency exists amongst %r" % data
 
 def truncate_to_length(item, length):
     """ Truncates 'item' to 'length' """
     if isinstance(item, int): item = str(item)
-    if isinstance(item, basestring):
+    if isinstance(item, str):
         if len(item) > length: return item[0:length]
         else: return item
 
 def truncate_to_value(item, value):
     """ Truncates 'item' to 'value' """
-    if isinstance(item, basestring): item = int(item)
+    if isinstance(item, str): item = int(item)
     if isinstance(item, int):
         item = abs(item)
         if item > value: item = value

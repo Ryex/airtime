@@ -12,7 +12,7 @@ class TestMMP(unittest.TestCase):
                     'MDATA_KEY_SAMPLERATE': 48000,
                     'MDATA_KEY_BITRATE': 64000,
                     'MDATA_KEY_REPLAYGAIN': 0,
-                    'MDATA_KEY_TITLE': u'ACDC_-_Back_In_Black-sample-64kbps'}
+                    'MDATA_KEY_TITLE': 'ACDC_-_Back_In_Black-sample-64kbps'}
 
     def test_apply_rules(self):
         sample_dict = {
@@ -55,7 +55,7 @@ class TestMMP(unittest.TestCase):
 
     def test_truncate_to_length(self):
         s1 = "testing with non string literal"
-        s2 = u"testing with unicode literal"
+        s2 = "testing with unicode literal"
         self.assertEqual( len(mmp.truncate_to_length(s1, 5)), 5)
         self.assertEqual( len(mmp.truncate_to_length(s2, 8)), 8)
 

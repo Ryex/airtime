@@ -4,7 +4,7 @@ import sys
 import os
 
 script_path = os.path.dirname(os.path.realpath(__file__))
-print script_path
+print(script_path)
 os.chdir(script_path)
 
 # Allows us to avoid installing the upstart init script when deploying on Airtime Pro:
@@ -28,7 +28,7 @@ else:
                   ('/var/log/airtime/media-monitor', []),
                   ('/var/tmp/airtime/media-monitor', []),
                  ]
-    print data_files
+    print(data_files)
 
 setup(name='airtime-media-monitor',
       version='1.0',
@@ -61,6 +61,6 @@ setup(name='airtime-media-monitor',
 
 # Reload the initctl config so that the media-monitor service works
 if data_files:
-    print "Reloading initctl configuration"
+    print("Reloading initctl configuration")
     #call(['initctl', 'reload-configuration'])
-    print "Run \"sudo service airtime-media-monitor start\""
+    print("Run \"sudo service airtime-media-monitor start\"")

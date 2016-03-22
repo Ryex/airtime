@@ -17,6 +17,6 @@ class MediaMonitorWorkerProcess:
                 event = queue.get()
                 notifier.logger.info("received event %s", event)
                 notifier.update_airtime(event)
-            except Exception, e:
+            except Exception as e:
                 notifier.logger.error(e)
                 notifier.logger.error("traceback: %s", traceback.format_exc())

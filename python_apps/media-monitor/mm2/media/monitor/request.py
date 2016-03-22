@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from exceptions import BadSongFile
-from log        import Loggable
+from .exceptions import BadSongFile
+from .log        import Loggable
 from ..saas.thread import apc, InstanceInheritingThread
 
 class ThreadedRequestSync(InstanceInheritingThread, Loggable):

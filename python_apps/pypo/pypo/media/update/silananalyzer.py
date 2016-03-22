@@ -55,20 +55,20 @@ class SilanAnalyzer(Thread):
                             except: pass
                             try: data['cueout'] = str('{0:f}'.format(info['sound'][-1][1]))
                             except: pass
-                    except Exception, e:
+                    except Exception as e:
                         self.logger.warn(str(command))
                         self.logger.warn(e)
                     processed_data.append((f['id'], data))
                     total += 1
                     if total % 5 == 0:
                         self.logger.info("Total %s / %s files has been processed.." % (total, total_files))
-                except Exception, e:
+                except Exception as e:
                     self.logger.error(e)
                     self.logger.error(traceback.format_exc())
 
             try:
                 self.api_client.update_cue_values_by_silan(processed_data)
-            except Exception ,e:
+            except Exception as e:
                 self.logger.error(e)
                 self.logger.error(traceback.format_exc())
 
@@ -79,7 +79,7 @@ class SilanAnalyzer(Thread):
             try:
                 self.logger.info("Running Silan analyzer")
                 self.main()
-            except Exception, e:
+            except Exception as e:
                 self.logger.error('Silan Analyzer Exception: %s', traceback.format_exc())
                 self.logger.error(e)
             self.logger.info("Sleeping for 5...")

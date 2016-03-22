@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import replaygain
+from . import replaygain
 
 import os
 import hashlib
@@ -75,7 +75,7 @@ class AirtimeMetadata:
             m = hashlib.md5()
             m.update(f.read())
             md5 = m.hexdigest()
-        except Exception, e:
+        except Exception as e:
             return ""
 
         return md5
@@ -113,16 +113,16 @@ class AirtimeMetadata:
                     value = m[key]
 
                     if value is not None:
-                        value = unicode(value)
+                        value = str(value)
                     else:
-                        value = unicode('');
+                        value = str('');
 
                         #if len(value) > 0:
                     self.logger.debug("Saving key '%s' with value '%s' to file", key, value)
                     airtime_file[self.airtime2mutagen[key]] = value
 
             airtime_file.save()
-        except Exception, e:
+        except Exception as e:
             self.logger.error('Trying to save md')
             self.logger.error('Exception: %s', e)
             self.logger.error('Filepath %s', m['MDATA_KEY_FILEPATH'])
@@ -130,7 +130,7 @@ class AirtimeMetadata:
     def truncate_to_length(self, item, length):
         if isinstance(item, int):
             item = str(item)
-        if isinstance(item, basestring):
+        if isinstance(item, str):
             if len(item) > length:
                 return item[0:length]
             else:
@@ -156,7 +156,7 @@ class AirtimeMetadata:
             md['MDATA_KEY_MD5'] = md5
 
             file_info = mutagen.File(filepath, easy=True)
-        except Exception, e:
+        except Exception as e:
             self.logger.error("failed getting metadata from %s", filepath)
             self.logger.error("Exception %s", e)
             return None
@@ -166,13 +166,13 @@ class AirtimeMetadata:
         if file_info is None:
             return None
 
-        for key in file_info.keys() :
+        for key in list(file_info.keys()) :
             if key in self.mutagen2airtime:
                 val = file_info[key]
                 try:
                     if val is not None and len(val) > 0 and val[0] is not None and len(val[0]) > 0:
                         md[self.mutagen2airtime[key]] = val[0]
-                except Exception, e:
+                except Exception as e:
                     self.logger.error('Exception: %s', e)
                     self.logger.error("traceback: %s", traceback.format_exc())
         if 'MDATA_KEY_TITLE' not in md:
@@ -187,21 +187,21 @@ class AirtimeMetadata:
         if 'MDATA_KEY_TRACKNUMBER' in md:
             try:
                 md['MDATA_KEY_TRACKNUMBER'] = int(md['MDATA_KEY_TRACKNUMBER'])
-            except Exception, e:
+            except Exception as e:
                 pass
 
-            if isinstance(md['MDATA_KEY_TRACKNUMBER'], basestring):
+            if isinstance(md['MDATA_KEY_TRACKNUMBER'], str):
                 try:
                     md['MDATA_KEY_TRACKNUMBER'] = int(md['MDATA_KEY_TRACKNUMBER'].split("/")[0], 10)
-                except Exception, e:
+                except Exception as e:
                     del md['MDATA_KEY_TRACKNUMBER']
 
         #make sure bpm is valid, need to check more types of formats for this tag to assure correct parsing.
         if 'MDATA_KEY_BPM' in md:
-            if isinstance(md['MDATA_KEY_BPM'], basestring):
+            if isinstance(md['MDATA_KEY_BPM'], str):
                 try:
                     md['MDATA_KEY_BPM'] = int(md['MDATA_KEY_BPM'])
-                except Exception, e:
+                except Exception as e:
                     del md['MDATA_KEY_BPM']
 
         #following metadata is truncated if needed to fit db requirements.

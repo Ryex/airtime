@@ -18,12 +18,13 @@ from threading import Thread
 
 from pyinotify import WatchManager
 
-from airtimefilemonitor.airtimenotifier import AirtimeNotifier
-from airtimefilemonitor.mediamonitorcommon import MediaMonitorCommon
-from airtimefilemonitor.airtimeprocessevent import AirtimeProcessEvent
-from airtimefilemonitor.mediaconfig import AirtimeMediaConfig
-from airtimefilemonitor.workerprocess import MediaMonitorWorkerProcess
-from airtimefilemonitor.airtimemediamonitorbootstrap import AirtimeMediaMonitorBootstrap
+from .airtimefilemonitor.airtimenotifier import AirtimeNotifier
+from .airtimefilemonitor.mediamonitorcommon import MediaMonitorCommon
+from .airtimefilemonitor.airtimeprocessevent import AirtimeProcessEvent
+from .airtimefilemonitor.mediaconfig import AirtimeMediaConfig
+from .airtimefilemonitor.workerprocess import MediaMonitorWorkerProcess
+from .airtimefilemonitor.airtimemediamonitorbootstrap import AirtimeMediaMonitorBootstrap
+import imp
 
 def configure_locale():
     logger.debug("Before %s", locale.nl_langinfo(locale.CODESET))
@@ -49,7 +50,7 @@ def configure_locale():
 
 
 
-    reload(sys)
+    imp.reload(sys)
     sys.setdefaultencoding("UTF-8")
     current_locale_encoding = locale.getlocale()[1].lower()
     logger.debug("sys default encoding %s", sys.getdefaultencoding())
@@ -69,8 +70,8 @@ try:
     logger = logging.getLogger()
     LogWriter.override_std_err(logger)
 
-except Exception, e:
-    print 'Error configuring logging: ', e
+except Exception as e:
+    print('Error configuring logging: ', e)
     sys.exit(1)
 
 logger.info("\n\n*** Media Monitor bootup ***\n\n")
@@ -101,7 +102,7 @@ try:
     dirs = [config.imported_directory, config.organize_directory, config.recorded_directory, config.problem_directory]
     for d in dirs:
         if not os.path.exists(d):
-            os.makedirs(d, 02775)
+            os.makedirs(d, 0o2775)
 
     multi_queue = mpQueue()
     logger.info("Initializing event processor")
@@ -137,6 +138,6 @@ try:
 except KeyboardInterrupt:
     notifier.stop()
     logger.info("Keyboard Interrupt")
-except Exception, e:
+except Exception as e:
     logger.error('Exception: %s', e)
     logger.error("traceback: %s", traceback.format_exc())

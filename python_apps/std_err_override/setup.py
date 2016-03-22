@@ -4,7 +4,7 @@ import sys
 import os
 
 script_path = os.path.dirname(os.path.realpath(__file__))
-print script_path
+print(script_path)
 os.chdir(script_path)
 
 setup(name='std_err_override',

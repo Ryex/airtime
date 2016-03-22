@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from log import Loggable
+from .log import Loggable
 
 class Owner(Loggable):
     def __init__(self):

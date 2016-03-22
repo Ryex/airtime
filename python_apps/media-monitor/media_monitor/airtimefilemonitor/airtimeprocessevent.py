@@ -11,7 +11,7 @@ from subprocess import Popen, PIPE
 
 from pyinotify import ProcessEvent
 
-from airtimemetadata import AirtimeMetadata
+from .airtimemetadata import AirtimeMetadata
 from airtimefilemonitor.mediaconfig import AirtimeMediaConfig
 
 from api_clients import api_client
@@ -62,7 +62,7 @@ class AirtimeProcessEvent(ProcessEvent):
 
                 list = self.api_client.list_all_watched_dirs()
                 # case where the dir that is being watched is moved to somewhere
-                if path in list[u'dirs'].values():
+                if path in list(list['dirs'].values()):
                     self.logger.info("Requesting the airtime server to remove '%s'", path)
                     res = self.api_client.remove_watched_dir(path)
                     if(res is None):
@@ -92,7 +92,7 @@ class AirtimeProcessEvent(ProcessEvent):
         path = event.path + '/'
         if event.dir:
             list = self.api_client.list_all_watched_dirs()
-            if path in list[u'dirs'].values():
+            if path in list(list['dirs'].values()):
                 self.logger.info("Requesting the airtime server to remove '%s'", path)
                 res = self.api_client.remove_watched_dir(path)
                 if(res is None):
@@ -125,7 +125,7 @@ class AirtimeProcessEvent(ProcessEvent):
         try:
             del self.create_dict[event.pathname]
             self.handle_created_file(event.dir, event.pathname, event.name)
-        except KeyError, e:
+        except KeyError as e:
             pass
             #self.logger.warn("%s does not exist in create_dict", event.pathname)
             #Uncomment the above warning when we fix CC-3830 for 2.1.1
@@ -375,7 +375,7 @@ class AirtimeProcessEvent(ProcessEvent):
 
         #use items() because we are going to be modifying this
         #dictionary while iterating over it.
-        for k, pair in self.cookies_IN_MOVED_FROM.items():
+        for k, pair in list(self.cookies_IN_MOVED_FROM.items()):
             event = pair[0]
             timestamp = pair[1]
 
@@ -392,7 +392,7 @@ class AirtimeProcessEvent(ProcessEvent):
 
         # we don't want create_dict grow infinitely
         # this part is like a garbage collector
-        for k, t in self.create_dict.items():
+        for k, t in list(self.create_dict.items()):
             now = time.time()
             if now - t > 5:
                 # check if file exist
@@ -406,7 +406,7 @@ class AirtimeProcessEvent(ProcessEvent):
                         command = "lsof " + k
                         #f = os.popen(command)
                         f = Popen(command, shell=True, stdout=PIPE).stdout
-                    except Exception, e:
+                    except Exception as e:
                         self.logger.error('Exception: %s', e)
                         self.logger.error("traceback: %s", traceback.format_exc())
                         continue
@@ -424,7 +424,7 @@ class AirtimeProcessEvent(ProcessEvent):
         #avoid logging a bunch of timeout messages.
         except socket.timeout:
             pass
-        except Exception, e:
+        except Exception as e:
             self.logger.error('Exception: %s', e)
             self.logger.error("traceback: %s", traceback.format_exc())
             time.sleep(3)

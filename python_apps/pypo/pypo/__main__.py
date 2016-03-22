@@ -15,17 +15,17 @@ import locale
 import os
 import re
 
-from Queue import Queue
+from queue import Queue
 from threading import Lock
 
-from pypopush import PypoPush
-from pypofetch import PypoFetch
-from pypofile import PypoFile
-from recorder import Recorder
-from listenerstat import ListenerStat
-from pypomessagehandler import PypoMessageHandler
-from pypoliquidsoap import PypoLiquidsoap
-from timeout import ls_timeout
+from .pypopush import PypoPush
+from .pypofetch import PypoFetch
+from .pypofile import PypoFile
+from .recorder import Recorder
+from .listenerstat import ListenerStat
+from .pypomessagehandler import PypoMessageHandler
+from .pypoliquidsoap import PypoLiquidsoap
+from .timeout import ls_timeout
 
 from pypo.media.update.replaygainupdater import ReplayGainUpdater
 from pypo.media.update.silananalyzer import SilanAnalyzer
@@ -35,7 +35,8 @@ from configobj import ConfigObj
 # custom imports
 from api_clients import api_client
 #from std_err_override import LogWriter
-import pure
+from . import pure
+import imp
 
 LOG_PATH = '/var/log/airtime/pypo/pypo.log'
 LOG_LEVEL = logging.INFO
@@ -101,8 +102,8 @@ try:
     consoleHandler = logging.StreamHandler()
     consoleHandler.setFormatter(logFormatter)
     rootLogger.addHandler(consoleHandler)
-except Exception, e:
-    print "Couldn't configure logging", e
+except Exception as e:
+    print("Couldn't configure logging", e)
     sys.exit(1)
 
 def configure_locale():
@@ -137,7 +138,7 @@ def configure_locale():
         logger.info("New locale set to: %s", \
                 locale.setlocale(locale.LC_ALL, new_locale))
 
-    reload(sys)
+    imp.reload(sys)
     sys.setdefaultencoding("UTF-8")
     current_locale_encoding = locale.getlocale()[1].lower()
     logger.debug("sys default encoding %s", sys.getdefaultencoding())
@@ -154,7 +155,7 @@ configure_locale()
 # loading config file
 try:
     config = ConfigObj('/etc/airtime/airtime.conf')
-except Exception, e:
+except Exception as e:
     logger.error('Error loading config file: %s', e)
     sys.exit(1)
 
@@ -183,7 +184,7 @@ def liquidsoap_get_info(telnet_lock, host, port, logger):
         tn.write(msg)
         tn.write("exit\n")
         response = tn.read_all()
-    except Exception, e:
+    except Exception as e:
         logger.error(str(e))
         return None
     finally:
@@ -251,7 +252,7 @@ if __name__ == '__main__':
         try:
             api_client.register_component('pypo')
             success = True
-        except Exception, e:
+        except Exception as e:
             logger.error(str(e))
             time.sleep(10)
 

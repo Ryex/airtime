@@ -2,11 +2,11 @@
 import os
 import abc
 import re
-import pure         as mmp
-from pure           import LazyProperty
-from metadata       import Metadata
-from log            import Loggable
-from exceptions     import BadSongFile
+from . import pure         as mmp
+from .pure           import LazyProperty
+from .metadata       import Metadata
+from .log            import Loggable
+from .exceptions     import BadSongFile
 from ..saas.thread  import getsig, user
 
 class PathChannel(object):
@@ -68,17 +68,15 @@ class EventProxy(Loggable):
         return self.evt.__class__ == proxy.evt.__class__
 
 
-class HasMetaData(object):
+class HasMetaData(object, metaclass=abc.ABCMeta):
     """ Any class that inherits from this class gains the metadata
     attribute that loads metadata from the class's 'path' attribute.
     This is done lazily so there is no performance penalty to inheriting
     from this and subsequent calls to metadata are cached """
-    __metaclass__ = abc.ABCMeta
     @LazyProperty
     def metadata(self): return Metadata(self.path)
 
-class BaseEvent(Loggable):
-    __metaclass__ = abc.ABCMeta
+class BaseEvent(Loggable, metaclass=abc.ABCMeta):
     def __init__(self, raw_event):
         # TODO : clean up this idiotic hack
         # we should use keyword constructors instead of this behaviour checking
@@ -179,10 +177,10 @@ class NewFile(BaseEvent, HasMetaData):
     def pack(self):
         """ packs turns an event into a media monitor request """
         req_dict = self.metadata.extract()
-        req_dict['mode'] = u'create'
+        req_dict['mode'] = 'create'
         req_dict['is_record'] = self.metadata.is_recorded()
         self.assign_owner(req_dict)
-        req_dict['MDATA_KEY_FILEPATH'] = unicode( self.path )
+        req_dict['MDATA_KEY_FILEPATH'] = str( self.path )
         return [req_dict]
 
 class DeleteFile(BaseEvent):
@@ -193,8 +191,8 @@ class DeleteFile(BaseEvent):
         super(DeleteFile, self).__init__(*args, **kwargs)
     def pack(self):
         req_dict = {}
-        req_dict['mode'] = u'delete'
-        req_dict['MDATA_KEY_FILEPATH'] = unicode( self.path )
+        req_dict['mode'] = 'delete'
+        req_dict['MDATA_KEY_FILEPATH'] = str( self.path )
         return [req_dict]
 
 class MoveFile(BaseEvent, HasMetaData):
@@ -205,9 +203,9 @@ class MoveFile(BaseEvent, HasMetaData):
         return self._raw_event.src_pathname
     def pack(self):
         req_dict                            = {}
-        req_dict['mode']                    = u'moved'
+        req_dict['mode']                    = 'moved'
         req_dict['MDATA_KEY_ORIGINAL_PATH'] = self.old_path()
-        req_dict['MDATA_KEY_FILEPATH']      = unicode( self.path )
+        req_dict['MDATA_KEY_FILEPATH']      = str( self.path )
         req_dict['MDATA_KEY_MD5'] = self.metadata.extract()['MDATA_KEY_MD5']
         return [req_dict]
 
@@ -216,9 +214,9 @@ class ModifyFile(BaseEvent, HasMetaData):
         super(ModifyFile, self).__init__(*args, **kwargs)
     def pack(self):
         req_dict = self.metadata.extract()
-        req_dict['mode'] = u'modify'
+        req_dict['mode'] = 'modify'
         # path to directory that is to be removed
-        req_dict['MDATA_KEY_FILEPATH'] = unicode( self.path )
+        req_dict['MDATA_KEY_FILEPATH'] = str( self.path )
         return [req_dict]
 
 def map_events(directory, constructor):
@@ -255,7 +253,7 @@ class DeleteDirWatch(BaseEvent):
         super(DeleteDirWatch, self).__init__(*args, **kwargs)
     def pack(self):
         req_dict = {}
-        req_dict['mode']               = u'delete_dir'
-        req_dict['MDATA_KEY_FILEPATH'] = unicode( self.path + "/" )
+        req_dict['mode']               = 'delete_dir'
+        req_dict['MDATA_KEY_FILEPATH'] = str( self.path + "/" )
         return [req_dict]
 

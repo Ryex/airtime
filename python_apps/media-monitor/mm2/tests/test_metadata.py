@@ -6,13 +6,13 @@ import media.monitor.metadata as mmm
 
 class TestMetadata(unittest.TestCase):
     def setUp(self):
-        self.music_folder = u'/home/rudi/music'
+        self.music_folder = '/home/rudi/music'
 
     def test_got_music_folder(self):
         t = os.path.exists(self.music_folder)
         self.assertTrue(t)
         if not t:
-            print("'%s' must exist for this test to run." % self.music_folder )
+            print(("'%s' must exist for this test to run." % self.music_folder ))
             sys.exit(1)
 
     def test_metadata(self):
@@ -24,21 +24,21 @@ class TestMetadata(unittest.TestCase):
                 md = md_full.extract()
                 if i < 3:
                     i += 1
-                    print("Sample metadata: '%s'" % md)
-                self.assertTrue( len( md.keys() ) > 0 )
+                    print(("Sample metadata: '%s'" % md))
+                self.assertTrue( len( list(md.keys()) ) > 0 )
                 utf8 = md_full.utf8()
-                for k,v in md.iteritems():
+                for k,v in md.items():
                     if hasattr(utf8[k], 'decode'):
                         self.assertEqual( utf8[k].decode('utf-8'), md[k] )
-            else: print("Skipping '%s' because it's a directory" % full_path)
+            else: print(("Skipping '%s' because it's a directory" % full_path))
 
     def test_airtime_mutagen_dict(self):
-        for muta,airtime in mmm.mutagen2airtime.iteritems():
+        for muta,airtime in mmm.mutagen2airtime.items():
             self.assertEqual( mmm.airtime2mutagen[airtime], muta )
 
     def test_format_length(self):
         # TODO : add some real tests for this function
         x1 = 123456
-        print("Formatting '%s' to '%s'" % (x1, mmm.format_length(x1)))
+        print(("Formatting '%s' to '%s'" % (x1, mmm.format_length(x1))))
 
 if __name__ == '__main__': unittest.main()

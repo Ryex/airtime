@@ -39,7 +39,7 @@ class PypoMessageHandler(Thread):
 
             channel = connection.channel()
             self.simple_queue = SimpleQueue(channel, schedule_queue)
-        except Exception, e:
+        except Exception as e:
             self.logger.error(e)
             return False
 
@@ -87,7 +87,7 @@ class PypoMessageHandler(Thread):
                 self.recorder_queue.put(message)
             else:
                 self.logger.info("Unknown command: %s" % command)
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Exception in handling RabbitMQ message: %s", e)
 
     def main(self):
@@ -103,13 +103,13 @@ class PypoMessageHandler(Thread):
                 self.handle_message(message.payload)
                 # ACK the message to take it off the queue
                 message.ack()
-            except (IOError, AttributeError, AMQPConnectionException), e:
+            except (IOError, AttributeError, AMQPConnectionException) as e:
                 self.logger.error('Exception: %s', e)
                 self.logger.error("traceback: %s", traceback.format_exc())
                 while not self.init_rabbit_mq():
                     self.logger.error("Error connecting to RabbitMQ Server. Trying again in few seconds")
                     time.sleep(5)
-            except Exception, e:
+            except Exception as e:
                 """
                 sleep 5 seconds so that we don't spin inside this
                 while loop and eat all the CPU

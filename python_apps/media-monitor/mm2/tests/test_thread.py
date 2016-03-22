@@ -17,7 +17,7 @@ class TestInstanceThread(unittest.TestCase):
                 global signal
                 super(T, me).run()
                 signal = True
-                self.assertEquals(u, me.user())
+                self.assertEqual(u, me.user())
         t = T(u, name="test_user_inject")
         t.daemon = True 
         t.start()
@@ -31,7 +31,7 @@ class TestInstanceThread(unittest.TestCase):
         class TT(InstanceInheritingThread):
             def run(self):
                 global signal2
-                utest.assertEquals(self.user(), u)
+                utest.assertEqual(self.user(), u)
                 signal2 = True
 
         class T(InstanceThread):
@@ -58,7 +58,7 @@ class TestInstanceThread(unittest.TestCase):
             t = T(u)
             t.daemon = True
             t.start()
-            utest.assertEquals(t.user(), u)
+            utest.assertEqual(t.user(), u)
 
 
 if __name__ == '__main__': unittest.main()

@@ -13,16 +13,16 @@ import math
 import traceback
 import os
 
-from pypofetch import PypoFetch
-from pypoliqqueue import PypoLiqQueue
+from .pypofetch import PypoFetch
+from .pypoliqqueue import PypoLiqQueue
 
-from Queue import Empty, Queue
+from queue import Empty, Queue
 
 from threading import Thread
 
 from api_clients import api_client
 from std_err_override import LogWriter
-from timeout import ls_timeout
+from .timeout import ls_timeout
 
 
 #need to wait for Python 2.7 for this..
@@ -70,7 +70,7 @@ class PypoPush(Thread):
         while True:
             try:
                 media_schedule = self.queue.get(block=True)
-            except Exception, e:
+            except Exception as e:
                 self.logger.error(str(e))
                 raise
             else:
@@ -141,7 +141,7 @@ class PypoPush(Thread):
             tn.write("exit\n")
             self.logger.debug(tn.read_all())
 
-        except Exception, e:
+        except Exception as e:
             self.logger.error(str(e))
         finally:
             self.telnet_lock.release()
@@ -149,7 +149,7 @@ class PypoPush(Thread):
     def run(self):
         while True:
             try: self.main()
-            except Exception, e:
+            except Exception as e:
                 top = traceback.format_exc()
                 self.logger.error('Pypo Push Exception: %s', top)
                 time.sleep(5)

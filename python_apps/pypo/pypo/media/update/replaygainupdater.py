@@ -5,7 +5,7 @@ import os
 import time
 import logging
 
-import replaygain
+from . import replaygain
 
 class ReplayGainUpdater(Thread):
     """
@@ -41,7 +41,7 @@ class ReplayGainUpdater(Thread):
 
         directories = raw_response['dirs']
 
-        for dir_id, dir_path in directories.iteritems():
+        for dir_id, dir_path in directories.items():
             try:
                 # keep getting few rows at a time for current music_dir (stor
                 # or watched folder).
@@ -67,7 +67,7 @@ class ReplayGainUpdater(Thread):
                     if len(files) == 0: break
                 self.logger.info("Processed: %d songs" % total)
 
-            except Exception, e:
+            except Exception as e:
                 self.logger.error(e)
                 self.logger.debug(traceback.format_exc())
     def run(self):
@@ -76,7 +76,7 @@ class ReplayGainUpdater(Thread):
                 self.logger.info("Running replaygain updater")
                 self.main()
                 # Sleep for 5 minutes in case new files have been added
-            except Exception, e:
+            except Exception as e:
                 self.logger.error('ReplayGainUpdater Exception: %s', traceback.format_exc())
                 self.logger.error(e)
             time.sleep(60 * 5)

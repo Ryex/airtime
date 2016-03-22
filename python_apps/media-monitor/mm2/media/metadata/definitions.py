@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import process as md
+from . import process as md
 import re
 from os.path import normpath
 from ..monitor.pure import format_length, file_md5, is_airtime_recorded, \
@@ -15,48 +15,48 @@ def is_defs_loaded():
 
 def load_definitions():
     with md.metadata('MDATA_KEY_DURATION') as t:
-        t.default(u'0.0')
+        t.default('0.0')
         t.depends('length')
         t.translate(lambda k: format_length(k['length']))
         
     with md.metadata('MDATA_KEY_CUE_IN') as t:
-        t.default(u'0.0')
+        t.default('0.0')
         t.depends('cuein')
         t.translate(lambda k: format_length(k['cuein']))
 
     with md.metadata('MDATA_KEY_CUE_OUT') as t:
-        t.default(u'0.0')
+        t.default('0.0')
         t.depends('cueout')
         t.translate(lambda k: format_length(k['cueout']))
 
     with md.metadata('MDATA_KEY_MIME') as t:
-        t.default(u'')
+        t.default('')
         t.depends('mime')
         # Is this necessary?
         t.translate(lambda k: k['mime'].replace('audio/vorbis','audio/ogg'))
 
     with md.metadata('MDATA_KEY_BITRATE') as t:
-        t.default(u'')
+        t.default('')
         t.depends('bitrate')
         t.translate(lambda k: k['bitrate'])
         t.max_value(MAX_SIGNED_INT)
 
     with md.metadata('MDATA_KEY_SAMPLERATE') as t:
-        t.default(u'0')
+        t.default('0')
         t.depends('sample_rate')
         t.translate(lambda k: k['sample_rate'])
         t.max_value(MAX_SIGNED_INT)
 
     with md.metadata('MDATA_KEY_FTYPE') as t:
         t.depends('ftype') # i don't think this field even exists
-        t.default(u'audioclip')
+        t.default('audioclip')
         t.translate(lambda k: k['ftype']) # but just in case
 
     with md.metadata("MDATA_KEY_CREATOR") as t:
         t.depends("artist")
         # A little kludge to make sure that we have some value for when we parse
         # MDATA_KEY_TITLE
-        t.default(u"")
+        t.default("")
         t.max_length(512)
 
     with md.metadata("MDATA_KEY_SOURCE") as t:
@@ -112,7 +112,7 @@ def load_definitions():
 
     with md.metadata("MDATA_KEY_ORIGINAL_PATH") as t:
         t.depends('path')
-        t.translate(lambda k: unicode(normpath(k['path'])))
+        t.translate(lambda k: str(normpath(k['path'])))
 
     with md.metadata("MDATA_KEY_MD5") as t:
         t.depends('path')
@@ -131,17 +131,17 @@ def load_definitions():
     # 3. recorded file
     def tr_title(k):
         #unicode_unknown = u"unknown"
-        new_title = u""
-        if is_airtime_recorded(k) or k['title'] != u"":
+        new_title = ""
+        if is_airtime_recorded(k) or k['title'] != "":
             new_title = k['title']
         else:
             default_title = no_extension_basename(k['path'])
-            default_title = re.sub(r'__\d+\.',u'.', default_title)
+            default_title = re.sub(r'__\d+\.','.', default_title)
 
             # format is: track_number-title-123kbps.mp3
             m = re.match(".+?-(?P<title>.+)-(\d+kbps|unknown)$", default_title)
             if m: new_title = m.group('title')
-            else: new_title = re.sub(r'-\d+kbps$', u'', default_title)
+            else: new_title = re.sub(r'-\d+kbps$', '', default_title)
 
         return new_title
 

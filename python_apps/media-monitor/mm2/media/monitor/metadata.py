@@ -5,10 +5,10 @@ import copy
 from mutagen.easymp4    import EasyMP4KeyError
 from mutagen.easyid3    import EasyID3KeyError
 
-from exceptions         import BadSongFile, InvalidMetadataElement
-from log                import Loggable
-from pure               import format_length
-import pure             as mmp
+from .exceptions         import BadSongFile, InvalidMetadataElement
+from .log                import Loggable
+from .pure               import format_length
+from . import pure             as mmp
 
 # emf related stuff
 from ..metadata.process import global_reader
@@ -61,15 +61,15 @@ mutagen_do_not_write = ["MDATA_KEY_CUE_IN", "MDATA_KEY_CUE_OUT"]
 
 airtime_special = {
     "MDATA_KEY_DURATION" :
-        lambda m: format_length(getattr(m.info, u'length', 0.0)),
+        lambda m: format_length(getattr(m.info, 'length', 0.0)),
     "MDATA_KEY_BITRATE" :
         lambda m: getattr(m.info, "bitrate", ''),
     "MDATA_KEY_SAMPLERATE" :
-        lambda m: getattr(m.info, u'sample_rate', 0),
+        lambda m: getattr(m.info, 'sample_rate', 0),
     "MDATA_KEY_MIME" :
-        lambda m: m.mime[0] if len(m.mime) > 0 else u'',
+        lambda m: m.mime[0] if len(m.mime) > 0 else '',
 }
-mutagen2airtime = dict( (v,k) for k,v in airtime2mutagen.iteritems()
+mutagen2airtime = dict( (v,k) for k,v in airtime2mutagen.items()
         if isinstance(v, str) )
 
 truncate_table = {
@@ -98,9 +98,9 @@ class Metadata(Loggable):
         # If we have no title in path we will format it
         # TODO : this is very hacky so make sure to fix it
         m = mutagen.File(path, easy=True)
-        if u'title' not in m:
-            new_title = unicode( mmp.no_extension_basename(path) )
-            m[u'title'] = new_title
+        if 'title' not in m:
+            new_title = str( mmp.no_extension_basename(path) )
+            m['title'] = new_title
             m.save()
 
     @staticmethod
@@ -113,14 +113,14 @@ class Metadata(Loggable):
         if not os.path.exists(path): raise BadSongFile(path)
         song_file = mutagen.File(path, easy=True)
         exceptions = [] # for bad keys
-        for airtime_k, airtime_v in md.iteritems():
+        for airtime_k, airtime_v in md.items():
             if airtime_k in airtime2mutagen and \
                     airtime_k not in mutagen_do_not_write:
                 # The unicode cast here is mostly for integers that need to be
                 # strings
                 if airtime_v is None: continue
                 try:
-                    song_file[ airtime2mutagen[airtime_k] ] = unicode(airtime_v)
+                    song_file[ airtime2mutagen[airtime_k] ] = str(airtime_v)
                 except (EasyMP4KeyError, EasyID3KeyError) as e:
                     exceptions.append(InvalidMetadataElement(e, airtime_k,
                         path))

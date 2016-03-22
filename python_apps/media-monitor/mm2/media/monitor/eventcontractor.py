@@ -1,5 +1,5 @@
-from log    import Loggable
-from events import DeleteFile
+from .log    import Loggable
+from .events import DeleteFile
 
 class EventContractor(Loggable):
     def __init__(self):

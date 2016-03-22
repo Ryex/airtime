@@ -5,7 +5,7 @@ from media.monitor.syncdb import AirtimeDB
 from media.monitor.log import get_logger
 from media.monitor.pure import partition
 import api_clients.api_client as ac
-import prepare_tests
+from . import prepare_tests
 
 class TestAirtimeDB(unittest.TestCase):
     def setUp(self):
@@ -23,13 +23,13 @@ class TestAirtimeDB(unittest.TestCase):
 
     def test_directory_get_files(self):
         sdb = AirtimeDB(self.ac)
-        print(sdb.list_storable_paths())
+        print((sdb.list_storable_paths()))
         for wdir in sdb.list_storable_paths():
             files = sdb.directory_get_files(wdir)
-            print( "total files: %d" % len(files) )
+            print(( "total files: %d" % len(files) ))
             self.assertTrue( len(files) >= 0 )
             self.assertTrue( isinstance(files, set) )
             exist, deleted = partition(os.path.exists, files)
-            print("(exist, deleted) = (%d, %d)" % ( len(exist), len(deleted) ) )
+            print(("(exist, deleted) = (%d, %d)" % ( len(exist), len(deleted) ) ))
 
 if __name__ == '__main__': unittest.main()

@@ -13,7 +13,7 @@ from kombu.messaging import Exchange, Queue, Consumer
 import pyinotify
 from pyinotify import Notifier
 
-from airtimemetadata import AirtimeMetadata
+from .airtimemetadata import AirtimeMetadata
 
 class AirtimeNotifier(Notifier):
 
@@ -50,7 +50,7 @@ class AirtimeNotifier(Notifier):
             consumer = Consumer(channel, schedule_queue)
             consumer.register_callback(self.handle_message)
             consumer.consume()
-        except Exception, e:
+        except Exception as e:
             self.logger.error(e)
             return False
 
@@ -123,7 +123,7 @@ class AirtimeNotifier(Notifier):
                 self.logger.info("Deleting file: %s ", filepath)
                 try:
                     os.unlink(filepath)
-                except Exception, e:
+                except Exception as e:
                     self.logger.error('Exception: %s', e)
                     self.logger.error("traceback: %s", traceback.format_exc())
 
@@ -185,7 +185,7 @@ class AirtimeNotifier(Notifier):
             elif (mode == self.config.MODE_DELETE_DIR):
                 self.api_client.update_media_metadata(md, mode)
 
-        except Exception, e:
+        except Exception as e:
             self.logger.error("failed updating filepath: %s ", event['filepath'])
             self.logger.error('Exception: %s', e)
             self.logger.error('Traceback: %s', traceback.format_exc())

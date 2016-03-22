@@ -1,9 +1,9 @@
 import os
 from pydispatch       import dispatcher
-from events           import NewFile, DeleteFile, ModifyFile
-from log              import Loggable
+from .events           import NewFile, DeleteFile, ModifyFile
+from .log              import Loggable
 from ..saas.thread    import getsig
-import pure as mmp
+from . import pure as mmp
 
 class Bootstrapper(Loggable):
     """

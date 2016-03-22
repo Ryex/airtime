@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-import pure         as mmp
-from handler        import ReportHandler
-from log            import Loggable
-from exceptions     import BadSongFile
-from events         import OrganizeFile
+from . import pure         as mmp
+from .handler        import ReportHandler
+from .log            import Loggable
+from .exceptions     import BadSongFile
+from .events         import OrganizeFile
 from pydispatch     import dispatcher
 from os.path        import dirname
 from ..saas.thread  import getsig, user
@@ -54,7 +54,7 @@ class Organizer(ReportHandler,Loggable):
             # nasty hack do this properly
             owner_id = mmp.owner_id(event.path)
             if owner_id != -1:
-                target_path = os.path.join(target_path, unicode(owner_id))
+                target_path = os.path.join(target_path, str(owner_id))
 
             mdata = event.metadata.extract()
             new_path = mmp.organized_path(event.path, target_path, mdata)

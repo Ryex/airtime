@@ -14,7 +14,7 @@ class TestToucher(BaseTest):
         t = Toucher(self.p)
         t()
         t2 = mmp.last_modified(self.p)
-        print("(t1,t2) = (%d, %d) diff => %d" % (t1, t2, t2 - t1))
+        print(("(t1,t2) = (%d, %d) diff => %d" % (t1, t2, t2 - t1)))
         self.assertTrue( t2 > t1 )
 
 class TestToucherThread(BaseTest):
@@ -23,7 +23,7 @@ class TestToucherThread(BaseTest):
         ToucherThread(self.p, interval=1)
         time.sleep(2)
         t2 = mmp.last_modified(self.p)
-        print("(t1,t2) = (%d, %d) diff => %d" % (t1, t2, t2 - t1))
+        print(("(t1,t2) = (%d, %d) diff => %d" % (t1, t2, t2 - t1)))
         self.assertTrue( t2 > t1 )
 
 if __name__ == '__main__': unittest.main()

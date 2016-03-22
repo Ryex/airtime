@@ -16,6 +16,6 @@ elif dj_type == '--dj':
 response = api_clients.check_live_stream_auth(username, password, source_type)
 
 if 'msg' in response:
-    print response['msg']
+    print(response['msg'])
 else:
-    print False
+    print(False)

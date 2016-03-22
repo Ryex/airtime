@@ -1,7 +1,7 @@
 import logging
 import abc
 import traceback
-from pure import LazyProperty
+from .pure import LazyProperty
 
 appname = 'root'
 
@@ -15,11 +15,10 @@ def get_logger():
     interface """
     return logging.getLogger()
 
-class Loggable(object):
+class Loggable(object, metaclass=abc.ABCMeta):
     """ Any class that wants to log can inherit from this class and
     automatically get a logger attribute that can be used like:
     self.logger.info(...) etc. """
-    __metaclass__ = abc.ABCMeta
     @LazyProperty
     def logger(self): return get_logger()
 

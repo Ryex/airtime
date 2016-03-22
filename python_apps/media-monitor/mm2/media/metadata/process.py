@@ -91,7 +91,7 @@ class MetadataElement(Loggable):
         returns a dictionary of all the key value pairs in d that are also
         present in self.__deps
         """
-        return dict( (k,v) for k,v in d.iteritems() if k in self.__deps)
+        return dict( (k,v) for k,v in d.items() if k in self.__deps)
 
     def __str__(self):
         return "%s(%s)" % (self.name, ' '.join(list(self.__deps)))
@@ -114,9 +114,9 @@ class MetadataElement(Loggable):
         dep_slice_special = self.__slice_deps({'path' : path})
         # We combine all required dependencies into a single dictionary
         # that we will pass to the translator
-        full_deps         = dict( dep_slice_orig.items()
-                                + dep_slice_running.items()
-                                + dep_slice_special.items())
+        full_deps         = dict( list(dep_slice_orig.items())
+                                + list(dep_slice_running.items())
+                                + list(dep_slice_special.items()))
 
         # check if any dependencies are absent
         # note: there is no point checking the case that len(full_deps) >
@@ -149,7 +149,7 @@ class MetadataElement(Loggable):
             r = truncate_to_length(r, self.__max_length)
         if self.__max_value != -1:
             try: r = truncate_to_value(r, self.__max_value)
-            except ValueError, e: r = ''
+            except ValueError as e: r = ''
         return r
 
 def normalize_mutagen(path):
@@ -166,15 +166,15 @@ def normalize_mutagen(path):
             m.set_length(mmp.read_wave_duration(path))
     except Exception: raise BadSongFile(path)
     md = {}
-    for k,v in m.iteritems():
+    for k,v in m.items():
         if type(v) is list:
             if len(v) > 0: md[k] = v[0]
         else: md[k] = v
     # populate special metadata values
     md['length']      = getattr(m.info, 'length', 0.0)
-    md['bitrate']     = getattr(m.info, 'bitrate', u'')
+    md['bitrate']     = getattr(m.info, 'bitrate', '')
     md['sample_rate'] = getattr(m.info, 'sample_rate', 0)
-    md['mime']        = m.mime[0] if len(m.mime) > 0 else u''
+    md['mime']        = m.mime[0] if len(m.mime) > 0 else ''
     md['path']        = normpath(path)
 
     # silence detect(set default cue in and out)
@@ -189,7 +189,7 @@ def normalize_mutagen(path):
     #except Exception:
         #self.logger.debug('silan is missing')
 
-    if 'title' not in md: md['title']  = u''
+    if 'title' not in md: md['title']  = ''
     return md
 
 
@@ -206,7 +206,7 @@ class MetadataReader(object):
             raise OverwriteMetadataElement(m)
         self.__mdata_name_map[m.name] = m
         d = dict( (name,m.dependencies()) for name,m in
-                self.__mdata_name_map.iteritems() )
+                self.__mdata_name_map.items() )
         new_list = list( toposort(d) )
         self.__metadata = [ self.__mdata_name_map[name] for name in new_list
                 if name in self.__mdata_name_map]

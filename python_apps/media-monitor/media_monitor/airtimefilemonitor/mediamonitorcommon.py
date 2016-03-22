@@ -9,7 +9,7 @@ import subprocess
 import traceback
 
 from subprocess import Popen, PIPE
-from airtimemetadata import AirtimeMetadata
+from .airtimemetadata import AirtimeMetadata
 import pyinotify
 
 class MediaMonitorCommon:
@@ -26,7 +26,7 @@ class MediaMonitorCommon:
 
     def clean_dirty_file_paths(self, dirty_files):
         """ clean dirty file paths by removing blanks and removing trailing/leading whitespace"""
-        return filter(lambda e: len(e) > 0, [ f.strip(" \n") for f in dirty_files ])
+        return [e for e in [ f.strip(" \n") for f in dirty_files ] if len(e) > 0]
 
     def find_command(self, directory, extra_arguments=""):
         """ Builds a find command that respects supported_file_formats list
@@ -68,7 +68,7 @@ class MediaMonitorCommon:
         except IOError:
             self.logger.warn("File does not have correct permissions: '%s'", filepath)
             readable = False
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Unexpected exception thrown: %s", e)
             readable = False
             self.logger.error("traceback: %s", traceback.format_exc())
@@ -84,7 +84,7 @@ class MediaMonitorCommon:
         try:
             return self.is_user_readable(item, 'www-data', 'www-data')
         except Exception:
-            self.logger.warn(u"Failed to check owner/group/permissions for %s", item)
+            self.logger.warn("Failed to check owner/group/permissions for %s", item)
             return False
 
     def make_file_readable(self, pathname, is_dir):
@@ -130,11 +130,11 @@ class MediaMonitorCommon:
         try:
             omask = os.umask(0)
             if not os.path.exists(directory):
-                os.makedirs(directory, 02777)
+                os.makedirs(directory, 0o2777)
                 self.wm.add_watch(directory, pyinotify.ALL_EVENTS, rec=True, auto_add=True)
             elif not os.path.isdir(directory):
                 #path exists but it is a file not a directory!
-                self.logger.error(u"path %s exists, but it is not a directory!!!", directory)
+                self.logger.error("path %s exists, but it is not a directory!!!", directory)
         finally:
             os.umask(omask)
 
@@ -144,7 +144,7 @@ class MediaMonitorCommon:
         try:
             omask = os.umask(0)
             os.rename(source, dest)
-        except Exception, e:
+        except Exception as e:
             self.logger.error("failed to move file. %s", e)
             self.logger.error("traceback: %s", traceback.format_exc())
         finally:
@@ -201,7 +201,7 @@ class MediaMonitorCommon:
                         filepath = new_filepath
                         break
 
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Exception %s", e)
 
         return filepath
@@ -218,10 +218,10 @@ class MediaMonitorCommon:
             md = {}
             for m in path_md:
                 if m not in orig_md:
-                    md[m] = u'unknown'
+                    md[m] = 'unknown'
                 else:
                     #get rid of any "/" which will interfere with the filepath.
-                    if isinstance(orig_md[m], basestring):
+                    if isinstance(orig_md[m], str):
                         md[m] = orig_md[m].replace("/", "-")
                     else:
                         md[m] = orig_md[m]
@@ -236,10 +236,10 @@ class MediaMonitorCommon:
             filepath = None
             #file is recorded by Airtime
             #/srv/airtime/stor/recorded/year/month/year-month-day-time-showname-bitrate.ext
-            if(md['MDATA_KEY_CREATOR'] == u"Airtime Show Recorder"):
+            if(md['MDATA_KEY_CREATOR'] == "Airtime Show Recorder"):
                 #yyyy-mm-dd-hh-MM-ss
                 y = orig_md['MDATA_KEY_YEAR'].split("-")
-                filepath = u'%s/%s/%s/%s/%s-%s-%s%s' % (storage_directory, "recorded", y[0], y[1], orig_md['MDATA_KEY_YEAR'], md['MDATA_KEY_TITLE'], md['MDATA_KEY_BITRATE'], file_ext)
+                filepath = '%s/%s/%s/%s/%s-%s-%s%s' % (storage_directory, "recorded", y[0], y[1], orig_md['MDATA_KEY_YEAR'], md['MDATA_KEY_TITLE'], md['MDATA_KEY_BITRATE'], file_ext)
 
                 #"Show-Title-2011-03-28-17:15:00"
                 title = md['MDATA_KEY_TITLE'].split("-")
@@ -253,16 +253,16 @@ class MediaMonitorCommon:
                 new_md['MDATA_KEY_TITLE'] = '%s-%s-%s:%s:%s' % (show_name, orig_md['MDATA_KEY_YEAR'], show_hour, show_min, show_sec)
                 self.md_manager.save_md_to_file(new_md)
 
-            elif(md['MDATA_KEY_TRACKNUMBER'] == u'unknown'):
-                filepath = u'%s/%s/%s/%s/%s-%s%s' % (storage_directory, "imported", md['MDATA_KEY_CREATOR'], md['MDATA_KEY_SOURCE'], md['MDATA_KEY_TITLE'], md['MDATA_KEY_BITRATE'], file_ext)
+            elif(md['MDATA_KEY_TRACKNUMBER'] == 'unknown'):
+                filepath = '%s/%s/%s/%s/%s-%s%s' % (storage_directory, "imported", md['MDATA_KEY_CREATOR'], md['MDATA_KEY_SOURCE'], md['MDATA_KEY_TITLE'], md['MDATA_KEY_BITRATE'], file_ext)
             else:
-                filepath = u'%s/%s/%s/%s/%s-%s-%s%s' % (storage_directory, "imported", md['MDATA_KEY_CREATOR'], md['MDATA_KEY_SOURCE'], md['MDATA_KEY_TRACKNUMBER'], md['MDATA_KEY_TITLE'], md['MDATA_KEY_BITRATE'], file_ext)
+                filepath = '%s/%s/%s/%s/%s-%s-%s%s' % (storage_directory, "imported", md['MDATA_KEY_CREATOR'], md['MDATA_KEY_SOURCE'], md['MDATA_KEY_TRACKNUMBER'], md['MDATA_KEY_TITLE'], md['MDATA_KEY_BITRATE'], file_ext)
 
             filepath = self.create_unique_filename(filepath, original_path)
             self.logger.info('Unique filepath: %s', filepath)
             self.ensure_is_dir(os.path.dirname(filepath))
 
-        except Exception, e:
+        except Exception as e:
             self.logger.error('Exception: %s', e)
             self.logger.error("traceback: %s", traceback.format_exc())
 
@@ -302,7 +302,7 @@ class MediaMonitorCommon:
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
             open(self.timestamp_file, "w")
-        except Exception, e:
+        except Exception as e:
             self.logger.error('Exception: %s', e)
             self.logger.error("traceback: %s", traceback.format_exc())
 
@@ -311,7 +311,7 @@ class MediaMonitorCommon:
 
         filepath = self.create_file_path(pathname, file_md)
 
-        self.logger.debug(u"Moving from %s to %s", pathname, filepath)
+        self.logger.debug("Moving from %s to %s", pathname, filepath)
         self.move_file(pathname, filepath)
         self.make_readable(filepath)
         return filepath
@@ -325,7 +325,7 @@ class MediaMonitorCommon:
         return_code = subprocess.call(command, shell=True)
         if return_code != 0:
             #print pathname for py-interpreter.log
-            print pathname
+            print(pathname)
         return (return_code == 0)
 
     def move_to_problem_dir(self, source):
@@ -333,7 +333,7 @@ class MediaMonitorCommon:
         try:
             omask = os.umask(0)
             os.rename(source, dest)
-        except Exception, e:
+        except Exception as e:
             self.logger.error("failed to move file. %s", e)
             self.logger.error("traceback: %s", traceback.format_exc())
         finally:

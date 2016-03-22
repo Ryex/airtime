@@ -43,7 +43,7 @@ class AirtimeMediaMonitorBootstrap():
         directories = self.get_list_of_watched_dirs()
         self.logger.info("watched directories found: %s", directories)
 
-        for id, dir in directories.iteritems():
+        for id, dir in directories.items():
             self.logger.debug("%s, %s", id, dir)
             self.sync_database_to_filesystem(id, dir)
 
@@ -141,14 +141,14 @@ class AirtimeMediaMonitorBootstrap():
         new_files_set = all_files_set - db_known_files_set
         modified_files_set = new_and_modified_files - new_files_set
 
-        self.logger.info(u"Deleted files: \n%s\n\n", deleted_files_set)
-        self.logger.info(u"New files: \n%s\n\n", new_files_set)
-        self.logger.info(u"Modified files: \n%s\n\n", modified_files_set)
+        self.logger.info("Deleted files: \n%s\n\n", deleted_files_set)
+        self.logger.info("New files: \n%s\n\n", new_files_set)
+        self.logger.info("Modified files: \n%s\n\n", modified_files_set)
 
         #"touch" file timestamp
         try:
             self.mmc.touch_index_file()
-        except Exception, e:
+        except Exception as e:
             self.logger.warn(e)
 
         for file_path in deleted_files_set:

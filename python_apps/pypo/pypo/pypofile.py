@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from threading import Thread
-from Queue import Empty
+from queue import Empty
 
 import logging
 import shutil
@@ -35,14 +35,14 @@ class PypoFile(Thread):
 
         try:
             src_size = os.path.getsize(src)
-        except Exception, e:
+        except Exception as e:
             self.logger.error("Could not get size of source file: %s", src)
             return
 
         dst_exists = True
         try:
             dst_size = os.path.getsize(dst)
-        except Exception, e:
+        except Exception as e:
             dst_exists = False
 
         do_copy = False
@@ -69,7 +69,7 @@ class PypoFile(Thread):
                 os.chmod(dst, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
                 media_item['file_ready'] = True
-            except Exception, e:
+            except Exception as e:
                 self.logger.error("Could not copy from %s to %s" % (src, dst))
                 self.logger.error(e)
 
@@ -122,14 +122,14 @@ class PypoFile(Thread):
                     """
                     try:
                         self.media = self.media_queue.get_nowait()
-                    except Empty, e:
+                    except Empty as e:
                         pass
 
 
                 media_item = self.get_highest_priority_media_item(self.media)
                 if media_item is not None:
                     self.copy_file(media_item)
-            except Exception, e:
+            except Exception as e:
                 import traceback
                 top = traceback.format_exc()
                 self.logger.error(str(e))

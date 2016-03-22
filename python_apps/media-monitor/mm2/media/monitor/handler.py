@@ -2,25 +2,23 @@
 from pydispatch import dispatcher
 import abc
 
-from log import Loggable
+from .log import Loggable
 from ..saas.thread import getsig
-import pure as mmp
+from . import pure as mmp
 
 # Defines the handle interface
-class Handles(object):
-    __metaclass__ = abc.ABCMeta
+class Handles(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def handle(self, sender, event, *args, **kwargs): pass
 
 # TODO : Investigate whether weak reffing in dispatcher.connect could possibly
 # cause a memory leak
 
-class ReportHandler(Handles):
+class ReportHandler(Handles, metaclass=abc.ABCMeta):
     """
     A handler that can also report problem files when things go wrong
     through the report_problem_file routine
     """
-    __metaclass__ = abc.ABCMeta
     def __init__(self, signal, weak=False):
         self.signal = getsig(signal)
         self.report_signal = getsig("badfile")

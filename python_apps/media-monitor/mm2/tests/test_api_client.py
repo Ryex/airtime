@@ -5,12 +5,12 @@ import sys
 from api_clients import api_client as apc
 
 
-import prepare_tests
+from . import prepare_tests
 
 class TestApiClient(unittest.TestCase):
     def setUp(self):
         test_path = prepare_tests.api_client_path
-        print("Running from api_config: %s" % test_path)
+        print(("Running from api_config: %s" % test_path))
         if not os.path.exists(test_path):
             print("path for config does not exist: '%s' % test_path")
             # TODO : is there a cleaner way to exit the unit testing?
@@ -28,7 +28,7 @@ class TestApiClient(unittest.TestCase):
         for response in responses:
             self.assertTrue( 'key' in response )
             self.assertTrue( 'error' in response )
-            print( "Response: '%s'" % response )
+            print(( "Response: '%s'" % response ))
 
     # We don't actually test any well formed requests because it is more
     # involved

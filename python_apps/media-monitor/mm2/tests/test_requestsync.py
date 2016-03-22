@@ -26,7 +26,7 @@ class TestRequestSync(unittest.TestCase):
         fake_watcher  = self.watcher_mock()
         rs = RequestSync(fake_watcher, fake_requests, fake_apc)
         rs.run_request()
-        self.assertEquals(fake_apc.send_media_monitor_requests.call_count, 1)
+        self.assertEqual(fake_apc.send_media_monitor_requests.call_count, 1)
 
     def test_flag_done(self):
         fake_apc      = self.apc_mock()
@@ -34,7 +34,7 @@ class TestRequestSync(unittest.TestCase):
         fake_watcher  = self.watcher_mock()
         rs = RequestSync(fake_watcher, fake_requests, fake_apc)
         rs.run_request()
-        self.assertEquals(fake_watcher.flag_done.call_count, 1)
+        self.assertEqual(fake_watcher.flag_done.call_count, 1)
 
     def test_safe_pack(self):
         fake_apc      = self.apc_mock()
@@ -43,6 +43,6 @@ class TestRequestSync(unittest.TestCase):
         rs = RequestSync(fake_watcher, fake_requests, fake_apc)
         rs.run_request()
         for req in fake_requests:
-            self.assertEquals(req.safe_pack.call_count, 1)
+            self.assertEqual(req.safe_pack.call_count, 1)
 
 if __name__ == '__main__': unittest.main()

@@ -16,7 +16,7 @@ from ..monitor.watchersyncer import WatchSyncer
 from ..monitor.eventdrainer  import EventDrainer
 from ..monitor.manager       import Manager
 from ..monitor.syncdb        import AirtimeDB
-from airtimeinstance  import AirtimeInstance
+from .airtimeinstance  import AirtimeInstance
 
 class MM2(InstanceThread, Loggable):
 
@@ -53,8 +53,8 @@ class MM2(InstanceThread, Loggable):
 
         adb = AirtimeDB(apiclient)
         store = {
-                u'stor' : adb.storage_path(),
-                u'watched_dirs' : adb.list_watched(),
+                'stor' : adb.storage_path(),
+                'watched_dirs' : adb.list_watched(),
         }
 
         self.logger.info("initializing mm with directories: %s" % str(store))
@@ -62,9 +62,9 @@ class MM2(InstanceThread, Loggable):
         self.logger.info(
                 "Initing with the following airtime response:%s" % str(store))
 
-        airtime_receiver.change_storage({ 'directory':store[u'stor'] })
+        airtime_receiver.change_storage({ 'directory':store['stor'] })
 
-        for watch_dir in store[u'watched_dirs']:
+        for watch_dir in store['watched_dirs']:
             if not os.path.exists(watch_dir):
                 # Create the watch_directory here
                 try: os.makedirs(watch_dir)
@@ -90,7 +90,7 @@ class MM2(InstanceThread, Loggable):
             try:
                 apiclient.register_component('media-monitor')
                 success = True
-            except Exception, e:
+            except Exception as e:
                 self.logger.error(str(e))
                 import time
                 time.sleep(10)
@@ -127,7 +127,7 @@ def setup_logger(log_config, logpath):
     #logging.captureWarnings(True)
     logger = logging.getLogger()
     LogWriter.override_std_err(logger)
-    logfile = unicode(logpath)
+    logfile = str(logpath)
     setup_logging(logfile)
     log = get_logger()
     return log

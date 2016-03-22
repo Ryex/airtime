@@ -8,7 +8,7 @@ from media.monitor.config import MMConfig
 
 from media.monitor.manager import Manager
 
-def filter_ev(d): return { i : j for i,j in d.iteritems() if i != 'event_type' }
+def filter_ev(d): return { i : j for i,j in d.items() if i != 'event_type' }
 
 class TestReceiver(unittest.TestCase):
     def setUp(self):
@@ -18,7 +18,7 @@ class TestReceiver(unittest.TestCase):
 
     def test_supported(self):
         # Every supported message should fire something
-        for event_type in self.amr.dispatch_table.keys():
+        for event_type in list(self.amr.dispatch_table.keys()):
             msg = { 'event_type' : event_type, 'extra_param' : 123 }
             filtered = filter_ev(msg)
             # There should be a better way to test the following without

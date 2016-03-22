@@ -19,11 +19,11 @@ def main():
             ldir = v
             break
     if not os.path.exists(ldir):
-        print("can't pyinotify dir: '%s'. it don't exist" % ldir)
+        print(("can't pyinotify dir: '%s'. it don't exist" % ldir))
         sys.exit(0)
     wm = pyinotify.WatchManager()
     notifier = pyinotify.Notifier(wm)
-    print("Watching: '%s'" % ldir)
+    print(("Watching: '%s'" % ldir))
     wm.add_watch(ldir, pyinotify.ALL_EVENTS, auto_add=True, rec=True, proc_fun=AT())
     notifier.loop()
 

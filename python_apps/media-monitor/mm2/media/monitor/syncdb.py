@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
-from log            import Loggable
-from exceptions     import NoDirectoryInAirtime
+from .log            import Loggable
+from .exceptions     import NoDirectoryInAirtime
 from ..saas.thread  import user
 from os.path        import normpath, join
-import pure         as mmp
+from . import pure         as mmp
 
 class AirtimeDB(Loggable):
     def __init__(self, apc, reload_now=True):
@@ -24,16 +24,15 @@ class AirtimeDB(Loggable):
             # u'watched_dirs' and u'stor' which point to lists of corresponding
             # dirs
             dirs_setup = self.apc.setup_media_monitor()
-            dirs_setup[u'stor'] = normpath( join(saas, dirs_setup[u'stor'] ) )
-            dirs_setup[u'watched_dirs'] = map(lambda p: normpath(join(saas,p)),
-                dirs_setup[u'watched_dirs'])
+            dirs_setup['stor'] = normpath( join(saas, dirs_setup['stor'] ) )
+            dirs_setup['watched_dirs'] = [normpath(join(saas,p)) for p in dirs_setup['watched_dirs']]
             dirs_with_id = dict([ (k,normpath(v)) for k,v in
-                self.apc.list_all_watched_dirs()['dirs'].iteritems() ])
+                self.apc.list_all_watched_dirs()['dirs'].items() ])
 
             self.id_to_dir = dirs_with_id
-            self.dir_to_id = dict([ (v,k) for k,v in dirs_with_id.iteritems() ])
+            self.dir_to_id = dict([ (v,k) for k,v in dirs_with_id.items() ])
 
-            self.base_storage = dirs_setup[u'stor']
+            self.base_storage = dirs_setup['stor']
             self.storage_paths = mmp.expand_storage( self.base_storage )
             self.base_id = self.dir_to_id[self.base_storage]
 
@@ -44,8 +43,8 @@ class AirtimeDB(Loggable):
             # We don't know from the x_to_y dict which directory is watched or
             # store...
             self.watched_directories = set([ os.path.normpath(p) for p in
-                dirs_setup[u'watched_dirs'] ])
-        except Exception, e:
+                dirs_setup['watched_dirs'] ])
+        except Exception as e:
             self.logger.info(str(e))
 
 
@@ -89,7 +88,7 @@ class AirtimeDB(Loggable):
         directory and one for the imported directory even though they're
         the same dir in the database so you get files for both dirs in 1
         request... """
-        normal_dir = os.path.normpath(unicode(directory))
+        normal_dir = os.path.normpath(str(directory))
         if normal_dir not in self.dir_to_id:
             raise NoDirectoryInAirtime( normal_dir, self.dir_to_id )
         all_files = self.dir_id_get_files( self.dir_to_id[normal_dir],
