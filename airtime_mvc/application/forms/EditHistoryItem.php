@@ -22,24 +22,24 @@ class Application_Form_EditHistoryItem extends Application_Form_EditHistory
 		$this->addElement($instance);
 		*/
 
-	    $starts = new Zend_Form_Element_Text(self::ID_PREFIX.'starts');
+	    $starts = new Zend_Form_Element_Text(self::ID_PREFIX.HISTORY_ITEM_STARTS);
 	    $starts->setValidators(array(
 	    	new Zend_Validate_Date(self::VALIDATE_DATETIME_FORMAT)
 	    ));
-	    $starts->setAttrib('class', self::TEXT_INPUT_CLASS." datepicker");
-	    $starts->setAttrib('data-format', self::TIMEPICKER_DATETIME_FORMAT);
+	    $starts->setAttrib('class', self::TEXT_INPUT_CLASS);
+	    //$starts->setAttrib('data-format', self::TIMEPICKER_DATETIME_FORMAT);
 	    $starts->addFilter('StringTrim');
 	    $starts->setLabel(_('Start Time'));
 	    $starts->setDecorators(array('ViewHelper'));
 	    $starts->setRequired(true);
 	    $this->addElement($starts);
 
-	    $ends = new Zend_Form_Element_Text(self::ID_PREFIX.'ends');
+	    $ends = new Zend_Form_Element_Text(self::ID_PREFIX.HISTORY_ITEM_ENDS);
 	    $ends->setValidators(array(
 	    	new Zend_Validate_Date(self::VALIDATE_DATETIME_FORMAT)
 	    ));
-	    $ends->setAttrib('class', self::TEXT_INPUT_CLASS." datepicker");
-	    $ends->setAttrib('data-format', self::TIMEPICKER_DATETIME_FORMAT);
+	    $ends->setAttrib('class', self::TEXT_INPUT_CLASS);
+	    //$ends->setAttrib('data-format', self::TIMEPICKER_DATETIME_FORMAT);
 	    $ends->addFilter('StringTrim');
 	    $ends->setLabel(_('End Time'));
 	    $ends->setDecorators(array('ViewHelper'));

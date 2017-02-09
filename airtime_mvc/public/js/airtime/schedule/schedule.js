@@ -14,7 +14,7 @@ var serverTimezoneOffset = 0;
 
 function closeDialogCalendar(event, ui) {
     
-    $el = $(this);
+    var $el = $(this);
     $el.dialog('destroy');
     $el.remove();
     
@@ -171,9 +171,7 @@ function buildScheduleDialog (json, instance_id) {
             {
                 text: $.i18n._("Ok"),
                 "class": "btn",
-                click: function() {
-                    $(this).dialog("close");
-                }
+                click: closeDialogCalendar
             }
         ]
     });
@@ -186,7 +184,9 @@ function buildScheduleDialog (json, instance_id) {
     fnServer.ops.showInstanceFilter = instance_id;
     fnServer.ops.myShows = 0;
     
-    AIRTIME.library.libraryInit();
+    //AIRTIME.library.libraryInit();
+    //TODO separate this from the onReady event
+    AIRTIME.library.onReady();
     AIRTIME.showbuilder.builderDataTable();
     
     //set max heights of datatables.
@@ -209,10 +209,6 @@ function buildContentDialog (json){
         alertShowErrorAndReload();
     }
           
-    dialog.find("#show_progressbar").progressbar({
-        value: json.percentFilled
-    });
-     
     dialog.dialog({
         autoOpen: false,
         title: $.i18n._("Contents of Show") +" '" + json.showTitle + "'",
@@ -224,9 +220,7 @@ function buildContentDialog (json){
             {
                 text: $.i18n._("Ok"),
                 "class": "btn",
-                click: function() {
-                    dialog.remove();
-                }
+                click: closeDialogCalendar
             }
         ]
     });
@@ -414,7 +408,7 @@ $(document).ready(function() {
                     
                     callback = function() {
                         $.get(oItems.content.url, {format: "json", id: data.id}, function(json){
-                            buildContentDialog(json);
+                            buildContentDialog(json, data.id);
                         });
                     };
                     oItems.content.callback = callback;

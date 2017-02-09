@@ -1,0 +1,60 @@
+<div id="jp_container_1" class="jp-audio jp-video-270p">
+    <div class="jp-type-playlist">
+        <div class="jp-playlist">
+            <ul style="display: block;">
+              <li class="jp-playlist-current">
+              </li>
+            </ul>
+        </div>
+        <div class="jp-gui jp-interface">
+            <ul class="jp-controls">
+            	<li class="jp-previous" style="display: list-item;">
+                    <span tabindex="1">previous</span>
+                </li> 
+                <li class="jp-play" style="display: list-item;">
+                    <span tabindex="1">play</span>
+                </li>
+                <li class="jp-pause" style="display: none;">
+                    <span tabindex="1">pause</span>
+                </li>
+                <li class="jp-next" style="display: list-item;">
+                    <span tabindex="1">next</span>
+                </li>
+            </ul>
+            <div class="jp-time-wrap">
+	            <a href="#" class="jp-current" tabindex="1"><span class="jp-artist"></span></a>
+	            <div class="jp-time-block">
+	                <div class="jp-progress">
+	                    <div class="jp-seek-bar" style="width: 100%;">
+	                        <div class="jp-play-bar" style="width: 16.911162468183594%;"></div>
+	                    </div>
+	                </div>
+	                <div class="jp-time-holder">
+	                    <div class="jp-current-time"></div>
+	                </div>
+	            </div>
+			</div>
+            <div class="jp-volume-block">
+                <div class="jp-mute">
+                    <span tabindex="1" title="mute">mute</span>
+                </div>
+                <div class="jp-unmute" style="display: none;">
+                    <span tabindex="1" title="unmute">unmute</span>
+                </div>
+                <div class="jp-volume-bar">
+                    <div class="jp-volume-bar-value" style="width: 80%;"></div>
+                </div>
+                <div class="jp-volume-max">
+                    <span tabindex="1" title="max volume">max volume</span>
+                </div>
+            </div>
+            <div class="playlist_icon" id="open_playlist"><span>playlist</span></div>
+        </div>
+         <div class="jp-no-solution">
+            <span><?php echo _("Update Required") ?></span>
+            <?php sprintf(_("To play the media you will need to either update your browser to a recent version or update your %sFlash plugin%s."),
+                "<a href='http://get.adobe.com/flashplayer/' target='_blank'>",
+                "</a>") ?>
+        </div>
+    </div>
+</div>

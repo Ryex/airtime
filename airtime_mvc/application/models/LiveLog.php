@@ -154,7 +154,7 @@ class Application_Model_LiveLog
                     $sql_get_tracks = "SELECT * FROM cc_schedule"
                     ." WHERE starts >= :starts1"
                     ." AND starts < :starts2"
-                    ." AND file_id IS NOT NULL"
+                    ." AND media_id IS NOT NULL"
                     ." AND media_item_played IS TRUE";
                     $params = array(
                         ':starts1'=>$row['start_time'],
@@ -315,7 +315,7 @@ class Application_Model_LiveLog
                     Application_Common_Database::EXECUTE);
                 if ($state == "S") {
                     // if scheduled play source is getting broadcasted
-                    Application_Model_Schedule::UpdateBrodcastedStatus($dateTime, 1);
+                    //Application_Model_Schedule::UpdateBrodcastedStatus($dateTime, 1);
                 }
             }
 

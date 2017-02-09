@@ -20,14 +20,12 @@ class ScheduleController extends Zend_Controller_Action
                     ->addActionContext('show-content-dialog', 'json')
                     ->addActionContext('clear-show', 'json')
                     ->addActionContext('get-current-playlist', 'json')
-                    ->addActionContext('remove-group', 'json')
                     ->addActionContext('populate-show-form', 'json')
                     ->addActionContext('populate-repeating-show-instance-form', 'json')
                     ->addActionContext('delete-show', 'json')
                     ->addActionContext('cancel-current-show', 'json')
                     ->addActionContext('get-form', 'json')
                     ->addActionContext('upload-to-sound-cloud', 'json')
-                    ->addActionContext('content-context-menu', 'json')
                     ->addActionContext('set-time-scale', 'json')
                     ->addActionContext('set-time-interval', 'json')
                     ->addActionContext('edit-repeating-show-instance', 'json')
@@ -83,21 +81,20 @@ class ScheduleController extends Zend_Controller_Action
         //Start Show builder JS/CSS requirements
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/js/jquery.dataTables.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.pluginAPI.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
-        $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.fnSetFilteringDelay.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.ColVis.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.ColReorder.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.FixedColumns.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.columnFilter.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
 
         $this->view->headScript()->appendFile($baseUrl.'js/airtime/buttons/buttons.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
-        $this->view->headScript()->appendFile($baseUrl.'js/airtime/library/events/library_showbuilder.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
-        $this->view->headScript()->appendFile($baseUrl.'js/airtime/library/library.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
+        $this->view->headScript()->appendFile($baseUrl.'js/airtime/library/events/lib_showbuilder.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
+        $this->view->headScript()->appendFile($baseUrl.'js/airtime/library/lib_separate_table.js?'.$CC_CONFIG['airtime_version'], 'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/airtime/showbuilder/builder.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
 
         $this->view->headLink()->appendStylesheet($baseUrl.'css/media_library.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/jquery.contextMenu.css?'.$CC_CONFIG['airtime_version']);
-        $this->view->headLink()->appendStylesheet($baseUrl.'css/datatables/css/ColVis.css?'.$CC_CONFIG['airtime_version']);
-        $this->view->headLink()->appendStylesheet($baseUrl.'css/datatables/css/ColReorder.css?'.$CC_CONFIG['airtime_version']);
+        $this->view->headLink()->appendStylesheet($baseUrl.'css/datatables/css/dataTables.colVis.css?'.$CC_CONFIG['airtime_version']);
+        $this->view->headLink()->appendStylesheet($baseUrl.'css/datatables/css/dataTables.colReorder.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/showbuilder.css?'.$CC_CONFIG['airtime_version']);
         //End Show builder JS/CSS requirements
 
@@ -117,7 +114,7 @@ class ScheduleController extends Zend_Controller_Action
         $currentUser = $service_user->getCurrentUser();
 
         $userTimezone = new DateTimeZone(Application_Model_Preference::GetUserTimezone());
-        
+
         $start = new DateTime($this->_getParam('start', null), $userTimezone);
         $start->setTimezone(new DateTimeZone("UTC"));
         $end = new DateTime($this->_getParam('end', null), $userTimezone);
@@ -260,12 +257,11 @@ class ScheduleController extends Zend_Controller_Action
 
     public function getCurrentPlaylistAction()
     {
-        $range = Application_Model_Schedule::GetPlayOrderRangeOld();
-        $show = Application_Model_Show::getCurrentShow();
+        $range = Application_Model_Schedule::getDashboardInfo();
 
         /* Convert all UTC times to localtime before sending back to user. */
         $range["schedulerTime"] = Application_Common_DateHelper::UTCStringToUserTimezoneString($range["schedulerTime"]);
-        
+
         if (isset($range["previous"])) {
             $range["previous"]["starts"] = Application_Common_DateHelper::UTCStringToUserTimezoneString($range["previous"]["starts"]);
             $range["previous"]["ends"] = Application_Common_DateHelper::UTCStringToUserTimezoneString($range["previous"]["ends"]);
@@ -278,14 +274,14 @@ class ScheduleController extends Zend_Controller_Action
             $range["next"]["starts"] = Application_Common_DateHelper::UTCStringToUserTimezoneString($range["next"]["starts"]);
             $range["next"]["ends"] = Application_Common_DateHelper::UTCStringToUserTimezoneString($range["next"]["ends"]);
         }
-  
+
         Application_Common_DateHelper::convertTimestamps(
-        	$range["currentShow"], 
+        	$range["currentShow"],
         	array("starts", "ends", "start_timestamp", "end_timestamp"),
         	"user"
         );
         Application_Common_DateHelper::convertTimestamps(
-        	$range["nextShow"], 
+        	$range["nextShow"],
         	array("starts", "ends", "start_timestamp", "end_timestamp"),
         	"user"
         );
@@ -293,7 +289,7 @@ class ScheduleController extends Zend_Controller_Action
         //TODO: Add timezone and timezoneOffset back into the ApiController's results.
         $range["timezone"] = Application_Common_DateHelper::getUserTimezoneAbbreviation();
         $range["timezoneOffset"] = Application_Common_DateHelper::getUserTimezoneOffset();
-        
+
         $source_status = array();
         $switch_status = array();
         $live_dj = Application_Model_Preference::GetSourceStatus("live_dj");
@@ -314,7 +310,7 @@ class ScheduleController extends Zend_Controller_Action
         $this->view->switch_status = $switch_status;
 
         $this->view->entries = $range;
-        $this->view->show_name = isset($show[0])?$show[0]["name"]:"";
+        $this->view->show_name = isset($range["currentShow"][0]) ? $range["currentShow"][0]["name"] : "";
     }
 
     public function showContentDialogAction()
@@ -344,20 +340,29 @@ class ScheduleController extends Zend_Controller_Action
             $displayTimeZone = new DateTimeZone(Application_Model_Preference::GetTimezone());
             $originalDateTime = new DateTime($originalShowStart, new DateTimeZone("UTC"));
             $originalDateTime->setTimezone($displayTimeZone);
-            
+
             $this->view->additionalShowInfo =
                 sprintf(_("Rebroadcast of show %s from %s at %s"),
                     $originalShowName,
                     $originalDateTime->format("l, F jS"),
                     $originalDateTime->format("G:i"));
         }
-        $this->view->showLength = $show->getShowLength();
-        $this->view->timeFilled = $show->getTimeScheduled();
-        $this->view->percentFilled = $show->getPercentScheduled();
-        $this->view->showContent = $show->getShowListContent();
+
+        $historyService = new Application_Service_HistoryService();
+        $columns = $historyService->getDatatablesLogSheetColumns();
+        $contents = $historyService->getPlayedItemData(null, null, $showInstanceId);
+
+        //remove the checkbox column.
+        array_shift($columns);
+
+        $this->view->itemColumns = $columns;
+        $this->view->itemContents = $contents;
+
         $this->view->dialog = $this->view->render('schedule/show-content-dialog.phtml');
         $this->view->showTitle = htmlspecialchars($show->getName());
-        unset($this->view->showContent);
+
+        unset($this->view->columns);
+        unset($this->view->contents);
     }
 
     public function populateRepeatingShowInstanceFormAction()
@@ -602,30 +607,6 @@ class ScheduleController extends Zend_Controller_Action
         }
     }
 
-    public function contentContextMenuAction()
-    {
-        $id = $this->_getParam('id');
-
-        $params = '/format/json/id/#id#/';
-
-        $paramsPop = str_replace('#id#', $id, $params);
-
-        // added for downlaod
-        $id = $this->_getParam('id');
-
-        $file_id = $this->_getParam('id', null);
-        $file = Application_Model_StoredFile::RecallById($file_id);
-
-        $baseUrl = $this->getRequest()->getBaseUrl();
-        $url = $file->getRelativeFileUrl($baseUrl).'download/true';
-        $menu = array();
-        $menu[] = array('action' => array('type' => 'gourl', 'url' => $url),
-                            'title' => _('Download'));
-
-        //returns format jjmenu is looking for.
-        $this->_helper->json->sendJson($menu);
-    }
-
     /**
      * Sets the user specific preference for which time scale to use in Calendar.
      * This is only being used by schedule.js at the moment.
@@ -649,7 +630,7 @@ class ScheduleController extends Zend_Controller_Action
     	$start = $this->_getParam('startTime');
     	$end = $this->_getParam('endTime');
     	$timezone = $this->_getParam('timezone');
-    	
+
         $service_showForm = new Application_Service_ShowFormService();
         $result = $service_showForm->calculateDuration($start, $end, $timezone);
 
@@ -660,10 +641,10 @@ class ScheduleController extends Zend_Controller_Action
     public function updateFutureIsScheduledAction()
     {
         $schedId = $this->_getParam('schedId');
-        
+
         $scheduleService = new Application_Service_SchedulerService();
         $redrawLibTable = $scheduleService->updateFutureIsScheduled($schedId, false);
-        
+
         $this->_helper->json->sendJson(array("redrawLibTable" => $redrawLibTable));
     }
 

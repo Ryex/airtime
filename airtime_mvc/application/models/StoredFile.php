@@ -1,8 +1,15 @@
 <?php
 
-require_once 'formatters/LengthFormatter.php';
-require_once 'formatters/SamplerateFormatter.php';
-require_once 'formatters/BitrateFormatter.php';
+use Airtime\CcSubjsQuery;
+use Airtime\CcPlaylistcontentsQuery;
+use Airtime\CcPlaylistQuery;
+use Airtime\CcBlockcontentsQuery;
+use Airtime\CcBlockQuery;
+use Airtime\CcBlockPeer;
+use Airtime\CcPlaylistPeer;
+use Airtime\CcFiles;
+use Airtime\CcFilesPeer;
+use Airtime\CcFilesQuery; 
 
 /**
  *  Application_Model_StoredFile class
@@ -1094,7 +1101,7 @@ SQL;
 
     public static function getFileCount()
     {
-        $sql = "SELECT count(*) as cnt FROM cc_files WHERE file_exists";
+        $sql = "SELECT count(*) as cnt FROM media_audiofile WHERE file_exists";
         return Application_Common_Database::prepareAndExecute($sql, array(),
             Application_Common_Database::COLUMN);
     }

@@ -1,640 +1,246 @@
 <?php
 
+use Airtime\MediaItem\PlaylistQuery;
+use Airtime\MediaItem\Playlist;
+use Airtime\MediaItem\PlaylistPeer;
+
 class PlaylistController extends Zend_Controller_Action
 {
 
     public function init()
     {
         $ajaxContext = $this->_helper->getHelper('AjaxContext');
-        $ajaxContext->addActionContext('add-items', 'json')
-                    ->addActionContext('move-items', 'json')
-                    ->addActionContext('delete-items', 'json')
-                    ->addActionContext('set-fade', 'json')
-                    ->addActionContext('set-crossfade', 'json')
-                    ->addActionContext('set-cue', 'json')
-                    ->addActionContext('new', 'json')
-                    ->addActionContext('edit', 'json')
-                    ->addActionContext('delete', 'json')
-                    ->addActionContext('close-playlist', 'json')
-                    ->addActionContext('play', 'json')
-                    ->addActionContext('set-playlist-fades', 'json')
-                    ->addActionContext('get-playlist-fades', 'json')
-                    ->addActionContext('set-playlist-name', 'json')
-                    ->addActionContext('set-playlist-description', 'json')
-                    ->addActionContext('playlist-preview', 'json')
-                    ->addActionContext('get-playlist', 'json')
-                    ->addActionContext('save', 'json')
-                    ->addActionContext('smart-block-generate', 'json')
-                    ->addActionContext('smart-block-shuffle', 'json')
-                    ->addActionContext('get-block-info', 'json')
-                    ->addActionContext('shuffle', 'json')
-                    ->addActionContext('empty-content', 'json')
-                    ->initContext();
+        $ajaxContext
+        	->addActionContext('add-items', 'json')
+            ->addActionContext('new', 'json')
+            ->addActionContext('edit', 'json')
+            ->addActionContext('delete', 'json')
+            ->addActionContext('close-playlist', 'json')
+            ->addActionContext('save', 'json')
+            ->addActionContext('shuffle', 'json')
+            ->addActionContext('generate', 'json')
+            ->addActionContext('clear', 'json')
+            ->addActionContext('save-rules', 'json')
+            ->initContext();
 
+
+        $this->mediaService = new Application_Service_MediaService();
+        $this->playlistService = new Application_Service_PlaylistService();
     }
 
-    private function getPlaylist($p_type)
-    {
-        $obj = null;
-        $objInfo = Application_Model_Library::getObjInfo($p_type);
+    private function getPlaylist() {
 
-        $obj_sess = new Zend_Session_Namespace(UI_PLAYLISTCONTROLLER_OBJ_SESSNAME);
-        if (isset($obj_sess->id)) {
-            $obj = new $objInfo['className']($obj_sess->id);
-
-            $modified = $this->_getParam('modified', null);
-            if ($obj->getLastModified("U") !== $modified) {
-                $this->createFullResponse($obj);
-                throw new PlaylistOutDatedException(sprintf(_("You are viewing an older version of %s"), $obj->getName()));
-            }
-        }
-
-        return $obj;
+    	return $this->mediaService->getSessionMediaObject();
     }
 
-    private function createUpdateResponse($obj)
+    private function createUpdateResponse($playlist)
     {
-        $formatter = new LengthFormatter($obj->getLength());
-        $this->view->length = $formatter->format();
+    	$obj = new Presentation_Playlist($playlist);
 
-        $this->view->obj = $obj;
-        $this->view->contents = $obj->getContents();
+        $this->view->length = $obj->getLength();
+        $this->view->contents = $obj->getContent();
+        $this->view->modified = $obj->getLastModifiedEpoch();
         $this->view->html = $this->view->render('playlist/update.phtml');
-        $this->view->name = $obj->getName();
-        $this->view->description = $obj->getDescription();
-        $this->view->modified = $obj->getLastModified("U");
 
-        unset($this->view->obj);
+        unset($this->view->contents);
     }
 
-    private function createFullResponse($obj = null, $isJson = false,
-        $formIsValid = false)
+    private function createFullResponse($obj)
     {
-        $isBlock = false;
-        $viewPath = 'playlist/playlist.phtml';
-        if ($obj instanceof Application_Model_Block) {
-            $isBlock = true;
-            $viewPath = 'playlist/smart-block.phtml';
-        }
-        if (isset($obj)) {
-            $formatter = new LengthFormatter($obj->getLength());
-            $this->view->length = $formatter->format();
+    	if (isset($obj)) {
+    		$this->view->obj = new Presentation_Playlist($obj);
+    	}
 
-            if ($isBlock) {
-                $form = new Application_Form_SmartBlockCriteria();
-                $form->removeDecorator('DtDdWrapper');
-                $form->startForm($obj->getId(), $formIsValid);
-
-                $this->view->form = $form;
-                $this->view->obj = $obj;
-                $this->view->id = $obj->getId();
-
-                if ($isJson) {
-                    return $this->view->render($viewPath);
-                } else {
-                    $this->view->html = $this->view->render($viewPath);
-                }
-            } else {
-                $this->view->obj = $obj;
-                $this->view->id = $obj->getId();
-                if ($isJson) {
-                    return $this->view->html = $this->view->render($viewPath);
-                } else {
-                    $this->view->html = $this->view->render($viewPath);
-                }
-                unset($this->view->obj);
-            }
-        } else {
-            if ($isJson) {
-                return $this->view->render($viewPath);
-            } else {
-                $this->view->html = $this->view->render($viewPath);
-            }
-        }
-    }
-
-    private function playlistOutdated($e)
-    {
-        $this->view->error = $e->getMessage();
-    }
-
-    private function blockDynamic($obj)
-    {
-        $this->view->error = _("You cannot add tracks to dynamic blocks.");
-        $this->createFullResponse($obj);
-    }
-
-    private function playlistNotFound($p_type, $p_isJson = false)
-    {
-        $p_type = ucfirst($p_type);
-        $this->view->error = sprintf(_("%s not found"), $p_type);
-
-        Logging::info("{$p_type} not found");
-        Application_Model_Library::changePlaylist(null, $p_type);
-        
-        if (!$p_isJson) {
-            $this->createFullResponse(null);
-        } else {
-            $this->_helper->json->sendJson(array("error"=>$this->view->error, "result"=>1, "html"=>$this->createFullResponse(null, $p_isJson)));
-        }
-    }
-
-    private function playlistNoPermission($p_type)
-    {
-        $this->view->error = sprintf(_("You don't have permission to delete selected %s(s)."), $p_type);
-        $this->changePlaylist(null, $p_type);
-        $this->createFullResponse(null);
-    }
-
-    private function playlistUnknownError($e)
-    {
-        $this->view->error = _("Something went wrong.");
-        Logging::info($e->getMessage());
-    }
-
-    private function wrongTypeToBlock($obj)
-    {
-        $this->view->error = _("You can only add tracks to smart block.");
-        $this->createFullResponse($obj);
-    }
-
-    private function wrongTypeToPlaylist($obj)
-    {
-        $this->view->error = _("You can only add tracks, smart blocks, and webstreams to playlists.");
-        $this->createFullResponse($obj);
+    	$this->view->html = $this->view->render('playlist/playlist.phtml');
+    	unset($this->view->obj);
     }
 
     public function newAction()
     {
-        //$pl_sess = $this->pl_sess;
-        $userInfo = Zend_Auth::getInstance()->getStorage()->read();
-        $type = $this->_getParam('type');
+    	$type = $this->_getParam('type');
 
-        $objInfo = Application_Model_Library::getObjInfo($type);
+    	$playlist = $this->playlistService->createPlaylist($type);
+    	$playlist->save();
 
-        $name = _('Untitled Playlist');
-        if ($type == 'block') {
-            $name = _('Untitled Smart Block');
-        }
-
-        $obj = new $objInfo['className']();
-        $obj->setName($name);
-        $obj->setMetadata('dc:creator', $userInfo->id);
-
-        Application_Model_Library::changePlaylist($obj->getId(), $type);
-        $this->createFullResponse($obj);
+    	$this->mediaService->setSessionMediaObject($playlist);
+    	$this->createFullResponse($playlist);
     }
 
     public function editAction()
     {
-        $id = $this->_getParam('id', null);
-        $type = $this->_getParam('type');
-        $objInfo = Application_Model_Library::getObjInfo($type);
-        Logging::info("editing {$type} {$id}");
+    	$id = $this->_getParam('id');
 
-        if (!is_null($id)) {
-            Application_Model_Library::changePlaylist($id, $type);
-        }
+    	$playlist = PlaylistQuery::create()->findPK($id);
 
-        try {
-            $obj = new $objInfo['className']($id);
-            $this->createFullResponse($obj);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
+    	$this->mediaService->setSessionMediaObject($playlist);
+    	$this->createFullResponse($playlist);
     }
 
     public function deleteAction()
     {
-        $ids  = $this->_getParam('ids');
-        $ids  = (!is_array($ids)) ? array($ids) : $ids;
-        $type = $this->_getParam('type');
+    	try {
+    		$playlist = $this->getPlaylist();
+    		$playlist->delete();
+    		$this->mediaService->setSessionMediaObject(null);
 
-        $obj      = null;
-
-        $objInfo  = Application_Model_Library::getObjInfo($type);
-
-        $userInfo = Zend_Auth::getInstance()->getStorage()->read();
-
-        $obj_sess = new Zend_Session_Namespace(
-            UI_PLAYLISTCONTROLLER_OBJ_SESSNAME);
-
-        try {
-            Logging::info("Currently active {$type} {$obj_sess->id}");
-            if (in_array($obj_sess->id, $ids)) {
-                Logging::info("Deleting currently active {$type}");
-                Application_Model_Library::changePlaylist(null, $type);
-            } else {
-                Logging::info("Not deleting currently active {$type}");
-                $obj = new $objInfo['className']($obj_sess->id);
-            }
-
-            if (strcmp($objInfo['className'], 'Application_Model_Playlist')==0) {
-                Application_Model_Playlist::deletePlaylists($ids, $userInfo->id);
-            } else {
-                Application_Model_Block::deleteBlocks($ids, $userInfo->id);
-            }
-            $this->createFullResponse($obj);
-        } catch (PlaylistNoPermissionException $e) {
-            $this->playlistNoPermission($type);
-        } catch (BlockNoPermissionException $e) {
-            $this->playlistNoPermission($type);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
+    		$this->createFullResponse(null);
+    	}
+    	catch (Exception $e) {
+    		$this->view->error = $e->getMessage();
+    	}
     }
 
-    public function closePlaylistAction() {
-        $type = $this->_getParam('type');
-        $obj = null;
-        Application_Model_Library::changePlaylist($obj, $type);
-        $this->createFullResponse($obj);
+    public function clearAction()
+    {
+    	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
+    	$con->beginTransaction();
+
+    	try {
+    		$playlist = $this->getPlaylist();
+    		$playlist->clearContent($con);
+    		$this->createUpdateResponse($playlist);
+
+    		$con->commit();
+    	}
+    	catch (Exception $e) {
+    		$con->rollBack();
+    		$this->view->error = $e->getMessage();
+    	}
+    }
+
+    public function generateAction()
+    {
+    	Logging::enablePropelLogging();
+
+    	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
+    	$con->beginTransaction();
+
+    	try {
+
+    		$playlist = $this->getPlaylist();
+    		$playlist->clearContent($con);
+    		$mediaIds = $playlist->generateContent($con);
+    		$playlist->addMedia($con, $mediaIds);
+    		$con->commit();
+
+    		$this->createUpdateResponse($playlist);
+
+    		Logging::disablePropelLogging();
+    	}
+    	catch (Exception $e) {
+    		$con->rollBack();
+    		Logging::error($e->getFile().$e->getLine());
+    		Logging::error($e->getMessage());
+    		$this->view->error = $e->getMessage();
+    	}
+    }
+
+    public function shuffleAction()
+    {
+    	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
+    	$con->beginTransaction();
+
+    	try {
+    		$playlist = $this->getPlaylist();
+    		$playlist->shuffleContent($con);
+    		$this->createUpdateResponse($playlist);
+
+    		$con->commit();
+    	}
+    	catch (Exception $e) {
+    		$con->rollBack();
+    		$this->view->error = $e->getMessage();
+    	}
     }
 
     public function addItemsAction()
     {
-        $ids = $this->_getParam('aItems', array());
-        $ids = (!is_array($ids)) ? array($ids) : $ids;
-        $afterItem = $this->_getParam('afterItem', null);
-        $addType = $this->_getParam('type', 'after');
-        // this is the obj type of destination
-        $obj_type = $this->_getParam('obj_type');
+    	$content = $this->_getParam('content');
 
-        try {
-            $obj = $this->getPlaylist($obj_type);
-            if ($obj_type == 'playlist') {
-                foreach ($ids as $id) {
-                    if (is_array($id) && isset($id[1])) {
-                        if ($id[1] == 'playlist') {
-                            throw new WrongTypeToPlaylistException;
-                        }
-                    }
-                }
-                $obj->addAudioClips($ids, $afterItem, $addType);
-            } elseif ($obj->isStatic()) {
-                // if the dest is a block object
-                //check if any items are playlists
-                foreach ($ids as $id) {
-                    if (is_array($id) && isset($id[1])) {
-                        if ($id[1] != 'audioclip') {
-                            throw new WrongTypeToBlockException;
-                        }
-                    }
-                }
-                $obj->addAudioClips($ids, $afterItem, $addType);
-            } else {
-                throw new BlockDynamicException;
-            }
-            $this->createUpdateResponse($obj);
-        } catch (PlaylistOutDatedException $e) {
-            $this->playlistOutdated($e);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($obj_type);
-        } catch (WrongTypeToBlockException $e) {
-            $this->wrongTypeToBlock($obj);
-        } catch (WrongTypeToPlaylistException $e) {
-            $this->wrongTypeToPlaylist($obj);
-        } catch (BlockDynamicException $e) {
-            $this->blockDynamic($obj);
-        } catch (BlockNotFoundException $e) {
-            $this->playlistNotFound($obj_type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
-    }
+    	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
+    	$con->beginTransaction();
 
-    public function moveItemsAction()
-    {
-        $ids = $this->_getParam('ids');
-        $ids = (!is_array($ids)) ? array($ids) : $ids;
-        $afterItem = $this->_getParam('afterItem', null);
-        $type = $this->_getParam('obj_type');
+    	try {
+    		$playlist = $this->getPlaylist();
+    		$playlist->savePlaylistContent($con, $content);
+    		$this->createUpdateResponse($playlist);
 
-        try {
-            $obj = $this->getPlaylist($type);
-            $obj->moveAudioClips($ids, $afterItem);
-            $this->createUpdateResponse($obj);
-        } catch (PlaylistOutDatedException $e) {
-            $this->playlistOutdated($e);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
-    }
-
-    public function deleteItemsAction()
-    {
-        $ids = $this->_getParam('ids');
-        $ids = (!is_array($ids)) ? array($ids) : $ids;
-        $modified = $this->_getParam('modified');
-        $type = $this->_getParam('obj_type');
-
-        try {
-            $obj = $this->getPlaylist($type);
-            $obj->delAudioClips($ids);
-            $this->createUpdateResponse($obj);
-        } catch (PlaylistOutDatedException $e) {
-            $this->playlistOutdated($e);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
+    		$con->commit();
+    	}
+    	catch (Exception $e) {
+    		$con->rollBack();
+    		$this->view->error = $e->getMessage();
+    	}
     }
     
-    public function emptyContentAction()
+    public function saveRulesAction()
     {
-        $type = $this->_getParam('obj_type');
-        try {
-            $obj = $this->getPlaylist($type);
-            if ($type == 'playlist') {
-                $obj->deleteAllFilesFromPlaylist();
-            } else {
-                $obj->deleteAllFilesFromBlock();
-            }
-            $this->createUpdateResponse($obj);
-        } catch (PlaylistOutDatedException $e) {
-            $this->playlistOutdated($e);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
-    }
+    	$rules = $this->_getParam('rules');
+    	Logging::info($rules);
 
-    public function setCueAction()
-    {
-        $id = $this->_getParam('id');
-        $cueIn = $this->_getParam('cueIn', null);
-        $cueOut = $this->_getParam('cueOut', null);
-        $type = $this->_getParam('type');
+    	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
+    	$con->beginTransaction();
 
-        try {
-            $obj = $this->getPlaylist($type);
-            $response = $obj->changeClipLength($id, $cueIn, $cueOut);
+    	try {
+    		$playlist = $this->getPlaylist();
 
-            if (!isset($response["error"])) {
-                $this->view->response = $response;
-                $this->createUpdateResponse($obj);
-            } else {
-                $this->view->cue_error = $response["error"];
-                $this->view->code = $response["type"];
-            }
-        } catch (PlaylistOutDatedException $e) {
-            $this->playlistOutdated($e);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
-    }
+    		$form = new Application_Form_PlaylistRules();
 
-    public function setFadeAction()
-    {
-        $id = $this->_getParam('id');
-        $fadeIn = $this->_getParam('fadeIn', null);
-        $fadeOut = $this->_getParam('fadeOut', null);
-        $type = $this->_getParam('type');
+    		if (isset($rules["criteria"])) {
+    			$form->buildCriteriaOptions($rules["criteria"]);
+    		}
 
-        try {
-            $obj = $this->getPlaylist($type);
-            $response = $obj->changeFadeInfo($id, $fadeIn, $fadeOut);
+    		$criteriaFields = $form->getPopulateHelp();
 
-            if (!isset($response["error"])) {
-                $this->createUpdateResponse($obj);
-                $this->view->response = $response;
-            } else {
-                $this->view->fade_error = $response["error"];
-            }
-        } catch (PlaylistOutDatedException $e) {
-            $this->playlistOutdated($e);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
-    }
-    
-    public function setCrossfadeAction()
-    {
-        $id1 = $this->_getParam('id1', null);
-        $id2 = $this->_getParam('id2', null);
-        $type = $this->_getParam('type');
-        $fadeIn = $this->_getParam('fadeIn', 0);
-        $fadeOut = $this->_getParam('fadeOut', 0);
-        $offset = $this->_getParam('offset', 0);
-    
-        try {
-            $obj = $this->getPlaylist($type);
-            $response = $obj->createCrossfade($id1, $fadeOut, $id2, $fadeIn, $offset);
-    
-            if (!isset($response["error"])) {
-                $this->createUpdateResponse($obj);
-            } else {
-                $this->view->error = $response["error"];
-            }
-        } catch (PlaylistOutDatedException $e) {
-            $this->playlistOutdated($e);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
-    }
+    		$playlistRules = array(
+    			"pl_repeat_tracks" => $rules[Playlist::RULE_REPEAT_TRACKS],
+    			"pl_my_tracks" => $rules[Playlist::RULE_USERS_TRACKS_ONLY],
+    			"pl_order_column" => $rules[Playlist::RULE_ORDER][Playlist::RULE_ORDER_COLUMN],
+    			"pl_order_direction" => $rules[Playlist::RULE_ORDER][Playlist::RULE_ORDER_DIRECTION],
+    			"pl_limit_value" => $rules["limit"]["value"],
+    			"pl_limit_options" => $rules["limit"]["unit"]
+    		);
 
-    public function getPlaylistFadesAction()
-    {
-        $type = $this->_getParam('type');
-        try {
-            $obj = $this->getPlaylist($type);
-            $fades = $obj->getFadeInfo(0);
-            $this->view->fadeIn = $fades[0];
+    		$data = array_merge($criteriaFields, $playlistRules);
 
-            $fades = $obj->getFadeInfo($obj->getSize()-1);
-            $this->view->fadeOut = $fades[1];
-        } catch (PlaylistOutDatedException $e) {
-            $this->playlistOutdated($e);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
-    }
+    		if ($form->isValid($data)) {
+    			Logging::info("playlist rules are valid");
+    			Logging::info($form->getValues());
+    			$playlist->setRules($rules);
+    			$playlist->save($con);
+    		}
+    		else {
+    			Logging::info("invalid playlist rules");
+    			Logging::info($form->getMessages());
+    			$this->view->form = $form->render();
+    		}
 
-    /**
-     * The playlist fades are stored in the elements themselves.
-     * The fade in is set to the first elements fade in and
-     * the fade out is set to the last elements fade out.
-     **/
-    public function setPlaylistFadesAction()
-    {
-        $fadeIn = $this->_getParam('fadeIn', null);
-        $fadeOut = $this->_getParam('fadeOut', null);
-        $type = $this->_getParam('type');
-
-        try {
-            $obj = $this->getPlaylist($type);
-            $obj->setfades($fadeIn, $fadeOut);
-            $this->view->modified = $obj->getLastModified("U");
-        } catch (PlaylistOutDatedException $e) {
-            $this->playlistOutdated($e);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
-    }
-
-    public function setPlaylistNameDescAction()
-    {
-        $name = $this->_getParam('name', _('Unknown Playlist'));
-        $description = $this->_getParam('description', "");
-        $type = $this->_getParam('type');
-
-        try {
-            $obj = $this->getPlaylist($type);
-            $obj->setName(trim($name));
-            $obj->setDescription($description);
-            $this->view->description = $description;
-            $this->view->playlistName = $name;
-            $this->view->modified = $obj->getLastModified("U");
-        } catch (PlaylistOutDatedException $e) {
-            $this->playlistOutdated($e);
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound($type, true);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
+    		$con->commit();
+    	}
+    	catch (Exception $e) {
+    		$con->rollBack();
+    		$this->view->error = $e->getMessage();
+    	}
     }
 
     public function saveAction()
     {
-        $request = $this->getRequest();
-        $params = $request->getPost();
-        $result = array();
-        
-        if ($params['type'] == 'block') {
-            try {
-                $bl = new Application_Model_Block($params['obj_id']);
-            } catch (BlockNotFoundException $e) {
-                $this->playlistNotFound('block', true);
-            }
-            $form = new Application_Form_SmartBlockCriteria();
-            $form->startForm($params['obj_id']);
-            if ($form->isValid($params)) {
-                $this->setPlaylistNameDescAction();
-                $bl->saveSmartBlockCriteria($params['data']);
-                $result['html'] = $this->createFullResponse($bl, true, true);
-                $result['result'] = 0;
-            } else {
-                $this->view->obj = $bl;
-                $this->view->id = $bl->getId();
-                $this->view->form = $form;
-                $this->view->unsavedName = $params['name'];
-                $this->view->unsavedDesc = $params['description'];
-                $viewPath = 'playlist/smart-block.phtml';
-                $result['html'] = $this->view->render($viewPath);
-                $result['result'] = 1;
-            }
-        } else if ($params['type'] == 'playlist') {
-            $this->setPlaylistNameDescAction();
-        }
+    	$info = $this->_getParam('serialized');
+    	Logging::info($info);
 
-        $result["modified"] = $this->view->modified;
-        $this->_helper->json->sendJson($result);
-    }
+    	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
+    	$con->beginTransaction();
 
-    public function smartBlockGenerateAction()
-    {
-        $request = $this->getRequest();
-        $params = $request->getPost();
-        
-        //make sure block exists
-        try {
-            $bl = new Application_Model_Block($params['obj_id']);
-            
-            $form = new Application_Form_SmartBlockCriteria();
-            $form->startForm($params['obj_id']);
-            if ($form->isValid($params)) {
-                $result = $bl->generateSmartBlock($params['data']);
-                $this->_helper->json->sendJson(array("result"=>0, "html"=>$this->createFullResponse($bl, true, true)));
-            } else {
-                $this->view->obj = $bl;
-                $this->view->id = $bl->getId();
-                $this->view->form = $form;
-                $viewPath = 'playlist/smart-block.phtml';
-                $result['html'] = $this->view->render($viewPath);
-                $result['result'] = 1;
-                $this->_helper->json->sendJson($result);
-            }
-        } catch (BlockNotFoundException $e) {
-            $this->playlistNotFound('block', true);
-        } catch (Exception $e) {
-            Logging::info($e);
-            $this->playlistUnknownError($e);
-        }
-    }
+    	try {
+    		$playlist = $this->getPlaylist();
+    		$this->playlistService->savePlaylist($playlist, $info, $con);
+    		$this->createUpdateResponse($playlist);
 
-    public function smartBlockShuffleAction()
-    {
-        $request = $this->getRequest();
-        $params = $request->getPost();
-        try {
-            $bl = new Application_Model_Block($params['obj_id']);
-            $result = $bl->shuffleSmartBlock();
-    
-            if ($result['result'] == 0) {
-                $this->_helper->json->sendJson(array("result"=>0, "html"=>$this->createFullResponse($bl, true)));
-            } else {
-                $this->_helper->json->sendJson($result);
-            }
-        } catch (BlockNotFoundException $e) {
-            $this->playlistNotFound('block', true);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
-    }
-    
-    public function shuffleAction()
-    {
-        $request = $this->getRequest();
-        $params = $request->getPost();
-        try {
-            $pl = new Application_Model_Playlist($params['obj_id']);
-            $result = $pl->shuffle();
-            
-            if ($result['result'] == 0) {
-                $this->_helper->json->sendJson(array("result"=>0, "html"=>$this->createFullResponse($pl, true)));
-            } else {
-                $this->_helper->json->sendJson($result);
-            }
-        } catch (PlaylistNotFoundException $e) {
-            $this->playlistNotFound('block', true);
-        } catch (Exception $e) {
-            $this->playlistUnknownError($e);
-        }
-    }
-
-    public function getBlockInfoAction()
-    {
-        $request = $this->getRequest();
-        $params = $request->getPost();
-        $bl = new Application_Model_Block($params['id']);
-        if ($bl->isStatic()) {
-            $out = $bl->getContents();
-            $out['isStatic'] = true;
-        } else {
-            $out = $bl->getCriteria();
-            $out['isStatic'] = false;
-        }
-        $this->_helper->json->sendJson($out);
+    		$con->commit();
+    	}
+    	catch (Exception $e) {
+    		$con->rollBack();
+    		$this->view->error = $e->getMessage();
+    	}
     }
 }
-class WrongTypeToBlockException extends Exception {}
-class WrongTypeToPlaylistException extends Exception {}
-class BlockDynamicException extends Exception {}

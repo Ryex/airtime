@@ -1,22 +1,17 @@
 <?php
+
+use Airtime\CcSchedule;
+use Airtime\CcSchedulePeer;
+use Airtime\CcScheduleQuery;
+use Airtime\CcShowInstancesQuery;
+use Airtime\CcFilesPeer;
+use Airtime\CcShowInstancesPeer;
+
 class Application_Service_SchedulerService
 {
     private $con;
-    private $fileInfo = array(
-            "id" => "",
-            "cliplength" => "",
-            "cuein" => "00:00:00",
-            "cueout" => "00:00:00",
-            "fadein" => "00:00:00",
-            "fadeout" => "00:00:00",
-            "sched_id" => null,
-            "type" => 0 //default type of '0' to represent files. type '1' represents a webstream
-        );
-
     private $epochNow;
     private $nowDT;
-    private $currentUser;
-    private $checkUserPermissions = true;
 
     public function __construct()
     {
@@ -34,9 +29,6 @@ class Application_Service_SchedulerService
             // In PHP 5.3.3 (Ubuntu 10.10), this has been fixed.
             $this->nowDT = DateTime::createFromFormat("U", time(), new DateTimeZone("UTC"));
         }
-
-        $user_service = new Application_Service_UserService();
-        $this->currentUser = $user_service->getCurrentUser();
     }
 
     /**

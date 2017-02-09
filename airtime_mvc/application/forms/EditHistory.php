@@ -3,9 +3,6 @@
 class Application_Form_EditHistory extends Zend_Form
 {
 	const VALIDATE_DATETIME_FORMAT = 'yyyy-MM-dd HH:mm:ss';
-	//this is used by the javascript widget, unfortunately h/H is opposite from Zend.
-	const TIMEPICKER_DATETIME_FORMAT = 'yyyy-MM-dd hh:mm:ss';
-
 	const VALIDATE_DATE_FORMAT = 'yyyy-MM-dd';
 	const VALIDATE_TIME_FORMAT = 'HH:mm:ss';
 
@@ -123,31 +120,15 @@ class Application_Form_EditHistory extends Zend_Form
 		
 		$dynamic_attrs = new Zend_Form_SubForm();
 		$this->addSubForm($dynamic_attrs, $this::ID_PREFIX.'template');
-		
-		// Add the submit button
-		$this->addElement('button', $this::ID_PREFIX.'save', array(
-			'ignore'   => true,
-			'class'    => 'btn '.$this::ID_PREFIX.'save',
-			'label'    => _('Save'),
-			'decorators' => array(
-				'ViewHelper'
-			)
-		));
-		
-		// Add the cancel button
-		$this->addElement('button', $this::ID_PREFIX.'cancel', array(
-			'ignore'   => true,
-			'class'    => 'btn '.$this::ID_PREFIX.'cancel',
-			'label'    => _('Cancel'),
-			'decorators' => array(
-				'ViewHelper'
-			)
-		));
+	}
+	
+	protected function getTemplateSubForm() {
+		return $this->getSubForm($this::ID_PREFIX.'template');
 	}
 
 	public function createFromTemplate($template, $required) {
 
-		$templateSubForm = $this->getSubForm($this::ID_PREFIX.'template');
+		$templateSubForm = self::getTemplateSubForm();
 
 		for ($i = 0, $len = count($template); $i < $len; $i++) {
 

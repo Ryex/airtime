@@ -1,6 +1,20 @@
 <?php
 
-require_once 'formatters/LengthFormatter.php';
+use Airtime\MediaItem\AudioFileQuery;
+
+use Airtime\PlayoutHistory\CcPlayoutHistory;
+use Airtime\PlayoutHistory\CcPlayoutHistoryPeer;
+use Airtime\PlayoutHistory\CcPlayoutHistoryQuery;
+use Airtime\PlayoutHistory\CcPlayoutHistoryMetaData;
+use Airtime\PlayoutHistory\CcPlayoutHistoryTemplate;
+use Airtime\PlayoutHistory\CcPlayoutHistoryTemplatePeer;
+use Airtime\PlayoutHistory\CcPlayoutHistoryTemplateQuery;
+use Airtime\PlayoutHistory\CcPlayoutHistoryTemplateField;
+use Airtime\PlayoutHistory\CcPlayoutHistoryTemplateFieldPeer;
+
+use Airtime\CcShowHostsQuery;
+use Airtime\CcScheduleQuery;
+use Airtime\CcShowInstancesQuery;
 
 class Application_Service_HistoryService
 {
@@ -21,315 +35,143 @@ class Application_Service_HistoryService
 		return array(self::TEMPLATE_TYPE_ITEM, self::TEMPLATE_TYPE_FILE);
 	}
 
-	//opts is from datatables.
-	public function getPlayedItemData($startDT, $endDT, $opts, $instanceId=null)
+	private function getNeededFileMetadataColumns()
 	{
-		$mainSqlQuery = "";
-		$paramMap = array();
-		$sqlTypes = $this->getSqlTypes();
+		$template = $this->getConfiguredFileTemplate();
+		$fields = $template["fields"];
+		$cols = array();
+		$notCols = array(HISTORY_ITEM_PLAYED);
 
-		$start = $startDT->format("Y-m-d H:i:s");
-		$end = $endDT->format("Y-m-d H:i:s");
+		foreach ($fields as $field) {
+			$name = $field["name"];
 
+			if (!in_array($name, $notCols)) {
+				$cols[$name] = null;
+			}
+		}
+
+		return $cols;
+	}
+
+	private function getNeededItemMetadataColumns()
+	{
 		$template = $this->getConfiguredItemTemplate();
 		$fields = $template["fields"];
-		$required = $this->mandatoryItemFields();
+		$cols = array();
+		$notCols = array(HISTORY_ITEM_STARTS, HISTORY_ITEM_ENDS);
 
-		$fields_filemd = array();
-		$filemd_keys = array();
-		$fields_general = array();
-		$general_keys = array();
+		foreach ($fields as $field) {
+			$name = $field["name"];
 
-		foreach ($fields as $index=>$field) {
-
-			if (in_array($field["name"], $required)) {
-				continue;
-			}
-
-			if ($field["isFileMd"]) {
-				$fields_filemd[] = $field;
-				$filemd_keys[] = $field["name"];
-			}
-			else {
-				$fields_general[] = $field;
-				$general_keys[] = $field["name"];
+			if (!in_array($name, $notCols)) {
+				$cols[$name] = null;
 			}
 		}
 
-		//-----------------------------------------------------------------------
-		//Using the instance_id to filter the data.
+		return $cols;
+	}
 
+	//opts is from datatables.
+	 public function getPlayedItemData($startDT, $endDT, $instanceId=null, $offset = 0, $limit = -1)
+	 {
+	 	$this->con->beginTransaction();
 
-		$historyRange = "(".
-		"SELECT history.starts, history.ends, history.id AS history_id, history.instance_id".
-		" FROM cc_playout_history as history";
+	 	$query = CcPlayoutHistoryQuery::create()
+		 	->_if(isset($instanceId))
+		 		->filterByDbInstanceId($instanceId)
+		 	->_endif()
+		 	->_if(is_null($instanceId))
+		 		->filterByDbStarts($startDT, Criteria::GREATER_EQUAL)
+	 			->filterByDbStarts($endDT, Criteria::LESS_EQUAL)
+		 	->_endif();
 
-		if (isset($instanceId)) {
-		    $historyRange.= " WHERE history.instance_id = :instance";
-		    $paramMap["instance"] = $instanceId;
-		}
-		else {
-		    $historyRange.= " WHERE history.starts >= :starts and history.starts < :ends";
-		    $paramMap["starts"] = $start;
-		    $paramMap["ends"] = $end;
-		}
+	 	$totalCount = $query->count($this->con);
 
-		$historyRange.= ") AS history_range";
+		$items = $query
+		 	->orderByDbStarts()
+	 		->_if($limit !== -1) //Datatables ALL
+		 		->limit($limit)
+		 		->offset($offset)
+	 		->_endif()
+	 		->find($this->con);
 
-		$manualMeta = "(".
-		"SELECT %KEY%.value AS %KEY%, %KEY%.history_id".
-		" FROM (".
-		" SELECT * from cc_playout_history_metadata AS phm WHERE phm.key = :meta_%KEY%".
-		" ) AS %KEY%".
-		" ) AS %KEY%_filter";
+		$items->populateRelation('CcPlayoutHistoryMetaData');
 
-		$mainSelect = array(
-	        "history_range.starts",
-	        "history_range.ends",
-	        "history_range.history_id",
-		    "history_range.instance_id"
-		);
-		$mdFilters = array();
-
-		$numFileMdFields = count($fields_filemd);
-
-		if ($numFileMdFields > 0) {
-
-			//these 3 selects are only needed if $fields_filemd has some fields.
-			$fileSelect = array("history_file.history_id");
-			$nonNullFileSelect = array("file.id as file_id");
-			$nullFileSelect = array("null_file.history_id");
-
-			$fileMdFilters = array();
-
-			//populate the different dynamic selects with file info.
-			for ($i = 0; $i < $numFileMdFields; $i++) {
-
-				$field = $fields_filemd[$i];
-				$key = $field["name"];
-				$type = $sqlTypes[$field["type"]];
-
-				$fileSelect[] = "file_md.{$key}::{$type}";
-				$nonNullFileSelect[] = "file.{$key}::{$type}";
-				$nullFileSelect[] = "{$key}_filter.{$key}::{$type}";
-				$mainSelect[] = "file_info.{$key}::{$type}";
-
-				$fileMdFilters[] = str_replace("%KEY%", $key, $manualMeta);
-				$paramMap["meta_{$key}"] = $key;
-			}
-
-			//the files associated with scheduled playback in Airtime.
-			$historyFile = "(".
-			"SELECT history.id AS history_id, history.file_id".
-			" FROM cc_playout_history AS history".
-			" WHERE history.file_id IS NOT NULL".
-			") AS history_file";
-
-			$fileMd = "(".
-			"SELECT %NON_NULL_FILE_SELECT%".
-			" FROM cc_files AS file".
-			") AS file_md";
-
-			$fileMd = str_replace("%NON_NULL_FILE_SELECT%", join(", ", $nonNullFileSelect), $fileMd);
-
-			//null files are from manually added data (filling in webstream info etc)
-			$nullFile = "(".
-			"SELECT history.id AS history_id".
-			" FROM cc_playout_history AS history".
-			" WHERE history.file_id IS NULL".
-			") AS null_file";
-
-
-			//----------------------------------
-			//building the file inner query
-
-			$fileSqlQuery =
-			"SELECT ".join(", ", $fileSelect).
-			" FROM {$historyFile}".
-			" LEFT JOIN {$fileMd} USING (file_id)".
-			" UNION".
-			" SELECT ".join(", ", $nullFileSelect).
-			" FROM {$nullFile}";
-
-			foreach ($fileMdFilters as $filter) {
-
-				$fileSqlQuery.=
-				" LEFT JOIN {$filter} USING(history_id)";
-			}
-
-		}
-
-		for ($i = 0, $len = count($fields_general); $i < $len; $i++) {
-
-			$field = $fields_general[$i];
-			$key = $field["name"];
-			$type = $sqlTypes[$field["type"]];
-
-			$mdFilters[] = str_replace("%KEY%", $key, $manualMeta);
-			$paramMap["meta_{$key}"] = $key;
-			$mainSelect[] = "{$key}_filter.{$key}::{$type}";
-		}
-
-		$mainSqlQuery.=
-		"SELECT ".join(", ", $mainSelect).
-		" FROM {$historyRange}";
-
-		if (isset($fileSqlQuery)) {
-
-			$mainSqlQuery.=
-			" LEFT JOIN ( {$fileSqlQuery} ) as file_info USING(history_id)";
-		}
-
-		foreach ($mdFilters as $filter) {
-
-			$mainSqlQuery.=
-			" LEFT JOIN {$filter} USING(history_id)";
-		}
-
-		//----------------------------------------------------------------------
-		//need to count the total rows to tell Datatables.
-		$stmt = $this->con->prepare($mainSqlQuery);
-		foreach ($paramMap as $param => $v) {
-			$stmt->bindValue($param, $v);
-		}
-
-		if ($stmt->execute()) {
-			$totalRows = $stmt->rowCount();
-		}
-		else {
-			$msg = implode(',', $stmt->errorInfo());
-			throw new Exception("Error: $msg");
-		}
-
-		//------------------------------------------------------------------------
-		//Using Datatables parameters to sort the data.
-
-        if (empty($opts["iSortingCols"])) {
-		    $orderBys = array();
-        } else {
-            $numOrderColumns = $opts["iSortingCols"];
-            $orderBys = array();
-
-            for ($i = 0; $i < $numOrderColumns; $i++) {
-
-                $colNum = $opts["iSortCol_".$i];
-                $key = $opts["mDataProp_".$colNum];
-                $sortDir = $opts["sSortDir_".$i];
-
-                if (in_array($key, $required)) {
-
-                    $orderBys[] = "history_range.{$key} {$sortDir}";
-                }
-                else if (in_array($key, $filemd_keys)) {
-
-                    $orderBys[] = "file_info.{$key} {$sortDir}";
-                }
-                else if (in_array($key, $general_keys)) {
-
-                    $orderBys[] = "{$key}_filter.{$key} {$sortDir}";
-                }
-                else {
-                    //throw new Exception("Error: $key is not part of the template.");
-                }
-            }
-		}
-
-		if (count($orderBys) > 0) {
-
-			$orders = join(", ", $orderBys);
-
-			$mainSqlQuery.=
-			" ORDER BY {$orders}";
-		}
-
-		//---------------------------------------------------------------
-		//using Datatables parameters to add limits/offsets
-
-		 $displayLength = empty($opts["iDisplayLength"]) ? -1 : intval($opts["iDisplayLength"]);
-		//limit the results returned.
-		if ($displayLength !== -1) {
-			$mainSqlQuery.=
-			" OFFSET :offset LIMIT :limit";
-
-			$paramMap["offset"] = intval($opts["iDisplayStart"]);
-			$paramMap["limit"] = $displayLength;
-		}
-
-		$stmt = $this->con->prepare($mainSqlQuery);
-		foreach ($paramMap as $param => $v) {
-			$stmt->bindValue($param, $v);
-		}
-
-		$rows = array();
-		if ($stmt->execute()) {
-			$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-		}
-		else {
-			$msg = implode(',', $stmt->errorInfo());
-			throw new Exception("Error: $msg");
-		}
-
-		//-----------------------------------------------------------------------
-		//processing results.
+		$this->con->commit();
 
 		$timezoneUTC = new DateTimeZone("UTC");
 		$timezoneLocal = new DateTimeZone($this->timezone);
 
-		$boolCast = array();
-		foreach ($fields as $index=>$field) {
-
-			if ($field["type"] == TEMPLATE_BOOLEAN) {
-				$boolCast[] = $field;
-			}
-		}
-
-		foreach ($rows as $index => &$result) {
-
-			foreach ($boolCast as $field) {
-				$result[$field['label']] = (bool) $result[$field['name']];
-			}
+		$neededColumns = $this->getNeededItemMetadataColumns();
+		$neededMetadata = array_keys($neededColumns);
+		$datatables = array();
+		foreach($items as $item) {
+			$row = $neededColumns;
 
 			//need to display the results in the station's timezone.
-			$dateTime = new DateTime($result["starts"], $timezoneUTC);
-			$dateTime->setTimezone($timezoneLocal);
-			$result["starts"] = $dateTime->format("Y-m-d H:i:s");
+			$start = $item->getDbStarts(null);
+			$start->setTimezone($timezoneLocal);
+			$row[HISTORY_ITEM_STARTS] = $start->format("Y-m-d H:i:s");
 
+			$end = $item->getDbEnds(null);
 			//if ends is null we don't want it to default to "now"
-			if (isset($result["ends"])) {
-				$dateTime = new DateTime($result["ends"], $timezoneUTC);
-				$dateTime->setTimezone($timezoneLocal);
-				$result["ends"] = $dateTime->format("Y-m-d H:i:s");
+			if (isset($end)) {
+				$end->setTimezone($timezoneLocal);
+				$row[HISTORY_ITEM_ENDS] = $end->format("Y-m-d H:i:s");
+			}
+			else {
+				$row[HISTORY_ITEM_ENDS] = null;
 			}
 
-			if (isset($result[MDATA_KEY_DURATION])) {
-				$formatter = new LengthFormatter($result[MDATA_KEY_DURATION]);
-				$result[MDATA_KEY_DURATION] = $formatter->format();
+			$metadata = $item->getCcPlayoutHistoryMetaDatas(null, $this->con);
+			foreach ($metadata as $m) {
+				$key = $m->getDbKey();
+
+				if (in_array($key, $neededMetadata)) {
+					$row[$key] = $m->getDbValue();
+				}
 			}
 
-			//need to add a checkbox..
-			$result["checkbox"] = "";
+			$row["history_id"] = $item->getDbId();
+			$row["checkbox"] = "";
 
-			//$unicodeChar = '\u2612';
-			//$result["new"] = json_decode('"'.$unicodeChar.'"');
-			//$result["new"] = "U+2612";
+			$datatables[] = $row;
 		}
 
-		return array(
-			"sEcho" => empty($opts["sEcho"]) ? null : intval($opts["sEcho"]),
-			//"iTotalDisplayRecords" => intval($totalDisplayRows),
-			"iTotalDisplayRecords" => intval($totalRows),
-			"iTotalRecords" => intval($totalRows),
-			"history" => $rows
-		);
-	}
+	 	return array(
+ 			"iTotalDisplayRecords" => intval($totalCount),
+ 			"iTotalRecords" => intval($totalCount),
+ 			"history" => $datatables
+	 	);
+	 }
 
 	public function getFileSummaryData($startDT, $endDT, $opts)
 	{
+		Logging::enablePropelLogging();
+
+		$fieldMap = array(
+			MDATA_KEY_TITLE => "track_title",
+			MDATA_KEY_CREATOR => "artist_name",
+			MDATA_KEY_SOURCE => "album_title",
+			MDATA_KEY_GENRE => "genre",
+			MDATA_KEY_MOOD => "mood",
+			MDATA_KEY_LABEL => "label",
+			MDATA_KEY_COMPOSER => "composer",
+			MDATA_KEY_ISRC => "isrc_number",
+			MDATA_KEY_COPYRIGHT => "copyright",
+			MDATA_KEY_YEAR => "year",
+			MDATA_KEY_TRACKNUMBER => "track_number",
+			MDATA_KEY_CONDUCTOR => "conductor",
+			MDATA_KEY_LANGUAGE => "language",
+			MDATA_KEY_DURATION => "length",
+			HISTORY_ITEM_PLAYED => "played"
+		);
+
 		$select = array (
-			"summary.played",
-			"summary.file_id",
-			"summary.".MDATA_KEY_TITLE,
-			"summary.".MDATA_KEY_CREATOR
+			"summary.played AS \"".HISTORY_ITEM_PLAYED."\"",
+			"summary.media_id",
+			"summary.{$fieldMap[MDATA_KEY_TITLE]} AS \"".MDATA_KEY_TITLE."\"",
+			"summary.{$fieldMap[MDATA_KEY_CREATOR]} AS \"".MDATA_KEY_CREATOR."\""
 		);
 
 		$mainSqlQuery = "";
@@ -352,17 +194,16 @@ class Application_Service_HistoryService
 				continue;
 			}
 
-			$select[] = "summary.{$key}";
+			$select[] = "summary.{$fieldMap[$key]} AS \"{$key}\"";
 		}
 
 		$fileSummaryTable = "((
-			SELECT COUNT(history.file_id) as played, history.file_id as file_id
+			SELECT COUNT(history.media_id) as played, history.media_id as media_id
 			FROM cc_playout_history AS history
 			WHERE history.starts >= :starts AND history.starts < :ends
-			AND history.file_id IS NOT NULL
-			GROUP BY history.file_id
+			GROUP BY history.media_id
 		) AS playout
-		LEFT JOIN cc_files AS file ON (file.id = playout.file_id)) AS summary";
+		JOIN media_audiofile AS audiofile ON (audiofile.id = playout.media_id)) AS summary";
 
 		$mainSqlQuery.=
 		"SELECT ".join(", ", $select).
@@ -395,7 +236,7 @@ class Application_Service_HistoryService
 			$key = $opts["mDataProp_".$colNum];
 			$sortDir = $opts["sSortDir_".$i];
 
-			$orderBys[] = "summary.{$key} {$sortDir}";
+			$orderBys[] = "summary.{$fieldMap[$key]} {$sortDir}";
 		}
 
 		if ($numOrderColumns > 0) {
@@ -435,14 +276,15 @@ class Application_Service_HistoryService
 		//processing the results
 		foreach ($rows as &$row) {
 			if (isset($row[MDATA_KEY_DURATION])) {
-				$formatter = new LengthFormatter($row[MDATA_KEY_DURATION]);
+				$formatter = new Format_HHMMSSULength($row[MDATA_KEY_DURATION]);
 				$row[MDATA_KEY_DURATION] = $formatter->format();
 			}
 		}
 
+		Logging::disablePropelLogging();
+
 		return array(
 			"sEcho" => intval($opts["sEcho"]),
-			//"iTotalDisplayRecords" => intval($totalDisplayRows),
 			"iTotalDisplayRecords" => intval($totalRows),
 			"iTotalRecords" => intval($totalRows),
 			"history" => $rows
@@ -518,115 +360,67 @@ class Application_Service_HistoryService
 
 		return $filteredShows;
 	}
-	
-	public function insertWebstreamMetadata($schedId, $startDT, $data) {
-		
+
+	public function insertHistoryItem($schedId, $opts = array()) {
+
 		$this->con->beginTransaction();
-		
+
 		try {
 			
-			$item = CcScheduleQuery::create()->findPK($schedId, $this->con);
+			// we need to update 'broadcasted' column as well
+			// check the current switch status
+			$live_dj = Application_Model_Preference::GetSourceSwitchStatus('live_dj') == 'on';
+			$master_dj = Application_Model_Preference::GetSourceSwitchStatus('master_dj') == 'on';
+			$scheduled_play = Application_Model_Preference::GetSourceSwitchStatus('scheduled_play') == 'on';
 			
-			//TODO figure out how to combine these all into 1 query.
-			$showInstance = $item->getCcShowInstances($this->con);
-			$show = $showInstance->getCcShow($this->con);
-			
-			$webstream = $item->getCcWebstream($this->con);
-			
-			$metadata = array();
-			$metadata["showname"] = $show->getDbName();
-			$metadata[MDATA_KEY_TITLE] = $data->title;
-			$metadata[MDATA_KEY_CREATOR] = $webstream->getDbName();
-			
-			$history = new CcPlayoutHistory();
-			$history->setDbStarts($startDT);
-			$history->setDbEnds(null);
-			$history->setDbInstanceId($item->getDbInstanceId());
-			
-			foreach ($metadata as $key => $val) {
-				$meta = new CcPlayoutHistoryMetaData();
-				$meta->setDbKey($key);
-				$meta->setDbValue($val);
-			
-				$history->addCcPlayoutHistoryMetaData($meta);
+			$scheduledItem = CcScheduleQuery::create()
+				->filterByPrimaryKey($schedId)
+				->joinWith("MediaItem", Criteria::LEFT_JOIN)
+				->findOne($this->con);
+
+			if (isset($scheduledItem)) {
+
+				$scheduledItem->setDbMediaItemPlayed(true);
+					
+				//not sure how well this broadcasted column actually is at doing anything.
+				if (!$live_dj && !$master_dj && $scheduled_play) {
+					$scheduledItem->setDbBroadcasted(1);
+					
+					$mediaItem = $scheduledItem->getMediaItem($this->con);
+					$media = $mediaItem->getChildObject();
+						
+					//set a 'last played' timestamp for media item
+					$utcNow = new DateTime("now", new DateTimeZone("UTC"));
+					$media->setLastPlayedTime($utcNow);
+					
+					$playcount = $mediaItem->getPlayCount();
+					$media->setPlayCount($playcount + 1);
+					
+					$media->save($this->con);
+					$scheduledItem->save($this->con);
+					
+					$type = $mediaItem->getType();
+					$strategy = "Strategy_{$type}HistoryItem";
+					
+					$insertStrategy = new $strategy();
+					$insertStrategy->insertHistoryItem($schedId, $this->con, $opts);
+				}	
 			}
-			
-			$history->save($this->con);
-			
+
 			$this->con->commit();
 		}
 		catch (Exception $e) {
 			$this->con->rollback();
-			throw $e;
-		}
-	}
-
-	public function insertPlayedItem($schedId) {
-
-		$this->con->beginTransaction();
-
-		try {
-
-			$item = CcScheduleQuery::create()->findPK($schedId, $this->con);
-			if (is_null($item)) {
-			    throw new Exception("Invalid schedule id: ".$schedId);
-			}
-
-			//TODO figure out how to combine these all into 1 query.
-			$showInstance = $item->getCcShowInstances($this->con);
-			$show = $showInstance->getCcShow($this->con);
-
-			$fileId = $item->getDbFileId();
-
-			//don't add webstreams
-			if (isset($fileId)) {
-
-				$metadata = array();
-				$metadata["showname"] = $show->getDbName();
-
-				$instanceEnd = $showInstance->getDbEnds(null);
-				$itemEnd = $item->getDbEnds(null);
-				$recordStart = $item->getDbStarts(null);
-				$recordEnd = ($instanceEnd < $itemEnd) ? $instanceEnd : $itemEnd;
-				
-				//first check if this is a duplicate
-				// (caused by restarting liquidsoap)
-				
-				$prevRecord = CcPlayoutHistoryQuery::create()
-					->filterByDbStarts($recordStart)
-					->filterByDbEnds($recordEnd)
-					->filterByDbFileId($fileId)
-					->findOne($this->con);
-				
-				if (empty($prevRecord)) {
-					
-					$history = new CcPlayoutHistory();
-					$history->setDbFileId($fileId);
-					$history->setDbStarts($recordStart);
-					$history->setDbEnds($recordEnd);
-					$history->setDbInstanceId($item->getDbInstanceId());
-					
-					foreach ($metadata as $key => $val) {
-						$meta = new CcPlayoutHistoryMetaData();
-						$meta->setDbKey($key);
-						$meta->setDbValue($val);
-					
-						$history->addCcPlayoutHistoryMetaData($meta);
-					}
-					
-					$history->save($this->con);
-					$this->con->commit();
-				}	
-			}	
-		}
-		catch (Exception $e) {
-			$this->con->rollback();
-			throw $e;
 		}
 	}
 
 	/* id is an id in cc_playout_history */
 	public function makeHistoryItemForm($id, $populate=false) {
+
+		$fieldMap = array(
+			HISTORY_ITEM_STARTS => "DbStarts",
+			HISTORY_ITEM_ENDS => "DbEnds"
+		);
 
 		try {
 			$form = new Application_Form_EditHistoryItem();
@@ -638,7 +432,6 @@ class Application_Service_HistoryService
 				$formValues = array();
 
 				$historyRecord = CcPlayoutHistoryQuery::create()->findPk($id, $this->con);
-				$file = $historyRecord->getCcFiles($this->con);
 				$instance = $historyRecord->getCcShowInstances($this->con);
 
 				if (isset($instance)) {
@@ -649,10 +442,6 @@ class Application_Service_HistoryService
 				    $form->populateShowInstances($selOpts, $instance_id);
 				}
 
-				if (isset($file)) {
-					$f = Application_Model_StoredFile::createWithFile($file, $this->con);
-					$filemd = $f->getDbColMetadata();
-				}
 				$metadata = array();
 				$mds = $historyRecord->getCcPlayoutHistoryMetaDatas();
 				foreach ($mds as $md) {
@@ -669,12 +458,8 @@ class Application_Service_HistoryService
 
 					if (in_array($key, $required)) {
 
-						$method = "getDb".ucfirst($key);
+						$method = "get".$fieldMap[$key];
 						$value = $historyRecord->$method();
-					}
-					else if (isset($filemd) && $field["isFileMd"]) {
-
-						$value = $filemd[$key];
 					}
 					else if (isset($metadata[$key])) {
 						$value = $metadata[$key];
@@ -713,8 +498,8 @@ class Application_Service_HistoryService
 			$required = $this->mandatoryFileFields();
 			$form->createFromTemplate($template["fields"], $required);
 
-		    $file = Application_Model_StoredFile::RecallById($id, $this->con);
-		    $md = $file->getDbColMetadata();
+		    $file = AudioFileQuery::create()->findPK($id, $this->con);
+		    $md = $file->getMetadata();
 
 		    $prefix = Application_Form_EditHistoryFile::ID_PREFIX;
 		    $formValues = array();
@@ -748,7 +533,7 @@ class Application_Service_HistoryService
 
 		try {
 
-			$file = Application_Model_StoredFile::RecallById($id, $this->con);
+			$file = AudioFileQuery::create()->findPk($id, $this->con);
 
 			$prefix = Application_Form_EditHistoryFile::ID_PREFIX;
 			$prefix_len = strlen($prefix);
@@ -762,7 +547,11 @@ class Application_Service_HistoryService
 				$md[$key] = $value;
 			}
 
-			$file->setDbColMetadata($md);
+			Logging::info($md);
+
+			$file->setMetadata($md);
+			$file->save($this->con);
+
 			$this->con->commit();
 		}
 		catch (Exception $e) {
@@ -793,17 +582,17 @@ class Application_Service_HistoryService
 		    $timezoneUTC = new DateTimeZone("UTC");
 		    $timezoneLocal = new DateTimeZone($this->timezone);
 
-	    	$dateTime = new DateTime($values[$prefix."starts"], $timezoneLocal);
+	    	$dateTime = new DateTime($values[$prefix.HISTORY_ITEM_STARTS], $timezoneLocal);
 	    	$dateTime->setTimezone($timezoneUTC);
 	    	$historyRecord->setDbStarts($dateTime->format("Y-m-d H:i:s"));
 
-	    	$dateTime = new DateTime($values[$prefix."ends"], $timezoneLocal);
+	    	$dateTime = new DateTime($values[$prefix.HISTORY_ITEM_ENDS], $timezoneLocal);
 	    	$dateTime->setTimezone($timezoneUTC);
 	    	$historyRecord->setDbEnds($dateTime->format("Y-m-d H:i:s"));
 
 	    	$templateValues = $values[$prefix."template"];
 
-	    	$file = $historyRecord->getCcFiles();
+	    	$file = $historyRecord->getMediaItem($this->con);
 
 	    	$md = array();
 	    	$metadata = array();
@@ -821,22 +610,9 @@ class Application_Service_HistoryService
 	    	    	continue;
 	    	    }
 
-	    	    $isFileMd = $field["isFileMd"];
 	    	    $entry = $phpCasts[$field["type"]]($templateValues[$prefix.$key]);
-
-	    	    if ($isFileMd && isset($file)) {
-	    	        Logging::info("adding metadata associated to a file for {$key} = {$entry}");
-	    	        $md[$key] = $entry;
-	    	    }
-	    	    else {
-	    	    	Logging::info("adding metadata for {$key} = {$entry}");
-                    $metadata[$key] = $entry;
-	    	    }
-	    	}
-
-	    	if (count($md) > 0) {
-	    		$f = Application_Model_StoredFile::createWithFile($file, $this->con);
-	    		$f->setDbColMetadata($md);
+	    	    Logging::info("adding metadata for {$key} = {$entry}");
+                $metadata[$key] = $entry;
 	    	}
 
 	    	//Use this array to update existing values.
@@ -888,22 +664,11 @@ class Application_Service_HistoryService
 
 	private function validateHistoryItem($instanceId, $form) {
 
-	    /*
-	    $userService = new Application_Service_UserService();
-	    $currentUser = $userService->getCurrentUser();
-
-	    if (!$currentUser->isAdminOrPM()) {
-	        if (empty($instance_id) ) {
-
-	        }
-	    }
-	    */
-
 	    $valid = true;
 
-	    $recordStartsEl = $form->getElement("his_item_starts");
+	    $recordStartsEl = $form->getElement("his_item_".HISTORY_ITEM_STARTS);
 	    $recordStarts = $recordStartsEl->getValue();
-	    $recordEndsEl = $form->getElement("his_item_starts");
+	    $recordEndsEl = $form->getElement("his_item_".HISTORY_ITEM_ENDS);
 	    $recordEnds = $recordEndsEl->getValue();
 
 	    $timezoneLocal = new DateTimeZone($this->timezone);
@@ -1134,14 +899,14 @@ class Application_Service_HistoryService
 
 	public function mandatoryItemFields() {
 
-	    $fields = array("starts", "ends");
+	    $fields = array(HISTORY_ITEM_STARTS, HISTORY_ITEM_ENDS);
 
 	    return $fields;
 	}
 
 	public function mandatoryFileFields() {
 
-		$fields = array("played");
+		$fields = array(HISTORY_ITEM_PLAYED);
 
 		return $fields;
 	}
@@ -1151,12 +916,12 @@ class Application_Service_HistoryService
 		$template = array();
 		$fields = array();
 
-		$fields[] = array("name" => "starts", "label"=> _("Start Time"),"type" => TEMPLATE_DATETIME, "isFileMd" => false);
-		$fields[] = array("name" => "ends", "label"=> _("End Time"), "type" => TEMPLATE_DATETIME, "isFileMd" => false);
+		$fields[] = array("name" => HISTORY_ITEM_STARTS, "label"=> _("Start Time"),"type" => TEMPLATE_DATETIME, "isFileMd" => false);
+		$fields[] = array("name" => HISTORY_ITEM_ENDS, "label"=> _("End Time"), "type" => TEMPLATE_DATETIME, "isFileMd" => false);
 		$fields[] = array("name" => MDATA_KEY_TITLE, "label"=> _("Title"), "type" => TEMPLATE_STRING, "isFileMd" => true); //these fields can be populated from an associated file.
 		$fields[] = array("name" => MDATA_KEY_CREATOR, "label"=> _("Creator"), "type" => TEMPLATE_STRING, "isFileMd" => true);
 
-		$template["name"] = "Log Sheet ".date("Y-m-d H:i:s")." Template";
+		$template["name"] = "Log Sheet ".gmdate("c")." Template";
 		$template["fields"] = $fields;
 
 		return $template;
@@ -1172,12 +937,12 @@ class Application_Service_HistoryService
 
 		$fields[] = array("name" => MDATA_KEY_TITLE, "label"=> _("Title"), "type" => TEMPLATE_STRING, "isFileMd" => true);
 		$fields[] = array("name" => MDATA_KEY_CREATOR, "label"=> _("Creator"), "type" => TEMPLATE_STRING, "isFileMd" => true);
-		$fields[] = array("name" => "played", "label"=> _("Played"), "type" => TEMPLATE_INT, "isFileMd" => false);
+		$fields[] = array("name" => HISTORY_ITEM_PLAYED, "label"=> _("Played"), "type" => TEMPLATE_INT, "isFileMd" => false);
 		$fields[] = array("name" => MDATA_KEY_DURATION, "label"=> _("Length"), "type" => TEMPLATE_STRING, "isFileMd" => true);
 		$fields[] = array("name" => MDATA_KEY_COMPOSER, "label"=> _("Composer"), "type" => TEMPLATE_STRING, "isFileMd" => true);
 		$fields[] = array("name" => MDATA_KEY_COPYRIGHT, "label"=> _("Copyright"), "type" => TEMPLATE_STRING, "isFileMd" => true);
 
-		$template["name"] = "File Summary ".date("Y-m-d H:i:s")." Template";
+		$template["name"] = "File Summary ".gmdate("c")." Template";
 		$template["fields"] = $fields;
 
 		return $template;
@@ -1275,7 +1040,7 @@ class Application_Service_HistoryService
 		return $this->getTemplates(self::TEMPLATE_TYPE_FILE);
 	}
 
-	private function datatablesColumns($fields) {
+	private function datatablesColumns($fields, $sortable=false) {
 
 		$columns = array();
 
@@ -1288,7 +1053,8 @@ class Application_Service_HistoryService
 				"sTitle"=> $label,
 				"mDataProp"=> $key,
 				"sClass"=> "his_{$key}",
-				"sDataType"=> $field["type"]
+				"sDataType"=> $field["type"],
+				"bSortable"=> $sortable
 			);
 		}
 
@@ -1323,7 +1089,7 @@ class Application_Service_HistoryService
 
 		try {
 			$template = $this->getConfiguredFileTemplate();
-			return $this->datatablesColumns($template["fields"]);
+			return $this->datatablesColumns($template["fields"], true);
 		}
 		catch (Exception $e) {
 			throw $e;

@@ -11,10 +11,14 @@ function showConfigCheckPage() {
         // configuration hasn't been initialized
         checkConfiguration();
     }
-
     require_once(CONFIG_PATH . 'config-check.php');
     die();
 }
+
+// Define application environment
+defined('APPLICATION_ENV')
+    || define('APPLICATION_ENV', (getenv('APPLICATION_ENV') ? getenv('APPLICATION_ENV') : 'production'));
+
 
 function isApiCall() {
     $path = $_SERVER['PHP_SELF'];
@@ -31,7 +35,10 @@ define('CONFIG_PATH', APPLICATION_PATH . 'configs/');
 
 define("AIRTIME_CONFIG_STOR", "/etc/airtime/");
 
-define('AIRTIME_CONFIG', 'airtime.conf');
+set_include_path(APPLICATION_PATH . '/presentation' . PATH_SEPARATOR . get_include_path());
+
+//Propel classes.
+set_include_path(APPLICATION_PATH . '/models' . PATH_SEPARATOR . get_include_path());
 
 require_once(LIB_PATH . "propel/runtime/lib/Propel.php");
 require_once(CONFIG_PATH . 'conf.php');
@@ -52,4 +59,3 @@ else {
     $airtimeSetup = true;
     require_once(SETUP_PATH . 'setup-config.php');
 }
-

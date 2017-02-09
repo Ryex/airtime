@@ -18,14 +18,57 @@ class PlayouthistoryController extends Zend_Controller_Action
             ->addActionContext('update-file-item', 'json')
             ->initContext();
     }
-    
+
+    private function getStartEnd()
+    {
+    	$request = $this->getRequest();
+
+    	$userTimezone = new DateTimeZone(Application_Model_Preference::GetUserTimezone());
+    	$utcTimezone = new DateTimeZone("UTC");
+    	$utcNow = new DateTime("now", $utcTimezone);
+
+    	$start = $request->getParam("start");
+    	$end = $request->getParam("end");
+
+    	if (empty($start) || empty($end)) {
+    		$startsDT = clone $utcNow;
+    		$startsDT->sub(new DateInterval("P1D"));
+    		$endsDT = clone $utcNow;
+    	}
+    	else {
+
+    		try {
+    			$startsDT = new DateTime($start, $userTimezone);
+    			$startsDT->setTimezone($utcTimezone);
+
+    			$endsDT = new DateTime($end, $userTimezone);
+    			$endsDT->setTimezone($utcTimezone);
+
+    			if ($startsDT > $endsDT) {
+    				throw new Exception("start greater than end");
+    			}
+    		}
+    		catch (Exception $e) {
+    			Logging::info($e);
+    			Logging::info($e->getMessage());
+
+    			$startsDT = clone $utcNow;
+    			$startsDT->sub(new DateInterval("P1D"));
+    			$endsDT = clone $utcNow;
+    		}
+
+    	}
+
+    	return array($startsDT, $endsDT);
+    }
+
     public function indexAction()
     {
         $CC_CONFIG = Config::getConfig();
         $baseUrl = Application_Common_OsPath::getBaseDir();
 
-        list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($this->getRequest());
-       
+        list($startsDT, $endsDT) = $this->getStartEnd();
+
         $userTimezone = new DateTimeZone(Application_Model_Preference::GetUserTimezone());
         $startsDT->setTimezone($userTimezone);
         $endsDT->setTimezone($userTimezone);
@@ -40,25 +83,22 @@ class PlayouthistoryController extends Zend_Controller_Action
 
         $this->view->date_form = $form;
 
+        $this->view->headScript()->appendFile($baseUrl.'js/timepicker/jquery.ui.timepicker.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/contextmenu/jquery.contextMenu.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/js/jquery.dataTables.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.pluginAPI.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
-        $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/dataTables.fnSetFilteringDelay.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/TableTools-2.1.5/js/ZeroClipboard.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/datatables/plugin/TableTools-2.1.5/js/TableTools.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
 
-        $this->view->headScript()->appendFile($baseUrl.'js/timepicker/jquery.ui.timepicker.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
-        $this->view->headScript()->appendFile($baseUrl.'js/bootstrap-datetime/bootstrap-datetimepicker.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/airtime/buttons/buttons.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/airtime/utilities/utilities.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $this->view->headScript()->appendFile($baseUrl.'js/airtime/playouthistory/historytable.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
 
-        $this->view->headLink()->appendStylesheet($baseUrl.'css/bootstrap-datetimepicker.min.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'js/datatables/plugin/TableTools-2.1.5/css/TableTools.css?'.$CC_CONFIG['airtime_version']);
-        $this->view->headLink()->appendStylesheet($baseUrl.'css/jquery.ui.timepicker.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/playouthistory.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/history_styles.css?'.$CC_CONFIG['airtime_version']);
         $this->view->headLink()->appendStylesheet($baseUrl.'css/jquery.contextMenu.css?'.$CC_CONFIG['airtime_version']);
+        $this->view->headLink()->appendStylesheet($baseUrl.'css/jquery.ui.timepicker.css?'.$CC_CONFIG['airtime_version']);
 
         //set datatables columns for display of data.
         $historyService = new Application_Service_HistoryService();
@@ -79,8 +119,8 @@ class PlayouthistoryController extends Zend_Controller_Action
 	        $request = $this->getRequest();
     		$params = $request->getParams();
     		$instance = $request->getParam("instance_id", null);
-	        
-            list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
+
+    		list($startsDT, $endsDT) = $this->getStartEnd();
 
 	        $historyService = new Application_Service_HistoryService();
 	        $r = $historyService->getFileSummaryData($startsDT, $endsDT, $params);
@@ -102,13 +142,16 @@ class PlayouthistoryController extends Zend_Controller_Action
     		$request = $this->getRequest();
     		$params = $request->getParams();
     		$instance = $request->getParam("instance_id", null);
-	        
-            list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
-    		
-	        $historyService = new Application_Service_HistoryService();
-	        $r = $historyService->getPlayedItemData($startsDT, $endsDT, $params, $instance);
 
-	        $this->view->sEcho = $r["sEcho"];
+    		list($startsDT, $endsDT) = $this->getStartEnd();
+
+    		$limit = intval($params["iDisplayLength"]);
+    		$offset = intval($params["iDisplayStart"]);
+
+	        $historyService = new Application_Service_HistoryService();
+	        $r = $historyService->getPlayedItemData($startsDT, $endsDT, $instance, $offset, $limit);
+
+	        $this->view->sEcho = intval($params["sEcho"]);
 	        $this->view->iTotalDisplayRecords = $r["iTotalDisplayRecords"];
 	        $this->view->iTotalRecords = $r["iTotalRecords"];
 	        $this->view->history = $r["history"];
@@ -125,8 +168,8 @@ class PlayouthistoryController extends Zend_Controller_Action
     		$request = $this->getRequest();
     		$params = $request->getParams();
     		$instance = $request->getParam("instance_id", null);
-	        
-            list($startsDT, $endsDT) = Application_Common_HTTPHelper::getStartEndFromRequest($request);
+
+    		list($startsDT, $endsDT) = $this->getStartEnd();
 
     		$historyService = new Application_Service_HistoryService();
     		$shows = $historyService->getShowList($startsDT, $endsDT);
@@ -148,6 +191,7 @@ class PlayouthistoryController extends Zend_Controller_Action
 
     	$this->view->form = $form;
     	$this->view->dialog = $this->view->render('playouthistory/dialog.phtml');
+    	$this->view->prefix = $form::ID_PREFIX;
 
     	unset($this->view->form);
     }
@@ -188,6 +232,7 @@ class PlayouthistoryController extends Zend_Controller_Action
 
         $this->view->form = $form;
         $this->view->dialog = $this->view->render('playouthistory/dialog.phtml');
+        $this->view->prefix = $form::ID_PREFIX;
 
         unset($this->view->form);
     }

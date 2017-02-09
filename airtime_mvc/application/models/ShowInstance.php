@@ -1,6 +1,11 @@
 <?php
 
-require_once 'formatters/LengthFormatter.php';
+use Airtime\CcShowInstancesQuery;
+use Airtime\CcShowQuery;
+use Airtime\CcShowInstancesPeer;
+use Airtime\CcScheduleQuery;
+use Airtime\CcShowDaysQuery;
+use Airtime\CcShowDays;
 
 class Application_Model_ShowInstance
 {
@@ -452,7 +457,7 @@ SQL;
     {
         $durationSeconds = $this->getDurationSecs();
         $timeSeconds = $this->getTimeScheduledSecs();
-    
+
         if ($durationSeconds != 0) { //Prevent division by zero if the show duration is somehow zero.
             $percent = ceil(($timeSeconds / $durationSeconds) * 100);
         } else {
@@ -481,7 +486,7 @@ SQL;
         return $returnStr;
     }
 
-    public static function getContentCount($p_start, $p_end) 
+    public static function getContentCount($p_start, $p_end)
     {
         $sql = <<<SQL
 SELECT instance_id,
@@ -505,6 +510,7 @@ SQL;
 
     }
 
+    //TODO this sucks.
     public static function getIsFull($p_start, $p_end)
     {
         $sql = <<<SQL
@@ -525,104 +531,6 @@ SQL;
         }
 
         return $isFilled;
-    }
-
-    public function showEmpty()
-    {
-        $sql = <<<SQL
-SELECT s.starts
-FROM cc_schedule AS s
-WHERE s.instance_id = :instance_id
-  AND s.playout_status >= 0
-  AND ((s.stream_id IS NOT NULL)
-       OR (s.file_id IS NOT NULL)) LIMIT 1
-SQL;
-        # TODO : use prepareAndExecute properly
-        $res = Application_Common_Database::prepareAndExecute($sql,
-            array( ':instance_id' => $this->_instanceId ), 'all' );
-        # TODO : A bit retarded. fix this later
-        foreach ($res as $r) {
-            return false;
-        }
-        return true;
-
-    }
-
-    public function getShowListContent($timezone = null)
-    {
-        $con = Propel::getConnection();
-
-        $sql = <<<SQL
-SELECT *
-FROM (
-        (SELECT s.starts,
-                0::INTEGER as type ,
-                f.id           AS item_id,
-                f.track_title,
-                f.album_title  AS album,
-                f.genre        AS genre,
-                f.length       AS length,
-                f.artist_name  AS creator,
-                f.file_exists  AS EXISTS,
-                f.filepath     AS filepath,
-                f.mime         AS mime
-         FROM cc_schedule AS s
-         LEFT JOIN cc_files AS f ON f.id = s.file_id
-         WHERE s.instance_id = :instance_id1
-           AND s.playout_status >= 0
-           AND s.file_id IS NOT NULL
-           AND f.hidden = 'false')
-      UNION
-        (SELECT s.starts,
-                1::INTEGER as type,
-                ws.id AS item_id,
-                (ws.name || ': ' || ws.url) AS title,
-                null            AS album,
-                null            AS genre,
-                ws.length       AS length,
-                sub.login       AS creator,
-                't'::boolean    AS EXISTS,
-                ws.url          AS filepath,
-                ws.mime as mime
-         FROM cc_schedule AS s
-         LEFT JOIN cc_webstream AS ws ON ws.id = s.stream_id
-         LEFT JOIN cc_subjs AS sub ON ws.creator_id = sub.id
-         WHERE s.instance_id = :instance_id2
-           AND s.playout_status >= 0
-           AND s.stream_id IS NOT NULL)) AS temp
-ORDER BY starts;
-SQL;
-
-        $stmt = $con->prepare($sql);
-        $stmt->execute(array(
-            ':instance_id1' => $this->_instanceId,
-            ':instance_id2' => $this->_instanceId
-        ));
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-       
-        if (isset($timezone)) {
-            $displayTimezone = new DateTimeZone($timezone);
-        } else { 
-            $userTimezone = Application_Model_Preference::GetUserTimezone();
-            $displayTimezone = new DateTimeZone($userTimezone);
-        }
-
-        $utcTimezone = new DateTimeZone("UTC");
-
-        foreach ($results as &$row) {
-
-            $dt = new DateTime($row["starts"], $utcTimezone);
-            $dt->setTimezone($displayTimezone);
-            $row["starts"] = $dt->format("Y-m-d H:i:s");
-
-            if (isset($row['length'])) {
-                $formatter = new LengthFormatter($row["length"]);
-                $row["length"] = $formatter->format();
-            }
-        }
-
-
-        return $results;
     }
 
     public function getLastAudioItemEnd()

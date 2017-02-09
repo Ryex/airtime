@@ -1,7 +1,7 @@
-/*
+/*!
  * jQuery contextMenu - Plugin for simple contextMenu handling
  *
- * Version: 1.5.2
+ * Version: 1.6.5
  *
  * Authors: Rodney Rehm, Addy Osmani (patches for FF)
  * Web: http://medialize.github.com/jQuery-contextMenu/
@@ -39,7 +39,7 @@
     padding: 2px 5px;
     background-color: #f0f0f0;
     position: relative;
-	min-height: 18px;
+    min-height: 18px;
     -moz-user-select: -moz-none;
     display: block;
     width: 100%;
@@ -49,7 +49,7 @@
 }
 
 .context-menu-item.icon {
-	padding: 2px 2px 2px 28px;
+    padding: 2px 2px 2px 28px;
 }
 
 .context-menu-separator {
@@ -100,7 +100,6 @@
 .context-menu-item.icon-delete { background-image: url(images/icon_delete_cm.png); }
 .context-menu-item.icon-quit { background-image: url(images/icon_door_cm.png); }
 .context-menu-item.icon-soundcloud { background-image: url(images/icon_soundcloud_cm.png); }
-
 .context-menu-item.icon-download { background-image: url(images/icon_download_cm.png); }
 .context-menu-item.icon-overview { background-image: url(images/icon_overview_cm.png); }
 .context-menu-item.icon-play { background-image: url(images/icon_play_cm.png); }

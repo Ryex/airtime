@@ -1,5 +1,8 @@
 <?php
 
+use Airtime\CcWebstream;
+use Airtime\CcWebstreamQuery;
+
 class WebstreamController extends Zend_Controller_Action
 {
     public function init()
@@ -14,138 +17,58 @@ class WebstreamController extends Zend_Controller_Action
 
     public function newAction()
     {
-
-        $userInfo = Zend_Auth::getInstance()->getStorage()->read();
-        if (!$this->isAuthorized(-1)) {
-            // TODO: this header call does not actually print any error message
-            header("Status: 401 Not Authorized");
-            return;
-        }
-
-        $webstream = new CcWebstream();
-
-        //we're not saving this primary key in the DB so it's OK to be -1
-        $webstream->setDbId(-1);
-        $webstream->setDbName(_("Untitled Webstream"));
-        $webstream->setDbDescription("");
-        $webstream->setDbUrl("http://");
-        $webstream->setDbLength("00:30:00");
-        $webstream->setDbName(_("Untitled Webstream"));
-        $webstream->setDbCreatorId($userInfo->id);
-        $webstream->setDbUtime(new DateTime("now", new DateTimeZone('UTC')));
-        $webstream->setDbMtime(new DateTime("now", new DateTimeZone('UTC')));
-
-        //clear the session in case an old playlist was open: CC-4196
-        Application_Model_Library::changePlaylist(null, null);
-
-        $this->view->obj = new Application_Model_Webstream($webstream);
-        $this->view->action = "new";
-        $this->view->html = $this->view->render('webstream/webstream.phtml');
+    	$service = new Application_Service_WebstreamService();
+    	$form = $service->makeWebstreamForm(null);
+    	
+    	$form->setDefaults(array(
+    		'name' => 'Unititled Webstream',
+    		'hours' => 0,
+    		'mins' => 30,
+    	));
+    	
+    	$this->view->html = $form->render();
     }
 
     public function editAction()
     {
         $request = $this->getRequest();
-
         $id = $request->getParam("id");
-        if (is_null($id)) {
-            throw new Exception("Missing parameter 'id'");
-        }
+        
+        $service = new Application_Service_WebstreamService();
+    	$form = $service->makeWebstreamForm($id, true);
 
-        $webstream = CcWebstreamQuery::create()->findPK($id);
-        if ($webstream) {
-            Application_Model_Library::changePlaylist($id, "stream");
-        }
-        $this->view->obj = new Application_Model_Webstream($webstream);
-        $this->view->action = "edit";
-        $this->view->html = $this->view->render('webstream/webstream.phtml');
+        $this->view->html = $form->render();
     }
 
     public function deleteAction()
     {
         $request = $this->getRequest();
-        $id = $request->getParam("ids");
+        $ids = $request->getParam("ids");
 
-        if (!$this->isAuthorized($id)) {
-            header("Status: 401 Not Authorized");
-
-            return;
-        }
-
-        $type = "stream";
-        Application_Model_Library::changePlaylist(null, $type);
-
-        $webstream = CcWebstreamQuery::create()->findPK($id)->delete();
-
-        $this->view->obj = null;
-        $this->view->action = "delete";
-        $this->view->html = $this->view->render('webstream/webstream.phtml');
-
-    }
-
-    /*TODO : make a user object be passed a parameter into this function so
-        that it does not have to be fetched multiple times.*/
-    public function isAuthorized($webstream_id)
-    {
-        $user = Application_Model_User::getCurrentUser();
-        if ($user->isUserType(array(UTYPE_ADMIN, UTYPE_PROGRAM_MANAGER))) {
-            return true;
-        }
-
-        if ($user->isHost()) {
-            // not creating a webstream
-            if ($webstream_id != -1) {
-                $webstream = CcWebstreamQuery::create()->findPK($webstream_id);
-                /*we are updating a playlist. Ensure that if the user is a
-                    host/dj, that he has the correct permission.*/
-                $user = Application_Model_User::getCurrentUser();
-                //only allow when webstream belongs to the DJ
-                return $webstream->getDbCreatorId() == $user->getId();
-            }
-            /*we are creating a new stream. Don't need to check whether the
-                DJ/Host owns the stream*/
-            return true;
-        } else {
-            Logging::info( $user );
-        }
-        return false;
+        $service = new Application_Service_MediaService();
+        $service->delete($ids);
     }
 
     public function saveAction()
     {
         $request = $this->getRequest();
-
-        $id = $request->getParam("id");
-
         $parameters = array();
-        foreach (array('id','length','name','description','url') as $p) {
+        
+        foreach (array('id','hours', 'mins', 'name','description','url') as $p) {
             $parameters[$p] = trim($request->getParam($p));
         }
-
-        if (!$this->isAuthorized($id)) {
-            header("Status: 401 Not Authorized");
-            return;
+       
+        $service = new Application_Service_WebstreamService();
+        $form = $service->makeWebstreamForm(null);
+        
+        if ($form->isValid($parameters)) {
+        	
+        	$values = $form->getValues();
+        	$ws = $service->saveWebstream($values);
         }
-
-
-        list($analysis, $mime, $mediaUrl, $di) = Application_Model_Webstream::analyzeFormData($parameters);
-        try {
-            if (Application_Model_Webstream::isValid($analysis)) {
-                $streamId = Application_Model_Webstream::save($parameters, $mime, $mediaUrl, $di);
-
-                Application_Model_Library::changePlaylist($streamId, "stream");
-
-                $this->view->statusMessage = "<div class='success'>"._("Webstream saved.")."</div>";
-                $this->view->streamId = $streamId;
-                $this->view->length = $di->format("%Hh %Im");
-            } else {
-                throw new Exception("isValid returned false");
-            }
-        } catch (Exception $e) {
-            Logging::debug($e->getMessage());
-            $this->view->statusMessage = "<div class='errors'>"._("Invalid form values.")."</div>";
-            $this->view->streamId = -1;
-            $this->view->analysis = $analysis;
+        else {
+        	$this->view->errors = $form->getMessages();
+        	$this->view->html = $form->render();
         }
     }
 }

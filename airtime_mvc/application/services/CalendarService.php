@@ -1,5 +1,7 @@
 <?php
 
+use Airtime\CcShowInstancesQuery;
+
 class Application_Service_CalendarService
 {
     private $currentUser;
@@ -44,19 +46,21 @@ class Application_Service_CalendarService
         if ($now > $end) {
             if ($this->ccShowInstance->isRecorded()) {
 
-                $ccFile = $this->ccShowInstance->getCcFiles();
-                if (!isset($ccFile)) {
+                $media = $this->ccShowInstance->getMediaItem();
+                if (!isset($media)) {
                      $menu["error when recording"] = array (
                          "name" => _("Record file doesn't exist"),
                          "icon" => "error");
-                }else {
+                }
+                else {
                     $menu["view_recorded"] = array(
                         "name" => _("View Recorded File Metadata"),
                         "icon" => "overview",
-                        "url" => $baseUrl."library/edit-file-md/id/".$ccFile->getDbId());
+                        "url" => $baseUrl."library/edit-file-md/id/".$media->getId());
                 }
 
                 //recorded show can be uploaded to soundcloud
+                //TODO fix this to work with new media items.
                 if (Application_Model_Preference::GetUploadToSoundcloudOption()) {
                     $scid = $ccFile->getDbSoundcloudId();
 
@@ -72,13 +76,15 @@ class Application_Service_CalendarService
                         "name"=> $text,
                         "icon" => "soundcloud");
                 }
-            } else {
+            }
+            else {
                 $menu["content"] = array(
                     "name"=> _("Show Content"),
                     "icon" => "overview",
                     "url" => $baseUrl."schedule/show-content-dialog");
             }
-        } else {
+        }
+        else {
             // Show content can be modified from the calendar if:
             // the user is admin or hosting the show,
             // the show is not recorded
@@ -86,11 +92,13 @@ class Application_Service_CalendarService
             $currentShowId = count($currentShow) == 1 ? $currentShow[0]["id"] : null;
             $showIsLinked = $this->ccShow->isLinked();
 
-            //user can add/remove content if the show has not ended
-            if ($now < $end && ($isAdminOrPM || $isHostOfShow) && !$this->ccShowInstance->isRecorded()) {
-                //if the show is not linked OR if the show is linked AND not the current playing show
-                //the user can add/remove content
-                if (!$showIsLinked || ($showIsLinked  && $currentShowId != $this->ccShow->getDbId())) {
+                    $menu["schedule"] = array(
+                        "name"=> _("Add / Remove Content"),
+                        "icon" => "add-remove-content",
+                        "url" => $baseUrl."showbuilder/builder-dialog/");
+                //if the show is linked and it's not currently playing the user can add/remove content
+                }
+                elseif ($showIsLinked  && $currentShowId != $this->ccShow->getDbId()) {
 
                     $menu["schedule"] = array(
                         "name"=> _("Add / Remove Content"),
@@ -98,7 +106,7 @@ class Application_Service_CalendarService
                         "url" => $baseUrl."showbuilder/builder-dialog/");
                 }
             }
-            
+
             //user can remove all content if the show has not started
             if ($now < $start && ($isAdminOrPM || $isHostOfShow) && !$this->ccShowInstance->isRecorded() ) {
                 //if the show is not linked OR if the show is linked AND not the current playing show
@@ -112,16 +120,6 @@ class Application_Service_CalendarService
                 }
             }
 
-            //"Show Content" should be a menu item at all times except when
-            //the show is recorded
-            if (!$this->ccShowInstance->isRecorded()) {
-
-                $menu["content"] = array(
-                    "name"=> _("Show Content"),
-                    "icon" => "overview",
-                    "url" => $baseUrl."schedule/show-content-dialog");
-            }
-
             //show is currently playing and user is admin
             if ($start <= $now && $now < $end && $isAdminOrPM) {
 
@@ -129,7 +127,8 @@ class Application_Service_CalendarService
                     $menu["cancel_recorded"] = array(
                         "name"=> _("Cancel Current Show"),
                         "icon" => "delete");
-                } else {
+                }
+                else {
                     $menu["cancel"] = array(
                         "name"=> _("Cancel Current Show"),
                         "icon" => "delete");
@@ -151,7 +150,8 @@ class Application_Service_CalendarService
                             "name" => _("Edit This Instance"),
                             "icon" => "edit",
                             "url" => $baseUrl."Schedule/populate-repeating-show-instance-form");
-                    } else {
+                    }
+                    else {
                         $menu["edit"] = array(
                             "name" => _("Edit"),
                             "icon" => "edit",
@@ -167,7 +167,8 @@ class Application_Service_CalendarService
                             "icon" => "edit",
                             "url" => $baseUrl."Schedule/populate-repeating-show-instance-form");
                         }
-                } else {
+                }
+                else {
                     $menu["edit"] = array(
                         "name"=> _("Edit Show"),
                         "icon" => "edit",
@@ -195,12 +196,14 @@ class Application_Service_CalendarService
                         "name"=> _("Delete This Instance and All Following"),
                         "icon" => "delete",
                         "url" => $baseUrl."schedule/delete-show");
-                } elseif ($populateInstance) {
+                }
+                elseif ($populateInstance) {
                     $menu["del"] = array(
                         "name"=> _("Delete"),
                         "icon" => "delete",
                         "url" => $baseUrl."schedule/delete-show-instance");
-                } else {
+                }
+                else {
                     $menu["del"] = array(
                         "name"=> _("Delete"),
                         "icon" => "delete",
@@ -212,7 +215,7 @@ class Application_Service_CalendarService
     }
 
     /**
-     * 
+     *
      * Enter description here ...
      * @param DateTime $dateTime object to add deltas to
      * @param int $deltaDay delta days show moved
@@ -270,7 +273,7 @@ class Application_Service_CalendarService
         $endsDateTime->setTimezone(new DateTimeZone($showTimezone));
 
         $duration = $startsDateTime->diff($endsDateTime);
-        
+
         $newStartsDateTime = self::addDeltas($startsDateTime, $deltaDay, $deltaMin);
         /* WARNING: Do not separately add a time delta to the start and end times because
                     that does not preserve the duration across a DST time change.
@@ -278,9 +281,9 @@ class Application_Service_CalendarService
                              BUT, 6am - 3 hours = 3am also!
                               So when a DST change occurs, adding the deltas like this
                               separately does not conserve the duration of a show.
-                    Since that's what we want (otherwise we'll get a zero length show), 
+                    Since that's what we want (otherwise we'll get a zero length show),
                     we calculate the show duration FIRST, then we just add that on
-                    to the start time to calculate the end time. 
+                    to the start time to calculate the end time.
                     This is a safer approach.
                     The key lesson here is that in general: duration != end - start
                     ... so be careful!
@@ -288,7 +291,7 @@ class Application_Service_CalendarService
         //$newEndsDateTime = self::addDeltas($endsDateTime, $deltaDay, $deltaMin); <--- Wrong, don't do it.
         $newEndsDateTime = clone $newStartsDateTime;
         $newEndsDateTime = $newEndsDateTime->add($duration);
-        
+
         //convert our new starts/ends to UTC.
         $newStartsDateTime->setTimezone(new DateTimeZone("UTC"));
         $newEndsDateTime->setTimezone(new DateTimeZone("UTC"));
@@ -346,7 +349,7 @@ class Application_Service_CalendarService
             //new starts,ends are in UTC
             list($newStartsDateTime, $newEndsDateTime) = $this->validateShowMove(
                 $deltaDay, $deltaMin);
-            
+
             $oldStartDateTime = $this->ccShowInstance->getDbStarts(null);
 
             $this->ccShowInstance
@@ -364,9 +367,9 @@ class Application_Service_CalendarService
                     ->setDbStartTime($newStartsDateTime->format("H:i"))
                     ->save($con);
             }
-            
+
             $diff = $newStartsDateTime->getTimestamp() - $oldStartDateTime->getTimestamp();
-            
+
             Application_Service_SchedulerService::updateScheduleStartTime(
                 array($this->ccShowInstance->getDbId()), $diff);
 
