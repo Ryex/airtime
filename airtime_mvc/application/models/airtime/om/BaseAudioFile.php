@@ -64,12 +64,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
     protected $filepath;
 
     /**
-     * The value for the md5 field.
-     * @var        string
-     */
-    protected $md5;
-
-    /**
      * The value for the track_title field.
      * @var        string
      */
@@ -231,6 +225,13 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
     protected $hidden;
 
     /**
+     * The value for the import_status field.
+     * Note: this column has a database default value of: 1
+     * @var        int
+     */
+    protected $import_status;
+
+    /**
      * The value for the id field.
      * @var        int
      */
@@ -353,6 +354,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         $this->silan_check = false;
         $this->file_exists = true;
         $this->hidden = false;
+        $this->import_status = 1;
         $this->play_count = 0;
         $this->length = '00:00:00';
     }
@@ -387,17 +389,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
     {
 
         return $this->filepath;
-    }
-
-    /**
-     * Get the [md5] column value.
-     *
-     * @return string
-     */
-    public function getMd5()
-    {
-
-        return $this->md5;
     }
 
     /**
@@ -687,6 +678,17 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
     }
 
     /**
+     * Get the [import_status] column value.
+     *
+     * @return int
+     */
+    public function getImportStatus()
+    {
+
+        return $this->import_status;
+    }
+
+    /**
      * Get the [id] column value.
      *
      * @return int
@@ -935,27 +937,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
 
         return $this;
     } // setFilepath()
-
-    /**
-     * Set the value of [md5] column.
-     *
-     * @param  string $v new value
-     * @return AudioFile The current object (for fluent API support)
-     */
-    public function setMd5($v)
-    {
-        if ($v !== null && is_numeric($v)) {
-            $v = (string) $v;
-        }
-
-        if ($this->md5 !== $v) {
-            $this->md5 = $v;
-            $this->modifiedColumns[] = AudioFilePeer::MD5;
-        }
-
-
-        return $this;
-    } // setMd5()
 
     /**
      * Set the value of [track_title] column.
@@ -1528,6 +1509,27 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
     } // setFileHidden()
 
     /**
+     * Set the value of [import_status] column.
+     *
+     * @param  int $v new value
+     * @return AudioFile The current object (for fluent API support)
+     */
+    public function setImportStatus($v)
+    {
+        if ($v !== null && is_numeric($v)) {
+            $v = (int) $v;
+        }
+
+        if ($this->import_status !== $v) {
+            $this->import_status = $v;
+            $this->modifiedColumns[] = AudioFilePeer::IMPORT_STATUS;
+        }
+
+
+        return $this;
+    } // setImportStatus()
+
+    /**
      * Set the value of [id] column.
      *
      * @param  int $v new value
@@ -1827,6 +1829,10 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
                 return false;
             }
 
+            if ($this->import_status !== 1) {
+                return false;
+            }
+
             if ($this->play_count !== 0) {
                 return false;
             }
@@ -1859,33 +1865,33 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
 
             $this->directory = ($row[$startcol + 0] !== null) ? (int) $row[$startcol + 0] : null;
             $this->filepath = ($row[$startcol + 1] !== null) ? (string) $row[$startcol + 1] : null;
-            $this->md5 = ($row[$startcol + 2] !== null) ? (string) $row[$startcol + 2] : null;
-            $this->track_title = ($row[$startcol + 3] !== null) ? (string) $row[$startcol + 3] : null;
-            $this->artist_name = ($row[$startcol + 4] !== null) ? (string) $row[$startcol + 4] : null;
-            $this->bit_rate = ($row[$startcol + 5] !== null) ? (int) $row[$startcol + 5] : null;
-            $this->sample_rate = ($row[$startcol + 6] !== null) ? (int) $row[$startcol + 6] : null;
-            $this->album_title = ($row[$startcol + 7] !== null) ? (string) $row[$startcol + 7] : null;
-            $this->genre = ($row[$startcol + 8] !== null) ? (string) $row[$startcol + 8] : null;
-            $this->comments = ($row[$startcol + 9] !== null) ? (string) $row[$startcol + 9] : null;
-            $this->year = ($row[$startcol + 10] !== null) ? (int) $row[$startcol + 10] : null;
-            $this->track_number = ($row[$startcol + 11] !== null) ? (int) $row[$startcol + 11] : null;
-            $this->channels = ($row[$startcol + 12] !== null) ? (int) $row[$startcol + 12] : null;
-            $this->bpm = ($row[$startcol + 13] !== null) ? (int) $row[$startcol + 13] : null;
-            $this->encoded_by = ($row[$startcol + 14] !== null) ? (string) $row[$startcol + 14] : null;
-            $this->mood = ($row[$startcol + 15] !== null) ? (string) $row[$startcol + 15] : null;
-            $this->label = ($row[$startcol + 16] !== null) ? (string) $row[$startcol + 16] : null;
-            $this->composer = ($row[$startcol + 17] !== null) ? (string) $row[$startcol + 17] : null;
-            $this->copyright = ($row[$startcol + 18] !== null) ? (string) $row[$startcol + 18] : null;
-            $this->conductor = ($row[$startcol + 19] !== null) ? (string) $row[$startcol + 19] : null;
-            $this->isrc_number = ($row[$startcol + 20] !== null) ? (string) $row[$startcol + 20] : null;
-            $this->info_url = ($row[$startcol + 21] !== null) ? (string) $row[$startcol + 21] : null;
-            $this->language = ($row[$startcol + 22] !== null) ? (string) $row[$startcol + 22] : null;
-            $this->replay_gain = ($row[$startcol + 23] !== null) ? (string) $row[$startcol + 23] : null;
-            $this->cuein = ($row[$startcol + 24] !== null) ? (string) $row[$startcol + 24] : null;
-            $this->cueout = ($row[$startcol + 25] !== null) ? (string) $row[$startcol + 25] : null;
-            $this->silan_check = ($row[$startcol + 26] !== null) ? (boolean) $row[$startcol + 26] : null;
-            $this->file_exists = ($row[$startcol + 27] !== null) ? (boolean) $row[$startcol + 27] : null;
-            $this->hidden = ($row[$startcol + 28] !== null) ? (boolean) $row[$startcol + 28] : null;
+            $this->track_title = ($row[$startcol + 2] !== null) ? (string) $row[$startcol + 2] : null;
+            $this->artist_name = ($row[$startcol + 3] !== null) ? (string) $row[$startcol + 3] : null;
+            $this->bit_rate = ($row[$startcol + 4] !== null) ? (int) $row[$startcol + 4] : null;
+            $this->sample_rate = ($row[$startcol + 5] !== null) ? (int) $row[$startcol + 5] : null;
+            $this->album_title = ($row[$startcol + 6] !== null) ? (string) $row[$startcol + 6] : null;
+            $this->genre = ($row[$startcol + 7] !== null) ? (string) $row[$startcol + 7] : null;
+            $this->comments = ($row[$startcol + 8] !== null) ? (string) $row[$startcol + 8] : null;
+            $this->year = ($row[$startcol + 9] !== null) ? (int) $row[$startcol + 9] : null;
+            $this->track_number = ($row[$startcol + 10] !== null) ? (int) $row[$startcol + 10] : null;
+            $this->channels = ($row[$startcol + 11] !== null) ? (int) $row[$startcol + 11] : null;
+            $this->bpm = ($row[$startcol + 12] !== null) ? (int) $row[$startcol + 12] : null;
+            $this->encoded_by = ($row[$startcol + 13] !== null) ? (string) $row[$startcol + 13] : null;
+            $this->mood = ($row[$startcol + 14] !== null) ? (string) $row[$startcol + 14] : null;
+            $this->label = ($row[$startcol + 15] !== null) ? (string) $row[$startcol + 15] : null;
+            $this->composer = ($row[$startcol + 16] !== null) ? (string) $row[$startcol + 16] : null;
+            $this->copyright = ($row[$startcol + 17] !== null) ? (string) $row[$startcol + 17] : null;
+            $this->conductor = ($row[$startcol + 18] !== null) ? (string) $row[$startcol + 18] : null;
+            $this->isrc_number = ($row[$startcol + 19] !== null) ? (string) $row[$startcol + 19] : null;
+            $this->info_url = ($row[$startcol + 20] !== null) ? (string) $row[$startcol + 20] : null;
+            $this->language = ($row[$startcol + 21] !== null) ? (string) $row[$startcol + 21] : null;
+            $this->replay_gain = ($row[$startcol + 22] !== null) ? (string) $row[$startcol + 22] : null;
+            $this->cuein = ($row[$startcol + 23] !== null) ? (string) $row[$startcol + 23] : null;
+            $this->cueout = ($row[$startcol + 24] !== null) ? (string) $row[$startcol + 24] : null;
+            $this->silan_check = ($row[$startcol + 25] !== null) ? (boolean) $row[$startcol + 25] : null;
+            $this->file_exists = ($row[$startcol + 26] !== null) ? (boolean) $row[$startcol + 26] : null;
+            $this->hidden = ($row[$startcol + 27] !== null) ? (boolean) $row[$startcol + 27] : null;
+            $this->import_status = ($row[$startcol + 28] !== null) ? (int) $row[$startcol + 28] : null;
             $this->id = ($row[$startcol + 29] !== null) ? (int) $row[$startcol + 29] : null;
             $this->name = ($row[$startcol + 30] !== null) ? (string) $row[$startcol + 30] : null;
             $this->creator = ($row[$startcol + 31] !== null) ? (string) $row[$startcol + 31] : null;
@@ -2178,9 +2184,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         if ($this->isColumnModified(AudioFilePeer::FILEPATH)) {
             $modifiedColumns[':p' . $index++]  = '"filepath"';
         }
-        if ($this->isColumnModified(AudioFilePeer::MD5)) {
-            $modifiedColumns[':p' . $index++]  = '"md5"';
-        }
         if ($this->isColumnModified(AudioFilePeer::TRACK_TITLE)) {
             $modifiedColumns[':p' . $index++]  = '"track_title"';
         }
@@ -2259,6 +2262,9 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         if ($this->isColumnModified(AudioFilePeer::HIDDEN)) {
             $modifiedColumns[':p' . $index++]  = '"hidden"';
         }
+        if ($this->isColumnModified(AudioFilePeer::IMPORT_STATUS)) {
+            $modifiedColumns[':p' . $index++]  = '"import_status"';
+        }
         if ($this->isColumnModified(AudioFilePeer::ID)) {
             $modifiedColumns[':p' . $index++]  = '"id"';
         }
@@ -2311,9 +2317,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
                         break;
                     case '"filepath"':
                         $stmt->bindValue($identifier, $this->filepath, PDO::PARAM_STR);
-                        break;
-                    case '"md5"':
-                        $stmt->bindValue($identifier, $this->md5, PDO::PARAM_STR);
                         break;
                     case '"track_title"':
                         $stmt->bindValue($identifier, $this->track_title, PDO::PARAM_STR);
@@ -2392,6 +2395,9 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
                         break;
                     case '"hidden"':
                         $stmt->bindValue($identifier, $this->hidden, PDO::PARAM_BOOL);
+                        break;
+                    case '"import_status"':
+                        $stmt->bindValue($identifier, $this->import_status, PDO::PARAM_INT);
                         break;
                     case '"id"':
                         $stmt->bindValue($identifier, $this->id, PDO::PARAM_INT);
@@ -2587,85 +2593,85 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
                 return $this->getFilepath();
                 break;
             case 2:
-                return $this->getMd5();
-                break;
-            case 3:
                 return $this->getTrackTitle();
                 break;
-            case 4:
+            case 3:
                 return $this->getArtistName();
                 break;
-            case 5:
+            case 4:
                 return $this->getBitRate();
                 break;
-            case 6:
+            case 5:
                 return $this->getSampleRate();
                 break;
-            case 7:
+            case 6:
                 return $this->getAlbumTitle();
                 break;
-            case 8:
+            case 7:
                 return $this->getGenre();
                 break;
-            case 9:
+            case 8:
                 return $this->getComments();
                 break;
-            case 10:
+            case 9:
                 return $this->getYear();
                 break;
-            case 11:
+            case 10:
                 return $this->getTrackNumber();
                 break;
-            case 12:
+            case 11:
                 return $this->getChannels();
                 break;
-            case 13:
+            case 12:
                 return $this->getBpm();
                 break;
-            case 14:
+            case 13:
                 return $this->getEncodedBy();
                 break;
-            case 15:
+            case 14:
                 return $this->getMood();
                 break;
-            case 16:
+            case 15:
                 return $this->getLabel();
                 break;
-            case 17:
+            case 16:
                 return $this->getComposer();
                 break;
-            case 18:
+            case 17:
                 return $this->getCopyright();
                 break;
-            case 19:
+            case 18:
                 return $this->getConductor();
                 break;
-            case 20:
+            case 19:
                 return $this->getIsrcNumber();
                 break;
-            case 21:
+            case 20:
                 return $this->getInfoUrl();
                 break;
-            case 22:
+            case 21:
                 return $this->getLanguage();
                 break;
-            case 23:
+            case 22:
                 return $this->getReplayGain();
                 break;
-            case 24:
+            case 23:
                 return $this->getCuein();
                 break;
-            case 25:
+            case 24:
                 return $this->getCueout();
                 break;
-            case 26:
+            case 25:
                 return $this->getIsSilanChecked();
                 break;
-            case 27:
+            case 26:
                 return $this->getFileExists();
                 break;
-            case 28:
+            case 27:
                 return $this->getFileHidden();
+                break;
+            case 28:
+                return $this->getImportStatus();
                 break;
             case 29:
                 return $this->getId();
@@ -2734,33 +2740,33 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         $result = array(
             $keys[0] => $this->getDirectory(),
             $keys[1] => $this->getFilepath(),
-            $keys[2] => $this->getMd5(),
-            $keys[3] => $this->getTrackTitle(),
-            $keys[4] => $this->getArtistName(),
-            $keys[5] => $this->getBitRate(),
-            $keys[6] => $this->getSampleRate(),
-            $keys[7] => $this->getAlbumTitle(),
-            $keys[8] => $this->getGenre(),
-            $keys[9] => $this->getComments(),
-            $keys[10] => $this->getYear(),
-            $keys[11] => $this->getTrackNumber(),
-            $keys[12] => $this->getChannels(),
-            $keys[13] => $this->getBpm(),
-            $keys[14] => $this->getEncodedBy(),
-            $keys[15] => $this->getMood(),
-            $keys[16] => $this->getLabel(),
-            $keys[17] => $this->getComposer(),
-            $keys[18] => $this->getCopyright(),
-            $keys[19] => $this->getConductor(),
-            $keys[20] => $this->getIsrcNumber(),
-            $keys[21] => $this->getInfoUrl(),
-            $keys[22] => $this->getLanguage(),
-            $keys[23] => $this->getReplayGain(),
-            $keys[24] => $this->getCuein(),
-            $keys[25] => $this->getCueout(),
-            $keys[26] => $this->getIsSilanChecked(),
-            $keys[27] => $this->getFileExists(),
-            $keys[28] => $this->getFileHidden(),
+            $keys[2] => $this->getTrackTitle(),
+            $keys[3] => $this->getArtistName(),
+            $keys[4] => $this->getBitRate(),
+            $keys[5] => $this->getSampleRate(),
+            $keys[6] => $this->getAlbumTitle(),
+            $keys[7] => $this->getGenre(),
+            $keys[8] => $this->getComments(),
+            $keys[9] => $this->getYear(),
+            $keys[10] => $this->getTrackNumber(),
+            $keys[11] => $this->getChannels(),
+            $keys[12] => $this->getBpm(),
+            $keys[13] => $this->getEncodedBy(),
+            $keys[14] => $this->getMood(),
+            $keys[15] => $this->getLabel(),
+            $keys[16] => $this->getComposer(),
+            $keys[17] => $this->getCopyright(),
+            $keys[18] => $this->getConductor(),
+            $keys[19] => $this->getIsrcNumber(),
+            $keys[20] => $this->getInfoUrl(),
+            $keys[21] => $this->getLanguage(),
+            $keys[22] => $this->getReplayGain(),
+            $keys[23] => $this->getCuein(),
+            $keys[24] => $this->getCueout(),
+            $keys[25] => $this->getIsSilanChecked(),
+            $keys[26] => $this->getFileExists(),
+            $keys[27] => $this->getFileHidden(),
+            $keys[28] => $this->getImportStatus(),
             $keys[29] => $this->getId(),
             $keys[30] => $this->getName(),
             $keys[31] => $this->getCreator(),
@@ -2830,85 +2836,85 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
                 $this->setFilepath($value);
                 break;
             case 2:
-                $this->setMd5($value);
-                break;
-            case 3:
                 $this->setTrackTitle($value);
                 break;
-            case 4:
+            case 3:
                 $this->setArtistName($value);
                 break;
-            case 5:
+            case 4:
                 $this->setBitRate($value);
                 break;
-            case 6:
+            case 5:
                 $this->setSampleRate($value);
                 break;
-            case 7:
+            case 6:
                 $this->setAlbumTitle($value);
                 break;
-            case 8:
+            case 7:
                 $this->setGenre($value);
                 break;
-            case 9:
+            case 8:
                 $this->setComments($value);
                 break;
-            case 10:
+            case 9:
                 $this->setYear($value);
                 break;
-            case 11:
+            case 10:
                 $this->setTrackNumber($value);
                 break;
-            case 12:
+            case 11:
                 $this->setChannels($value);
                 break;
-            case 13:
+            case 12:
                 $this->setBpm($value);
                 break;
-            case 14:
+            case 13:
                 $this->setEncodedBy($value);
                 break;
-            case 15:
+            case 14:
                 $this->setMood($value);
                 break;
-            case 16:
+            case 15:
                 $this->setLabel($value);
                 break;
-            case 17:
+            case 16:
                 $this->setComposer($value);
                 break;
-            case 18:
+            case 17:
                 $this->setCopyright($value);
                 break;
-            case 19:
+            case 18:
                 $this->setConductor($value);
                 break;
-            case 20:
+            case 19:
                 $this->setIsrcNumber($value);
                 break;
-            case 21:
+            case 20:
                 $this->setInfoUrl($value);
                 break;
-            case 22:
+            case 21:
                 $this->setLanguage($value);
                 break;
-            case 23:
+            case 22:
                 $this->setReplayGain($value);
                 break;
-            case 24:
+            case 23:
                 $this->setCuein($value);
                 break;
-            case 25:
+            case 24:
                 $this->setCueout($value);
                 break;
-            case 26:
+            case 25:
                 $this->setIsSilanChecked($value);
                 break;
-            case 27:
+            case 26:
                 $this->setFileExists($value);
                 break;
-            case 28:
+            case 27:
                 $this->setFileHidden($value);
+                break;
+            case 28:
+                $this->setImportStatus($value);
                 break;
             case 29:
                 $this->setId($value);
@@ -2972,33 +2978,33 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
 
         if (array_key_exists($keys[0], $arr)) $this->setDirectory($arr[$keys[0]]);
         if (array_key_exists($keys[1], $arr)) $this->setFilepath($arr[$keys[1]]);
-        if (array_key_exists($keys[2], $arr)) $this->setMd5($arr[$keys[2]]);
-        if (array_key_exists($keys[3], $arr)) $this->setTrackTitle($arr[$keys[3]]);
-        if (array_key_exists($keys[4], $arr)) $this->setArtistName($arr[$keys[4]]);
-        if (array_key_exists($keys[5], $arr)) $this->setBitRate($arr[$keys[5]]);
-        if (array_key_exists($keys[6], $arr)) $this->setSampleRate($arr[$keys[6]]);
-        if (array_key_exists($keys[7], $arr)) $this->setAlbumTitle($arr[$keys[7]]);
-        if (array_key_exists($keys[8], $arr)) $this->setGenre($arr[$keys[8]]);
-        if (array_key_exists($keys[9], $arr)) $this->setComments($arr[$keys[9]]);
-        if (array_key_exists($keys[10], $arr)) $this->setYear($arr[$keys[10]]);
-        if (array_key_exists($keys[11], $arr)) $this->setTrackNumber($arr[$keys[11]]);
-        if (array_key_exists($keys[12], $arr)) $this->setChannels($arr[$keys[12]]);
-        if (array_key_exists($keys[13], $arr)) $this->setBpm($arr[$keys[13]]);
-        if (array_key_exists($keys[14], $arr)) $this->setEncodedBy($arr[$keys[14]]);
-        if (array_key_exists($keys[15], $arr)) $this->setMood($arr[$keys[15]]);
-        if (array_key_exists($keys[16], $arr)) $this->setLabel($arr[$keys[16]]);
-        if (array_key_exists($keys[17], $arr)) $this->setComposer($arr[$keys[17]]);
-        if (array_key_exists($keys[18], $arr)) $this->setCopyright($arr[$keys[18]]);
-        if (array_key_exists($keys[19], $arr)) $this->setConductor($arr[$keys[19]]);
-        if (array_key_exists($keys[20], $arr)) $this->setIsrcNumber($arr[$keys[20]]);
-        if (array_key_exists($keys[21], $arr)) $this->setInfoUrl($arr[$keys[21]]);
-        if (array_key_exists($keys[22], $arr)) $this->setLanguage($arr[$keys[22]]);
-        if (array_key_exists($keys[23], $arr)) $this->setReplayGain($arr[$keys[23]]);
-        if (array_key_exists($keys[24], $arr)) $this->setCuein($arr[$keys[24]]);
-        if (array_key_exists($keys[25], $arr)) $this->setCueout($arr[$keys[25]]);
-        if (array_key_exists($keys[26], $arr)) $this->setIsSilanChecked($arr[$keys[26]]);
-        if (array_key_exists($keys[27], $arr)) $this->setFileExists($arr[$keys[27]]);
-        if (array_key_exists($keys[28], $arr)) $this->setFileHidden($arr[$keys[28]]);
+        if (array_key_exists($keys[2], $arr)) $this->setTrackTitle($arr[$keys[2]]);
+        if (array_key_exists($keys[3], $arr)) $this->setArtistName($arr[$keys[3]]);
+        if (array_key_exists($keys[4], $arr)) $this->setBitRate($arr[$keys[4]]);
+        if (array_key_exists($keys[5], $arr)) $this->setSampleRate($arr[$keys[5]]);
+        if (array_key_exists($keys[6], $arr)) $this->setAlbumTitle($arr[$keys[6]]);
+        if (array_key_exists($keys[7], $arr)) $this->setGenre($arr[$keys[7]]);
+        if (array_key_exists($keys[8], $arr)) $this->setComments($arr[$keys[8]]);
+        if (array_key_exists($keys[9], $arr)) $this->setYear($arr[$keys[9]]);
+        if (array_key_exists($keys[10], $arr)) $this->setTrackNumber($arr[$keys[10]]);
+        if (array_key_exists($keys[11], $arr)) $this->setChannels($arr[$keys[11]]);
+        if (array_key_exists($keys[12], $arr)) $this->setBpm($arr[$keys[12]]);
+        if (array_key_exists($keys[13], $arr)) $this->setEncodedBy($arr[$keys[13]]);
+        if (array_key_exists($keys[14], $arr)) $this->setMood($arr[$keys[14]]);
+        if (array_key_exists($keys[15], $arr)) $this->setLabel($arr[$keys[15]]);
+        if (array_key_exists($keys[16], $arr)) $this->setComposer($arr[$keys[16]]);
+        if (array_key_exists($keys[17], $arr)) $this->setCopyright($arr[$keys[17]]);
+        if (array_key_exists($keys[18], $arr)) $this->setConductor($arr[$keys[18]]);
+        if (array_key_exists($keys[19], $arr)) $this->setIsrcNumber($arr[$keys[19]]);
+        if (array_key_exists($keys[20], $arr)) $this->setInfoUrl($arr[$keys[20]]);
+        if (array_key_exists($keys[21], $arr)) $this->setLanguage($arr[$keys[21]]);
+        if (array_key_exists($keys[22], $arr)) $this->setReplayGain($arr[$keys[22]]);
+        if (array_key_exists($keys[23], $arr)) $this->setCuein($arr[$keys[23]]);
+        if (array_key_exists($keys[24], $arr)) $this->setCueout($arr[$keys[24]]);
+        if (array_key_exists($keys[25], $arr)) $this->setIsSilanChecked($arr[$keys[25]]);
+        if (array_key_exists($keys[26], $arr)) $this->setFileExists($arr[$keys[26]]);
+        if (array_key_exists($keys[27], $arr)) $this->setFileHidden($arr[$keys[27]]);
+        if (array_key_exists($keys[28], $arr)) $this->setImportStatus($arr[$keys[28]]);
         if (array_key_exists($keys[29], $arr)) $this->setId($arr[$keys[29]]);
         if (array_key_exists($keys[30], $arr)) $this->setName($arr[$keys[30]]);
         if (array_key_exists($keys[31], $arr)) $this->setCreator($arr[$keys[31]]);
@@ -3024,7 +3030,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
 
         if ($this->isColumnModified(AudioFilePeer::DIRECTORY)) $criteria->add(AudioFilePeer::DIRECTORY, $this->directory);
         if ($this->isColumnModified(AudioFilePeer::FILEPATH)) $criteria->add(AudioFilePeer::FILEPATH, $this->filepath);
-        if ($this->isColumnModified(AudioFilePeer::MD5)) $criteria->add(AudioFilePeer::MD5, $this->md5);
         if ($this->isColumnModified(AudioFilePeer::TRACK_TITLE)) $criteria->add(AudioFilePeer::TRACK_TITLE, $this->track_title);
         if ($this->isColumnModified(AudioFilePeer::ARTIST_NAME)) $criteria->add(AudioFilePeer::ARTIST_NAME, $this->artist_name);
         if ($this->isColumnModified(AudioFilePeer::BIT_RATE)) $criteria->add(AudioFilePeer::BIT_RATE, $this->bit_rate);
@@ -3051,6 +3056,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         if ($this->isColumnModified(AudioFilePeer::SILAN_CHECK)) $criteria->add(AudioFilePeer::SILAN_CHECK, $this->silan_check);
         if ($this->isColumnModified(AudioFilePeer::FILE_EXISTS)) $criteria->add(AudioFilePeer::FILE_EXISTS, $this->file_exists);
         if ($this->isColumnModified(AudioFilePeer::HIDDEN)) $criteria->add(AudioFilePeer::HIDDEN, $this->hidden);
+        if ($this->isColumnModified(AudioFilePeer::IMPORT_STATUS)) $criteria->add(AudioFilePeer::IMPORT_STATUS, $this->import_status);
         if ($this->isColumnModified(AudioFilePeer::ID)) $criteria->add(AudioFilePeer::ID, $this->id);
         if ($this->isColumnModified(AudioFilePeer::NAME)) $criteria->add(AudioFilePeer::NAME, $this->name);
         if ($this->isColumnModified(AudioFilePeer::CREATOR)) $criteria->add(AudioFilePeer::CREATOR, $this->creator);
@@ -3128,7 +3134,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
     {
         $copyObj->setDirectory($this->getDirectory());
         $copyObj->setFilepath($this->getFilepath());
-        $copyObj->setMd5($this->getMd5());
         $copyObj->setTrackTitle($this->getTrackTitle());
         $copyObj->setArtistName($this->getArtistName());
         $copyObj->setBitRate($this->getBitRate());
@@ -3155,6 +3160,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         $copyObj->setIsSilanChecked($this->getIsSilanChecked());
         $copyObj->setFileExists($this->getFileExists());
         $copyObj->setFileHidden($this->getFileHidden());
+        $copyObj->setImportStatus($this->getImportStatus());
         $copyObj->setName($this->getName());
         $copyObj->setCreator($this->getCreator());
         $copyObj->setSource($this->getSource());
@@ -3386,7 +3392,6 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
     {
         $this->directory = null;
         $this->filepath = null;
-        $this->md5 = null;
         $this->track_title = null;
         $this->artist_name = null;
         $this->bit_rate = null;
@@ -3413,6 +3418,7 @@ abstract class BaseAudioFile extends MediaItem implements Persistent
         $this->silan_check = null;
         $this->file_exists = null;
         $this->hidden = null;
+        $this->import_status = null;
         $this->id = null;
         $this->name = null;
         $this->creator = null;

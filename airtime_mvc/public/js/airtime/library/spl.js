@@ -784,32 +784,32 @@ var AIRTIME = (function(AIRTIME){
 
 		$pl.on("click", "#webstream_save", function() {
             //get all fields and POST to server
-            var id = $pl.find("#obj_id").attr("value");
+            var id = $pl.find("#obj_id").attr("value"); 
             var description = $pl.find("#ws_description").val();
             var streamurl = $pl.find("#ws_url").val();
             var hours = $pl.find("#ws_hours").val();
             var mins = $pl.find("#ws_mins").val();
             var name = $pl.find("#ws_name").text();
-
+            
             var parameters = {
-        		format: "json",
-        		description: description,
-        		url: streamurl,
-        		hours: hours,
-        		mins: mins,
+        		format: "json", 
+        		description: description, 
+        		url: streamurl, 
+        		hours: hours, 
+        		mins: mins, 
         		name: name
     		};
-
+            
             if (id !== "") {
             	parameters["id"] = id;
             }
-
+            
             //hide any previous errors (if any)
             $("#side_playlist .errors").empty().hide();
 
             var url = baseUrl+'Webstream/save';
-            $.post(url,
-                parameters,
+            $.post(url, 
+                parameters, 
                 function(json) {
                     if (json.analysis){
                         for (var s in json.analysis){
@@ -820,7 +820,7 @@ var AIRTIME = (function(AIRTIME){
                                 var $div = $("#side_playlist " + elemId).text(field[1]).show();
                             }
                         }
-                    }
+                    } 
                     else {
                         var $status = $("#side_playlist .status");
                         $status.html(json.statusMessage);
@@ -839,8 +839,8 @@ var AIRTIME = (function(AIRTIME){
 
                         //redraw the library to show the new webstream
                         redrawLib();
-                    }
-                });
+                    }     
+                });    
         });
 
         $lib.on("click", "#pl_edit", function() {
@@ -1071,13 +1071,13 @@ var AIRTIME = (function(AIRTIME){
 
 	mod.fnWsDelete = function(wsid) {
 		var url, id;
-
-		stopAudioPreview();
+		
+		stopAudioPreview();	
 		id = (wsid === undefined) ? getId() : wsid;
 		url = baseUrl+'Webstream/delete';
-
-		$.post(url,
-			{format: "json", ids: id},
+        
+		$.post(url, 
+			{format: "json", ids: id}, 
 			function(json){
 				openPlaylist(json);
 				redrawLib();
@@ -1468,7 +1468,7 @@ var AIRTIME = (function(AIRTIME){
         $pl = $("#side_playlist");
 
 		setWidgetSize();
-
+		
 		//AIRTIME.library.libraryInit();
 		AIRTIME.playlist.init();
 

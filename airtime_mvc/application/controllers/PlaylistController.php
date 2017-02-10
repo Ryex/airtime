@@ -155,24 +155,38 @@ class PlaylistController extends Zend_Controller_Action
 
     public function addItemsAction()
     {
-    	$content = $this->_getParam('content');
+    	$mediaIds = $this->_getParam('mediaIds');
+    	$insertAfter = intval($this->_getParam('insertAfter'));
+
+    	if ($insertAfter == 0) {
+    		$insertAfter = null;
+    	}
+
+    	Logging::info($mediaIds);
+
+    	Logging::enablePropelLogging();
 
     	$con = Propel::getConnection(PlaylistPeer::DATABASE_NAME);
     	$con->beginTransaction();
 
     	try {
     		$playlist = $this->getPlaylist();
-    		$playlist->savePlaylistContent($con, $content);
+    		$playlist->addMedia($con, $mediaIds, $insertAfter);
+    		$playlist->save($con);
     		$this->createUpdateResponse($playlist);
 
     		$con->commit();
+
+    		Logging::disablePropelLogging();
     	}
     	catch (Exception $e) {
     		$con->rollBack();
+    		Logging::disablePropelLogging();
+    		Logging::error($e->getMessage());
     		$this->view->error = $e->getMessage();
     	}
     }
-    
+
     public function saveRulesAction()
     {
     	$rules = $this->_getParam('rules');
@@ -185,23 +199,7 @@ class PlaylistController extends Zend_Controller_Action
     		$playlist = $this->getPlaylist();
 
     		$form = new Application_Form_PlaylistRules();
-
-    		if (isset($rules["criteria"])) {
-    			$form->buildCriteriaOptions($rules["criteria"]);
-    		}
-
-    		$criteriaFields = $form->getPopulateHelp();
-
-    		$playlistRules = array(
-    			"pl_repeat_tracks" => $rules[Playlist::RULE_REPEAT_TRACKS],
-    			"pl_my_tracks" => $rules[Playlist::RULE_USERS_TRACKS_ONLY],
-    			"pl_order_column" => $rules[Playlist::RULE_ORDER][Playlist::RULE_ORDER_COLUMN],
-    			"pl_order_direction" => $rules[Playlist::RULE_ORDER][Playlist::RULE_ORDER_DIRECTION],
-    			"pl_limit_value" => $rules["limit"]["value"],
-    			"pl_limit_options" => $rules["limit"]["unit"]
-    		);
-
-    		$data = array_merge($criteriaFields, $playlistRules);
+    		$data = $form->buildForm($playlist, $rules);
 
     		if ($form->isValid($data)) {
     			Logging::info("playlist rules are valid");
@@ -216,6 +214,8 @@ class PlaylistController extends Zend_Controller_Action
     		}
 
     		$con->commit();
+    		
+    		$this->createUpdateResponse($playlist);
     	}
     	catch (Exception $e) {
     		$con->rollBack();

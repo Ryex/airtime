@@ -24,28 +24,23 @@ DROP TABLE IF EXISTS "cc_show" CASCADE;
 
 CREATE TABLE "cc_show"
 (
-	"id" serial  NOT NULL,
-	"name" VARCHAR(255) default '' NOT NULL,
-	"url" VARCHAR(255) default '',
-	"genre" VARCHAR(255) default '',
-	"description" VARCHAR(512),
-	"color" VARCHAR(6),
-	"background_color" VARCHAR(6),
-	"live_stream_using_airtime_auth" BOOLEAN default 'f',
-	"live_stream_using_custom_auth" BOOLEAN default 'f',
-	"live_stream_user" VARCHAR(255),
-	"live_stream_pass" VARCHAR(255),
-	"linked" BOOLEAN default 'f' NOT NULL,
-	"is_linkable" BOOLEAN default 't' NOT NULL,
-	"image_path" VARCHAR(255),
-	PRIMARY KEY ("id")
+    "id" serial NOT NULL,
+    "name" VARCHAR(255) DEFAULT '' NOT NULL,
+    "url" VARCHAR(255) DEFAULT '',
+    "genre" VARCHAR(255) DEFAULT '',
+    "description" VARCHAR(512),
+    "color" VARCHAR(6),
+    "background_color" VARCHAR(6),
+    "live_stream_using_airtime_auth" BOOLEAN DEFAULT 'f',
+    "live_stream_using_custom_auth" BOOLEAN DEFAULT 'f',
+    "live_stream_user" VARCHAR(255),
+    "live_stream_pass" VARCHAR(255),
+    "linked" BOOLEAN DEFAULT 'f' NOT NULL,
+    "is_linkable" BOOLEAN DEFAULT 't' NOT NULL,
+    PRIMARY KEY ("id")
 );
 
-COMMENT ON TABLE "cc_show" IS '';
-
-
-SET search_path TO public;
------------------------------------------------------------------------------
+-----------------------------------------------------------------------
 -- cc_show_instances
 -----------------------------------------------------------------------
 
@@ -54,7 +49,6 @@ DROP TABLE IF EXISTS "cc_show_instances" CASCADE;
 CREATE TABLE "cc_show_instances"
 (
     "id" serial NOT NULL,
-    "description" VARCHAR(512),
     "starts" TIMESTAMP NOT NULL,
     "ends" TIMESTAMP NOT NULL,
     "show_id" INTEGER NOT NULL,
@@ -66,6 +60,7 @@ CREATE TABLE "cc_show_instances"
     "created" TIMESTAMP NOT NULL,
     "last_scheduled" TIMESTAMP,
     "modified_instance" BOOLEAN DEFAULT 'f' NOT NULL,
+    "unrolled" BOOLEAN DEFAULT 'f' NOT NULL,
     PRIMARY KEY ("id")
 );
 
@@ -457,7 +452,6 @@ CREATE TABLE "media_audiofile"
 (
     "directory" INTEGER,
     "filepath" TEXT DEFAULT '',
-    "md5" CHAR(32),
     "track_title" VARCHAR(512),
     "artist_name" VARCHAR(512),
     "bit_rate" INTEGER,
@@ -484,6 +478,7 @@ CREATE TABLE "media_audiofile"
     "silan_check" BOOLEAN DEFAULT 'f',
     "file_exists" BOOLEAN DEFAULT 't',
     "hidden" BOOLEAN DEFAULT 'f',
+    "import_status" INTEGER DEFAULT 1 NOT NULL,
     "id" INTEGER NOT NULL,
     "name" VARCHAR(512),
     "creator" VARCHAR(512),

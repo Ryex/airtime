@@ -150,9 +150,6 @@ function viewDisplay( view ) {
 
         var topLeft = $(view.element).find("table.fc-agenda-days > thead th:first");
 
-        //select.width(topLeft.width())
-        //    .height(topLeft.height());
-
         topLeft.empty()
             .append(select);
 
@@ -353,9 +350,8 @@ function eventResize( event, dayDelta, minuteDelta, revertFunc, jsEvent, ui, vie
 }
 
 function windowResize() {	
-	// 200 px for top dashboard and 50 for padding on main content
-	// this calculation was copied from schedule.js line 326
-	var mainHeight = $(window).height() - 200 - 24;
+
+	var mainHeight = getCalendarHeight();
 	$('#schedule_calendar').fullCalendar('option', 'contentHeight', mainHeight);
 }
 

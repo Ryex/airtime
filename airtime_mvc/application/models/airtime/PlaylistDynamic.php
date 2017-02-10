@@ -32,6 +32,48 @@ class PlaylistDynamic extends Playlist {
     	throw new PropelException("Dynamic playlist does not have content");
     }
     
+    /*
+     * additionally set the time for a dynamic playlist from these rules
+     * (this will be an under estimation so scheduling shortages shouldn't occur.)
+     */
+    public function setRules($v) {
+    	
+    	parent::setRules($v);
+    	
+    	$limitValue = $v["limit"]["value"];
+    	$limitUnit = $v["limit"]["unit"];
+    	
+    	//save the estimated length incase of an items rule.
+    	if ($limitUnit == "items") {
+    		$limitValue = $v["estimatedLimit"]["value"];
+    		$limitUnit = $v["estimatedLimit"]["unit"];
+    	}
+    	
+    	switch($limitUnit) {
+    	
+    		case "minutes":
+    			if (isset($limitValue)) {
+    	
+    				$secs = $limitValue * 60;
+    				$duration = $this->formatLimitValue($secs);
+    			}
+    			break;
+    		case "hours":
+    			if (isset($limitValue)) {
+    	
+    				$secs = $limitValue * 3600;
+    				$duration = $this->formatLimitValue($secs);
+    			}
+    			break;
+    		default:
+    			throw new PropelException("Dynamic playlist is not setting length properly.");
+    	}
+    	
+    	$this->setLength($duration);
+    	
+    	return $this;
+    }
+    
     //TODO get this based on the rule.
     public function getLength()
     {

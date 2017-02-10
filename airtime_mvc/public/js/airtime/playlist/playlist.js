@@ -305,13 +305,13 @@ var AIRTIME = (function(AIRTIME){
 	}
 	
 	function isTimeValid(time) {
-	    var regExpr = new RegExp("^\\d{2}[:]([0-5]){1}([0-9]){1}[:]([0-5]){1}([0-9]){1}([.]\\d{1,6})?$");
+	    var regExpr = new RegExp("^\\d{2}[:]([0-5]){1}([0-9]){1}[:]([0-5]){1}([0-9]){1}([.]\\d{1,3})?$");
 		
 		return regExpr.test(time);
 	}
 	
 	function isFadeValid(fade) {
-        var regExpr = new RegExp("^\\d{1}(\\d{1})?([.]\\d{1})?$");
+        var regExpr = new RegExp("^\\d{1}(\\d{1})?([.]\\d{1,3})?$");
 
         return regExpr.test(fade);
 	}
@@ -334,7 +334,7 @@ var AIRTIME = (function(AIRTIME){
 		$dd.find(".edit-error").remove();
 		
 		if (!isFadeValid(fade)) {
-			$error = createErrorSpan($.i18n._("please put in a time in seconds '00 (.0)'"));
+			$error = createErrorSpan($.i18n._("please put in a time in seconds '00 (.000)'"));
 			$dd.append($error);
 		}
 		else {
@@ -442,6 +442,7 @@ var AIRTIME = (function(AIRTIME){
 	function serializeRules() {
 		
 		var rules = {
+			"timezone": $("#pl_timezone").val(),
 			"repeat-tracks": $("#pl_repeat_tracks").is(":checked"),
 			"my-tracks": $("#pl_my_tracks").is(":checked"),
 			"limit": {
@@ -454,6 +455,14 @@ var AIRTIME = (function(AIRTIME){
 				"direction": $("#pl_order_direction").val()
 			}
 		};
+		
+		//extra fields for dynamic playlists.
+		if ($("#spl_sortable").length === 0) {
+			rules["estimatedLimit"] = {
+				"value": $("#pl_estimate_limit_value").val(),
+				"unit":  $("#pl_estimate_limit_options").val()
+			};
+		}
 		
 		return rules;
 	}
@@ -479,7 +488,40 @@ var AIRTIME = (function(AIRTIME){
 		
 		$contents.sortable({
 			items: 'li',
-			handle: 'div.list-item-container'
+			handle: 'div.list-item-container',
+			//hack taken from
+			//http://stackoverflow.com/questions/2150002/jquery-ui-sortable-how-can-i-change-the-appearance-of-the-placeholder-object
+			placeholder: {
+		        element: function(currentItem) {
+					
+		            return $('<li class="placeholder ui-state-highlight"></li>')[0];
+		        },
+		        update: function(container, p) {
+		            return;
+		        }
+		    },
+			forceHelperSize: true,
+			forcePlaceholderSize: true,
+			start: function(event, ui) {
+				ui.placeholder.height(56);
+			},
+			receive: function(event, ui) {
+				//there's not a better way in this event to find the temp UI item...
+				var $tempItem = $("#spl_sortable").find("tr");
+				var $afterItem = $tempItem.prev();
+				
+				$tempItem.replaceWith($(ui.helper).html());
+				
+				var $draggedTr = $(ui.item.context);
+				var chosenMediaIds = AIRTIME.library.getDraggedMedia($draggedTr);
+				var insertAfterId = null;
+
+				if ($afterItem.length !== 0) {
+					insertAfterId = parseInt($afterItem.attr("id").split("_").pop(), 10);
+				}
+				
+				mod.addItems(chosenMediaIds, insertAfterId);
+			}
 		});
 	}
 	
@@ -501,21 +543,34 @@ var AIRTIME = (function(AIRTIME){
 	}
 	
 	mod.redrawPlaylist = function redrawPlaylist(data) {
+		
+		if (data.error) {
+			$(".playlist-temp-holder").remove();
+			alert(data.error);
+			return;
+		}
+		
 		var $wrapper = $("div.wrapper"),
 			$playlist = $("#side_playlist"),
 			$newContent = $(data.html),
+			$sortable = $playlist.find("#spl_sortable"),
 			$contents;
 		
 		$playlist.detach();
 
 		$playlist.find("#playlist_lastmod").val(data.modified);
 		$playlist.find("#playlist_length").text(data.length);
-		$playlist.find("#spl_sortable").html($newContent).sortable("refresh");
 		
-		$contents = $playlist.find("#spl_sortable").find("li");
-		checkPlayability($contents);
+		if ($sortable.length !== 0) {
+			$playlist.find("#spl_sortable").html($newContent).sortable("refresh");
+			
+			$contents = $playlist.find("#spl_sortable").find("li");
+			checkPlayability($contents);
+		}
 		
 		$wrapper.append($playlist);
+		
+		$playlist.triggerHandler("playlistupdate");
 	};
 	
 	mod.drawPlaylist = function drawPlaylist(data) {
@@ -535,8 +590,7 @@ var AIRTIME = (function(AIRTIME){
 	function showCuesWaveform(e) {
 		var $el = $(e.target),
 			$li = $el.parents("li"), 
-			$parent = $el.parent(),
-			uri = $parent.data("uri"),
+			uri = $li.data("uri"),
 			$html = $($("#tmpl-pl-cues").html()),
 			cueIn = $li.find('.spl_cue_in').data("cue"),
 			cueOut = $li.find('.spl_cue_out').data("cue"),
@@ -621,6 +675,109 @@ var AIRTIME = (function(AIRTIME){
         });	
 	};
 	
+	function showFadesWaveform(e) {
+		var $el = $(e.target),
+			$li = $el.parents("li"), 
+			uri = $li.data("uri"),
+			$html = $($("#tmpl-pl-fades").html()),
+			cueInSec = $li.find('.spl_cue_in').data("cueSec"),
+			cueOutSec = $li.find('.spl_cue_out').data("cueSec"),
+			trackLength = cueOutSec - cueInSec,
+			fadeInSec = $li.find('.spl_fade_in').data("fade"),
+			fadeOutSec = $li.find('.spl_fade_out').data("fade"),
+			tracks = [{
+				src: uri,
+				cuein: cueInSec,
+		    	cueout: cueOutSec,
+		    	fades: [{
+		    	    shape: "logarithmic",
+		    	    type: "FadeIn",
+		    	    start: 0,
+		    	    end: fadeInSec  
+		    	},
+		    	{
+		    	    shape: "logarithmic",
+		    	    type: "FadeOut",
+		    	    end: trackLength,
+		    	    start: trackLength - fadeOutSec
+		    	}],
+		    	states: {
+	                'shift': false
+	            }
+			}],
+			dim = AIRTIME.utilities.findViewportDimensions(),
+			playlistEditor;
+		
+		function removeDialog() {
+			playlistEditor.stop();
+			
+        	$html.dialog("destroy");
+        	$html.remove();
+        }
+		
+		function saveDialog() {
+			var json = playlistEditor.getJson(),
+				fades = json[0]["fades"];
+			
+			fades.forEach(function(el, i, arr) {
+				var length;
+				
+				length = el.end - el.start;
+				length = length.toFixed(3);
+				
+				if (el.type === "FadeIn") {
+					$li.find(".spl_fade_in")
+						.find("span")
+							.text(length)
+							.end()
+						.data("fade", length);
+				}
+				else {
+					$li.find(".spl_fade_out")
+						.find("span")
+							.text(length)
+							.end()
+						.data("fade", length);
+				}
+			});
+			
+        	removeDialog();
+        }
+		
+		$html.dialog({
+            modal: true,
+            title: $.i18n._("Fade Editor"),
+            show: 'clip',
+            hide: 'clip',
+            width: dim.width - 100,
+            height: 325,
+            buttons: [
+                {text: $.i18n._("Cancel"), class: "btn btn-small", click: removeDialog},
+                {text: $.i18n._("Save"),  class: "btn btn-small btn-inverse", click: saveDialog}
+            ],
+            open: function (event, ui) {
+            	
+            	var config = new Config({
+        			resolution: 15000,
+        	        mono: true,
+        	        timescale: true,
+        	        waveHeight: 80,
+        	        container: $html[0],
+        	        UITheme: "jQueryUI",
+        	        timeFormat: 'hh:mm:ss.uuu'
+        	    });
+        		
+        		playlistEditor = new PlaylistEditor();
+        	    playlistEditor.setConfig(config);
+        	    playlistEditor.init(tracks);	
+            },
+            close: removeDialog,
+            resizeStop: function(event, ui) {
+            	playlistEditor.resize();
+            }
+        });	
+	};
+	
 	mod.edit = function(id) {
 		var url = baseUrl+"playlist/edit",
 			data;
@@ -632,16 +789,13 @@ var AIRTIME = (function(AIRTIME){
 		});
 	};
 	
-	mod.addItems = function(mediaIds) {
-		
-		var content = $.map(mediaIds, function(value, index) {
-			return {"id": value};
-		});
-		
+	mod.addItems = function(mediaIds, insertAfter) {
+
 		var url = baseUrl+"playlist/add-items",
 			data = {
 				format: "json",
-				content: content
+				mediaIds: mediaIds,
+				insertAfter: insertAfter
 			};
 		
 		$.post(url, data, function(json) {
@@ -759,6 +913,7 @@ var AIRTIME = (function(AIRTIME){
     		
     		$.post(url, data, function(json) {
     			AIRTIME.playlist.drawPlaylist(json);
+    			$playlist.triggerHandler("playlistnew", ["static"]);
     		});
     	});
 		
@@ -768,6 +923,7 @@ var AIRTIME = (function(AIRTIME){
     		
     		$.post(url, data, function(json) {
     			AIRTIME.playlist.drawPlaylist(json);
+    			$playlist.triggerHandler("playlistnew", ["dynamic"]);
     		});
     	});
 		
@@ -798,6 +954,7 @@ var AIRTIME = (function(AIRTIME){
 		});
 		
 		$playlist.on("click", ".pl-waveform-cues-btn", showCuesWaveform);
+		$playlist.on("click", ".pl-waveform-fades-btn", showFadesWaveform);
 		
 		$playlist.on("keydown", ".spl_soe", submitOnEnter);
 		
@@ -851,6 +1008,8 @@ var AIRTIME = (function(AIRTIME){
 					$(".search-criteria").replaceWith(json.form);
 					addDatePickers();
 				}
+				
+				mod.redrawPlaylist(json);
 			});
 		});
 		
@@ -884,6 +1043,28 @@ var AIRTIME = (function(AIRTIME){
 			$.post(url, data, function(json) {
 				mod.drawPlaylist(json);
 			});
+		});
+		
+		$playlist.on("click", "#lib_pl_close", function(e) {
+
+		});
+		
+		//toggle visibility of playlist estimate
+		$playlist.on("change", "#pl_limit_options", function(e) {
+			var $estimate = $("#estimate_limit");
+			
+			if ($estimate.length === 0) {
+				return;
+			}
+			
+			var optionValue = $(this).val();
+			
+			if (optionValue === "items") {
+				$estimate.show();
+			}
+			else {
+				$estimate.hide();
+			}
 		});
 	};
 	

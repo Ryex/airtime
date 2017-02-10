@@ -37,6 +37,8 @@ define("AIRTIME_CONFIG_STOR", "/etc/airtime/");
 
 set_include_path(APPLICATION_PATH . '/presentation' . PATH_SEPARATOR . get_include_path());
 
+set_include_path(APPLICATION_PATH . '/presentation' . PATH_SEPARATOR . get_include_path());
+
 //Propel classes.
 set_include_path(APPLICATION_PATH . '/models' . PATH_SEPARATOR . get_include_path());
 
@@ -50,12 +52,35 @@ if (array_key_exists('config', $_GET)) {
     showConfigCheckPage();
 }
 
-// If a configuration file exists, forward to our boot script
-if (file_exists(AIRTIME_CONFIG_STOR . AIRTIME_CONFIG)) {
-    require_once(APPLICATION_PATH . 'airtime-boot.php');
-}
-// Otherwise, we'll need to run our configuration setup
-else {
-    $airtimeSetup = true;
-    require_once(SETUP_PATH . 'setup-config.php');
+/** Zend_Application */
+require_once 'Zend/Application.php';
+$application = new Zend_Application(
+    APPLICATION_ENV,
+    APPLICATION_PATH . '/configs/application.ini'
+);
+
+require_once (APPLICATION_PATH."/logging/Logging.php");
+Logging::setLogPath('/var/log/airtime/zendphp.log');
+
+// Create application, bootstrap, and run
+try {
+    $sapi_type = php_sapi_name();
+    if (substr($sapi_type, 0, 3) == 'cli') {
+        set_include_path(APPLICATION_PATH . PATH_SEPARATOR . get_include_path());
+        require_once("Bootstrap.php");
+    } else {
+        $application->bootstrap()->run();
+    }
+} catch (Exception $e) {
+    echo $e->getMessage();
+    echo "<pre>";
+    echo $e->getTraceAsString();
+    echo "</pre>";
+    Logging::info($e->getMessage());
+    if (VERBOSE_STACK_TRACE) {
+        Logging::info($e->getTraceAsString());
+    } else {
+        Logging::info($e->getTrace());
+    }
+    throw $e;
 }

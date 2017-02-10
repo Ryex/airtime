@@ -76,7 +76,7 @@ class Application_Service_CalendarService
                         "name"=> $text,
                         "icon" => "soundcloud");
                 }
-            }
+            } 
             else {
                 $menu["content"] = array(
                     "name"=> _("Show Content"),
@@ -104,19 +104,6 @@ class Application_Service_CalendarService
                         "name"=> _("Add / Remove Content"),
                         "icon" => "add-remove-content",
                         "url" => $baseUrl."showbuilder/builder-dialog/");
-                }
-            }
-
-            //user can remove all content if the show has not started
-            if ($now < $start && ($isAdminOrPM || $isHostOfShow) && !$this->ccShowInstance->isRecorded() ) {
-                //if the show is not linked OR if the show is linked AND not the current playing show
-                //the user can remove all content
-                if (!$showIsLinked || ($showIsLinked  && $currentShowId != $this->ccShow->getDbId())) {
-
-                   $menu["clear"] = array(
-                        "name"=> _("Remove All Content"),
-                        "icon" => "remove-all-content",
-                        "url" => $baseUrl."schedule/clear-show");
                 }
             }
 

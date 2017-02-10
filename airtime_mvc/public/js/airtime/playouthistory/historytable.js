@@ -7,10 +7,10 @@ var AIRTIME = (function(AIRTIME) {
     mod = AIRTIME.history;
 
     var $historyContentDiv;
-
+    
     var historyStartsDatetimeId = "his_item_HISTORY_ITEM_STARTS";
     var historyEndsDatetimeId = "his_item_HISTORY_ITEM_ENDS";
-
+    
     var oTableTools = {
         "sSwfPath": baseUrl+"js/datatables/plugin/TableTools-2.1.5/swf/copy_csv_xls_pdf.swf",
         "aButtons": [
@@ -48,9 +48,9 @@ var AIRTIME = (function(AIRTIME) {
     };
 
     var lengthMenu = [[10, 25, 50, 100, 500, -1], [10, 25, 50, 100, 500, $.i18n._("All")]];
-
-    var sDom = 'l<"dt-process-rel"r><"H"T><"dataTables_scrolling"t><"F"ip>';
-
+    
+    var sDom = 'l<"dt-process-rel"r><"H"T><"dataTables_scrolling"t><"fg-toolbar ui-widget-header ui-corner-bl ui-corner-br ui-helper-clearfix bottom_pagination"ip>';
+    
     var selectedLogItems = {};
 
     var dateStartId = "#his_date_start",
@@ -352,7 +352,7 @@ var AIRTIME = (function(AIRTIME) {
             "sDom": sDom,
             "oTableTools": oTableTools
         });
-
+       
         return oTable;
     }
 
@@ -418,7 +418,7 @@ var AIRTIME = (function(AIRTIME) {
             "sDom": sDom,
             "oTableTools": oTableTools
         });
-
+        
         $toolbar = $historyTableDiv.parents(".dataTables_wrapper").find(".fg-toolbar:first");
         createToolbarButtons($toolbar);
 
@@ -490,7 +490,7 @@ var AIRTIME = (function(AIRTIME) {
     		    	}
     		    }
     		];
-
+    	
     	$historyContentDiv = $("#history_content");
 
     	function redrawTables() {
@@ -507,20 +507,20 @@ var AIRTIME = (function(AIRTIME) {
     	function initializeDialog() {
     		var $startPicker = $hisDialogEl.find('#'+historyStartsDatetimeId),
     			$endPicker = $hisDialogEl.find('#'+historyEndsDatetimeId);
-
+    		
         	$startPicker.datetimepicker({
         		onSelect: function (selectedDateTime){
         			$endPicker.datetimepicker('option', 'minDate', $startPicker.datetimepicker('getDate') );
         			$endPicker.val(selectedDateTime);
         		}
         	});
-
+        	
         	$endPicker.datetimepicker({
         		onSelect: function (selectedDateTime){
         			$startPicker.datetimepicker('option', 'maxDate', $endPicker.datetimepicker('getDate') );
         		}
         	});
-
+        	
         	//problem with date picker opening if it's already focused on opening.
         	$startPicker.blur();
     	}
@@ -530,16 +530,16 @@ var AIRTIME = (function(AIRTIME) {
     		if (inShowsTab) {
     			$el.find("#his_choose_instance").remove();
     		}
-
+    		
     		return $el;
     	}
-
+    	
     	function fileSave() {
     		var data = $hisDialogEl.serializeArray();
     		var url = baseUrl+"Playouthistory/update-file-item/format/json";
-
+    		
     		$.post(url, data, function(json) {
-
+    			
     			//TODO put errors on form.
     			if (json.error !== undefined) {
     				//makeHistoryDialog(json.dialog);
@@ -548,13 +548,13 @@ var AIRTIME = (function(AIRTIME) {
     				removeHistoryDialog();
     				redrawTables();
     			}
-
+    		    	
     		}, "json");
-
+    		
     	}
-
+    	
     	function itemSave() {
-
+    		
     		var data = $hisDialogEl.serializeArray(),
     			id = data[0].value,
     			createUrl = baseUrl+"Playouthistory/create-list-item/format/json",
@@ -562,9 +562,9 @@ var AIRTIME = (function(AIRTIME) {
     			url,
     			$select = $hisDialogEl.find("#his_instance_select"),
     			instance;
-
+    		
     		url = (id === "") ? createUrl : updateUrl;
-
+    		
     		if (fnServerData.instance !== undefined) {
     			data.push({
     				name: "instance_id",
@@ -573,17 +573,17 @@ var AIRTIME = (function(AIRTIME) {
     		}
     		else if ($select.length > 0) {
     			instance = $select.val();
-
+    			
     			if (instance > 0) {
     				data.push({
         				name: "instance_id",
         				value: instance
         			});
-    			}
+    			}		
     		}
-
+    				
     		$.post(url, data, function(json) {
-
+    			
     			if (json.form !== undefined) {
     				var $newForm = $(json.form);
     				$newForm = processDialogHtml($newForm);
@@ -594,21 +594,21 @@ var AIRTIME = (function(AIRTIME) {
     				removeHistoryDialog();
     				redrawTables();
     			}
-
+    		    	
     		}, "json");
-
+    		
     	}
-
+    	
     	function makeHistoryDialog(json) {
     		$hisDialogEl = $(json.dialog);
     		$hisDialogEl = processDialogHtml($hisDialogEl);
-
+    		
     		var saveCallback = {
     			"his_item_": itemSave,
     			"his_file_": fileSave
     		};
-
-    		$hisDialogEl.dialog({
+    		
+    		$hisDialogEl.dialog({	       
     	        title: $.i18n._("Edit History Record"),
     	        modal: false,
     	        open: function( event, ui ) {
@@ -676,16 +676,16 @@ var AIRTIME = (function(AIRTIME) {
     		e.preventDefault();
 
     		$.get(url, function(json) {
-
+    			
     			makeHistoryDialog(json);
-
+    			
     		}, "json");
     	});
 
     	$('body').on("click", ".his_file_cancel, .his_item_cancel", function(e) {
     		removeHistoryDialog();
     	});
-
+    	
     	$historyContentDiv.on("click", ".his_checkbox input", function(e) {
     		var checked = e.currentTarget.checked,
     			$tr = $(e.currentTarget).parents("tr");
@@ -699,8 +699,9 @@ var AIRTIME = (function(AIRTIME) {
     	});
 
     	$('body').on("click", "#his_instance_retrieve", function(e) {
-    		var startPicker = $hisDialogEl.find('#'+historyStartsDatetimeId).data('datetimepicker'),
-				endPicker = $hisDialogEl.find('#'+historyEndsDatetimeId).data('datetimepicker'),
+
+    		var startPicker = $hisDialogEl.find('#his_item_starts'),
+				endPicker = $hisDialogEl.find('#his_item_ends'),
 				url = baseUrl+"playouthistory/show-history-feed",
 				startDate = startPicker.val(),
 				endDate = endPicker.val(),
@@ -797,24 +798,24 @@ var AIRTIME = (function(AIRTIME) {
 				tab.always();
 			}
     	});
-
+    	
     	//shortcut to open edit dialog.
     	$historyContentDiv.on("dblclick", "tr", function(e) {
     		var editUrl = $(this).data('url-edit');
-
+    		
     		$.post(editUrl, {format: "json"}, function(json) {
-
+    			
     			makeHistoryDialog(json);
-
+    			
     		}, "json");
     	});
-
+    	
     	// begin context menu initialization.
         $.contextMenu({
             selector: '#history_content td:not(.his_checkbox)',
             trigger: "right",
             ignoreRightClick: false,
-
+            
             build: function($el, e) {
                 var items = {},
                 	callback,
@@ -830,9 +831,9 @@ var AIRTIME = (function(AIRTIME) {
 
                 	callback = function() {
                     	$.post(editUrl, {format: "json"}, function(json) {
-
+                			
                 			makeHistoryDialog(json);
-
+                			
                 		}, "json");
                     };
 

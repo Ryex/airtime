@@ -271,8 +271,6 @@ class ApiController extends Zend_Controller_Action
             $this->view->layout()->disableLayout();
             $this->_helper->viewRenderer->setNoRender(true);
 
-            $request = $this->getRequest();
-
             $utcTimeNow = gmdate("Y-m-d H:i:s");
             $utcTimeEnd = "";   // if empty, getNextShows will use interval instead of end of day
 
@@ -385,9 +383,6 @@ class ApiController extends Zend_Controller_Action
             $showsToRetrieve = $request->getParam('shows');
             if ($daysToRetrieve == "" || !is_numeric($daysToRetrieve)) {
                 $daysToRetrieve = "2";
-            }
-            if ($showsToRetrieve == "" || !is_numeric($showsToRetrieve)) {
-                $showsToRetrieve = "5";
             }
 
             //For consistency, all times here are being sent in the station timezone, which
@@ -571,30 +566,6 @@ class ApiController extends Zend_Controller_Action
         $historyService = new Application_Service_HistoryService();
         $historyService->insertHistoryItem($scheduleId);
 
-        $this->_helper->json->sendJson(array("status"=>1, "message"=>""));
-    }
-
-    /**
-     * Go through a given array and sanitize any potentially exploitable fields
-     * by passing them through htmlspecialchars
-     *
-     * @param unknown $arr  the array to sanitize
-     * @param unknown $keys indexes of values to be sanitized
-     */
-    private function convertSpecialChars(&$arr, $keys)
-    {
-        foreach ($arr as &$a) {
-            if (is_array($a)) {
-                foreach ($keys as &$key) {
-                    if (array_key_exists($key, $a)) {
-                        $a[$key] = htmlspecialchars($a[$key]);
-                    }
-                }
-                $this->convertSpecialChars($a, $keys);
-            }
-        }
-    }
-
     /**
      * API endpoint to provide station metadata
      */
@@ -687,6 +658,8 @@ class ApiController extends Zend_Controller_Action
 
     public function uploadFileAction()
     {
+        Logging::error("FIXME: Change the show recorder to use the File Upload API and remove this function."); // Albert - April 3, 2014
+        /**
         $upload_dir = ini_get("upload_tmp_dir");
         $tempFilePath = Application_Model_StoredFile::uploadFile($upload_dir);
         $tempFileName = basename($tempFilePath);
@@ -698,7 +671,7 @@ class ApiController extends Zend_Controller_Action
             $this->_helper->json->sendJson(
                 array("jsonrpc" => "2.0", "error" => array("code" => $result['code'], "message" => $result['message']))
             );
-        }
+        }*/
     }
 
     public function uploadRecordedAction()
@@ -765,7 +738,7 @@ class ApiController extends Zend_Controller_Action
         $responses   = array();
         $params      = $request->getParams();
         $valid_modes = array('delete_dir', 'delete', 'moved', 'modify', 'create');
-
+        
         foreach ($params as $k => $raw_json) {
             // Valid requests must start with mdXXX where XXX represents at
             // least 1 digit
@@ -815,10 +788,10 @@ class ApiController extends Zend_Controller_Action
     {
         $request = $this->getRequest();
         $dir_id = $request->getParam('dir_id');
-
+        
         $service = new Application_Service_AudioFileService();
         $rows = $service->listAllFiles($dir_id);
-
+       
         $this->view->files = $rows;
     }
 
@@ -986,11 +959,11 @@ class ApiController extends Zend_Controller_Action
 
                     $watchDir = Application_Model_MusicDir::getDirByPath($rd);
                     // get all the files that is under $dirPath
-
+                    
                     //TODO fix this file stuff up, make sure delete can work here.
                     $service = new Application_Service_AudioFileService();
                     $files = $service->listAllFiles($dir->getId(), false);
-
+                    
                     foreach ($files as $f) {
                         // if the file is from this mount
                         if (substr($f->getFilePath(), 0, strlen($rd)) === $rd) {
@@ -1108,7 +1081,7 @@ class ApiController extends Zend_Controller_Action
 
         $service = new Application_Service_AudioFileService();
         $rows = $service->getAllFilesWithoutReplayGain($dir_id);
-
+        
         $this->_helper->json->sendJson($rows);
     }
 
@@ -1116,7 +1089,7 @@ class ApiController extends Zend_Controller_Action
     {
     	$service = new Application_Service_AudioFileService();
     	$rows = $service->getAllFilesWithoutSilan();
-
+        
         $this->_helper->json->sendJson($rows);
     }
 
@@ -1124,19 +1097,19 @@ class ApiController extends Zend_Controller_Action
     {
         $request = $this->getRequest();
         $data = json_decode($request->getParam('data'));
-
+        
         $con = Propel::getConnection();
         $con->beginTransaction();
-
+        
         try {
         	foreach ($data as $pair) {
         		list($id, $gain) = $pair;
-
+        		
         		$file = AudioFileQuery::create()->findPk($id, $con);
         		$file->setReplayGain($gain);
         		$file->save($con);
         	}
-
+        	
         	$con->commit();
         }
         catch (Exception $e) {
@@ -1151,16 +1124,16 @@ class ApiController extends Zend_Controller_Action
     {
         $request = $this->getRequest();
         $data = json_decode($request->getParam('data'), $assoc = true);
-
+        
         $con = Propel::getConnection();
         $con->beginTransaction();
-
+        
         try {
         	foreach ($data as $pair) {
         		list($id, $info) = $pair;
-
+        
         		$file = AudioFileQuery::create()->findPk($id, $con);
-
+        		
         		$length = $file->getLength();
         		if (isset($info['length'])) {
         			$length = $info['length'];
@@ -1169,15 +1142,15 @@ class ApiController extends Zend_Controller_Action
         			$length = Application_Common_DateHelper::secondsToPlaylistTime($length);
         			$file->setLength($length);
         		}
-
+        		
         		$cuein = isset($info['cuein']) ? $info['cuein'] : 0;
         		$cueout = isset($info['cueout']) ? $info['cueout'] : $length;
-
+        		
         		$file->setCuein($cuein);
         		$file->setCueout($cueout);
         		$file->setIsSilanChecked(true);
         		$file->save($con);
-        	}
+        	}	
         }
         catch (Exception $e) {
         	Logging::error($e->getMessage());

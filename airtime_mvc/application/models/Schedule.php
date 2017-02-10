@@ -17,7 +17,7 @@ class Application_Model_Schedule
     		$showIds = array(), $showInstanceIds = array())
     {
     	$utcNow = new DateTime("now", new DateTimeZone("UTC"));
-
+    	
     	//ordering first by show instance start time
     	//and then by scheduled item start time.
     	$items = CcShowInstancesQuery::create()
@@ -30,7 +30,7 @@ class Application_Model_Schedule
     		->_endif()
     		->between($start, $end)
     		->orderByDbStarts()
-    		//including these relations to prevent further database queries for
+    		//including these relations to prevent further database queries for 
     		->joinWith("CcShow", Criteria::LEFT_JOIN)
     		->useCcScheduleQuery(null, Criteria::LEFT_JOIN)
     			//only retrieve items that will get played in the future.
@@ -44,8 +44,9 @@ class Application_Model_Schedule
     		->joinWith("CcSchedule.MediaItem", Criteria::LEFT_JOIN)
     		->joinWith("MediaItem.AudioFile", Criteria::LEFT_JOIN)
     		->joinWith("MediaItem.Webstream", Criteria::LEFT_JOIN)
+    		->joinWith("MediaItem.Playlist", Criteria::LEFT_JOIN)
     		->find();
-
+    	
     	return $items;
     }
 
@@ -117,7 +118,7 @@ class Application_Model_Schedule
             then set range * from "now" to "now + cache_ahead_hours". */
         if (is_null($p_fromDateTime)) {
             $p_fromDateTime = new DateTime("now", $utcTimeZone);
-        }
+        } 
         else {
         	$p_fromDateTime->setTimezone($utcTimeZone);
         }
@@ -129,13 +130,13 @@ class Application_Model_Schedule
             if (is_numeric($cache_ahead_hours)) {
                 //make sure we are not dealing with a float
                 $cache_ahead_hours = intval($cache_ahead_hours);
-            }
+            } 
             else {
                 $cache_ahead_hours = 1;
             }
 
             $p_toDateTime->add(new DateInterval("PT".$cache_ahead_hours."H"));
-        }
+        } 
         else {
         	$p_toDateTime->setTimezone($utcTimeZone);
         }
@@ -152,14 +153,18 @@ class Application_Model_Schedule
     private static function createScheduledEvents(&$data, $startDT, $endDT)
     {
         $showInstances = self::GetScheduleDetailItems($startDT, $endDT, true);
-
+        
         //Logging::info($showInstances);
 
         foreach ($showInstances as $showInstance) {
-
+        	
+        	//populate all content from static/dynamic playlists.
+        	//$showInstance->unroll();
+        	
         	foreach($showInstance->getCcSchedules() as $scheduleItem) {
-
-        		$event = $scheduleItem->createScheduleEvent($data);
+        		
+        		$event = Presentation_LiquidsoapEventFactory::create($scheduleItem);
+        		$event->createScheduleEvent($data);
         	}
         }
     }
@@ -167,9 +172,9 @@ class Application_Model_Schedule
     public static function getSchedule($p_fromDateTime = null, $p_toDateTime = null)
     {
     	//Logging::enablePropelLogging();
-
+    	
         list($startDT, $endDT) = self::getRangeStartAndEnd($p_fromDateTime, $p_toDateTime);
-
+        
         $data = array();
         $data["media"] = array();
 
@@ -177,7 +182,7 @@ class Application_Model_Schedule
         //executes them first.
         self::createInputHarborKickTimes($data, $startDT->format("Y-m-d H:i:s"), $endDT->format("Y-m-d H:i:s"));
         self::createScheduledEvents($data, $startDT, $endDT);
-
+        
         //Logging::disablePropelLogging();
 
         return $data;
@@ -271,13 +276,13 @@ SQL;
 
         return $overlapping;
     }
-
+    
     private static function makeDashboardItemOutput(&$row)
     {
     	if (empty($row["item_start"])) {
     		return null;
     	}
-
+    	
     	return array(
     		"name"=> $row["media_title"] ." - ".$row["media_creator"],
     		"starts" => $row["item_start"],
@@ -287,7 +292,7 @@ SQL;
     		"type" => 'track'
     	);
     }
-
+    
     private static function makeDashboardShowOutput(&$row)
     {
     	return array(
@@ -303,7 +308,7 @@ SQL;
             "type" => "show"
     	);
     }
-
+    
     public static function getDashboardInfo()
     {
     	
@@ -328,7 +333,7 @@ show.url as show_url
 from
 (
 
-select
+select 
 
 pcnItems.media_title,
 pcnItems.media_creator,
@@ -344,7 +349,7 @@ pcnShows.is_recorded
 from
 (
 
-select
+select 
 
 preCurrNextShows.starts,
 preCurrNextShows.ends,
@@ -355,12 +360,12 @@ preCurrNextShows.record as is_recorded
 from
 (
 
-select * from
+select * from 
 (
 select * from cc_show_instances instance
 where
 instance.modified_instance = false
-and instance.starts <= (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+and instance.starts <= (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC') 
 and instance.ends > (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
 )
 
@@ -368,10 +373,10 @@ as currInstance
 
 union
 
-select * from
+select * from 
 (
 select * from cc_show_instances instance
-where
+where 
 instance.modified_instance = false
 and instance.starts > (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
 order by instance.starts
@@ -382,10 +387,10 @@ as nextInstance
 
 union
 
-select * from
+select * from 
 (
 select * from cc_show_instances instance
-where
+where 
 instance.modified_instance = false
 and instance.ends < (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
 order by instance.ends desc
@@ -405,8 +410,8 @@ full outer join
 
 (
 
-select
-preCurrNextItem.starts,
+select 
+preCurrNextItem.starts, 
 preCurrNextItem.ends,
 preCurrNextItem.show_id,
 preCurrNextItem.media_item_played,
@@ -414,21 +419,21 @@ media.name as media_title,
 media.creator as media_creator
 
 
-from
+from 
 (
 
 select * from
 
 (select currentItem.starts, currentItem.ends, currentItem.media_id, currentItem.media_item_played, showInstance.show_id from
 (select sched.starts, sched.ends, sched.instance_id, sched.media_id, sched.media_item_played from cc_schedule sched
-where
+where 
 sched.playout_status > 0
-and sched.starts <= (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+and sched.starts <= (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC') 
 and sched.ends > (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))
 as currentItem
 left join cc_show_instances showInstance on currentItem.instance_id = showInstance.id
 where showInstance.modified_instance = false
-and showInstance.starts <= (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+and showInstance.starts <= (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC') 
 and showInstance.ends > (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))
 
 as cItem
@@ -439,10 +444,10 @@ union
 select * from
 (select nextItem.starts, nextItem.ends, nextItem.media_id, nextItem.media_item_played, showInstance.show_id from
 (select sched.starts, sched.ends, sched.instance_id, sched.media_id, sched.media_item_played from cc_schedule sched
-where
+where 
 sched.playout_status > 0
-and sched.starts > (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
-order by sched.starts
+and sched.starts > (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC') 
+order by sched.starts 
 limit 1)
 as nextItem
 left join cc_show_instances showInstance on nextItem.instance_id = showInstance.id
@@ -455,10 +460,10 @@ union
 select * from
 (select prevItem.starts, prevItem.ends, prevItem.media_id, prevItem.media_item_played, showInstance.show_id from
 (select sched.starts, sched.ends, sched.instance_id, sched.media_id, sched.media_item_played from cc_schedule sched
-where
+where 
 sched.playout_status > 0
-and sched.ends < (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
-order by sched.ends desc
+and sched.ends < (select CURRENT_TIMESTAMP AT TIME ZONE 'UTC') 
+order by sched.ends desc 
 limit 1)
 as prevItem
 left join cc_show_instances showInstance on prevItem.instance_id = showInstance.id
@@ -484,35 +489,35 @@ left join cc_show show on npItems.show_id = show.id
 
 where npItems.show_id is not null
 
-order by
-npItems.show_start,
+order by 
+npItems.show_start, 
 npItems.item_start
 SQL;
-
-
+    	
+    
     	// extra rows can be created here from combining prev/curr/next items
     	// with prev/curr/next shows.
     	//this happens from recorded shows, or any kind of show that does not have a cc_schedule entry associated with it.
     	//at most 5 items will be returned, need to find the proper prev/curr/next.
     	$rows = Application_Common_Database::prepareAndExecute($sql);
-
+    	
     	//Logging::info($rows);
-
+    	
     	$prev = null;
     	$curr = null;
     	$next = null;
-
+    	
     	$utcTimezone = new DateTimeZone("UTC");
     	$utcNow = new DateTime("now", $utcTimezone);
-
+    	
     	for ($i = 0, $len = count($rows); $i < $len; $i++) {
-
+    		
     		$start = $rows[$i]["show_start"];
     		$end = $rows[$i]["show_end"];
-
+    		
     		$startDT = new DateTime($start, $utcTimezone);
     		$endDT = new DateTime($end, $utcTimezone);
-
+    		
     		if ($endDT < $utcNow) {
     			$prev = $rows[$i];
     		}
@@ -523,28 +528,28 @@ SQL;
     			$next = $rows[$i];
     		}
     	}
-
+    	
     	$prevShow = isset($prev) ? self::makeDashboardShowOutput($prev) : null;
     	$currShow = isset($curr) ? self::makeDashboardShowOutput($curr) : null;
     	$nextShow = isset($next) ? self::makeDashboardShowOutput($next) : null;
-
+    	
     	//start again to find items.
     	$prev = null;
     	$curr = null;
     	$next = null;
-
+    	 
     	for ($i = 0, $len = count($rows); $i < $len; $i++) {
-
+    	
     		if (empty($rows[$i]["item_start"])) {
     			continue;
     		}
-
+    		
     		$start = $rows[$i]["item_start"];
     		$end = $rows[$i]["item_end"];
-
+    	
     		$startDT = new DateTime($start, $utcTimezone);
     		$endDT = new DateTime($end, $utcTimezone);
-
+    	
     		if ($endDT < $utcNow) {
     			$prev = $rows[$i];
     		}
@@ -563,11 +568,11 @@ SQL;
     			break;
     		}
     	}
-
+    	
     	$prevItem = isset($prev) ? self::makeDashboardItemOutput($prev) : null;
     	$currItem = isset($curr) ? self::makeDashboardItemOutput($curr) : null;
     	$nextItem = isset($next) ? self::makeDashboardItemOutput($next) : null;
-
+    	
     	$range = array("env"=>APPLICATION_ENV,
     		"schedulerTime"=> $utcNow->format("Y-m-d H:i:s"),
     		//Previous, current, next songs!
@@ -581,7 +586,7 @@ SQL;
     		"currentShow"=> isset($currShow) ? array($currShow) : array(),
     		"nextShow"=> isset($nextShow) ? array($nextShow) : array()
     	);
-
+    	
     	return $range;
     }
 }

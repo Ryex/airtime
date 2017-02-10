@@ -1,6 +1,7 @@
 <?php
 
 use Airtime\CcPrefPeer;
+require_once 'Cache.php';
 
 class Application_Model_Preference
 {
@@ -1393,6 +1394,14 @@ class Application_Model_Preference
         $data = self::getValue("library_screen", true);
         return ($data != "") ? unserialize($data) : null;
     }
+    
+    public static function SetActiveLibraryTab($value) {
+    	self::setValue("active_library_tab", $value, true);
+    }
+    
+    public static function GetActiveLibraryTab() {
+    	return self::getValue("active_library_tab", true);
+    }
 
     public static function SetEnableReplayGain($value) {
         self::setValue("enable_replay_gain", $value, false);
@@ -1431,5 +1440,26 @@ class Application_Model_Preference
 
     public static function GetHistoryFileTemplate() {
         return self::getValue("history_file_template");
+    }
+
+    public static function getDiskUsage()
+    {
+        $val = self::getValue("disk_usage");
+        return (strlen($val) == 0) ? 0 : $val;
+    }
+
+    public static function setDiskUsage($value)
+    {
+        self::setValue("disk_usage", $value);
+    }
+
+    public static function updateDiskUsage($filesize)
+    {
+        $currentDiskUsage = self::getDiskUsage();
+        if (empty($currentDiskUsage)) {
+            $currentDiskUsage = 0;
+        }
+
+        self::setDiskUsage($currentDiskUsage + $filesize);
     }
 }

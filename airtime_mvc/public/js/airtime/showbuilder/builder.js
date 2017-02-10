@@ -14,37 +14,37 @@ var AIRTIME = (function(AIRTIME){
         hasGottenFirstAjax = false,
         //check to see if preferences have actually changed or not for datatables
         currentDatatablesSettings = {};
-
+    
     if (AIRTIME.showbuilder === undefined) {
         AIRTIME.showbuilder = {};
     }
     mod = AIRTIME.showbuilder;
-
+   
     mod.timeout = undefined;
 
     function resetTimestamp() {
-
+        
     	internalTimestamp = -1;
     }
-
+    
     function setTimestamp(timestamp) {
-
+        
     	internalTimestamp = timestamp;
     }
 
     function getTimestamp() {
-
+        
         return internalTimestamp;
     };
-
+    
     function setShowInstances(showInstances) {
     	internalShowInstances = showInstances;
     };
-
+    
     function getShowInstances() {
         return internalShowInstances;
     };
-
+    
     function checkScheduleUpdates() {
         var data = {},
         	oTable = $('#show_builder_table').dataTable(),
@@ -78,16 +78,16 @@ var AIRTIME = (function(AIRTIME){
             }
         });
     }
-
+    
     mod.refresh = function() {
-
+       
     	oSchedTable.fnDraw();
     };
 
     mod.checkSelectButton = function() {
         var $selectable = $sbTable.find("tbody").find("input:checkbox"),
         	$button = $(".sb-select");
-
+        
         if ($selectable.length !== 0) {
             AIRTIME.button.enableButton($button);
         }
@@ -99,7 +99,7 @@ var AIRTIME = (function(AIRTIME){
     mod.checkTrimButton = function() {
         var $over = $sbTable.find(".sb-over.sb-allowed").not(".sb-past"),
         	$button = $(".sb-overbooked");
-
+        
         if ($over.length !== 0) {
             AIRTIME.button.enableButton($button);
         }
@@ -111,7 +111,7 @@ var AIRTIME = (function(AIRTIME){
     mod.checkDeleteButton = function() {
         var $selected = $sbTable.find("tbody").find("input:checkbox").filter(":checked"),
         	$button = $(".sb-trash");
-
+        
         if ($selected.length !== 0) {
             AIRTIME.button.enableButton($button);
         }
@@ -123,7 +123,7 @@ var AIRTIME = (function(AIRTIME){
     mod.checkJumpToCurrentButton = function() {
         var $current = $sbTable.find("."+NOW_PLAYING_CLASS),
         	$button = $(".sb-current");
-
+        
         if ($current.length !== 0) {
             AIRTIME.button.enableButton($button);
         }
@@ -140,7 +140,7 @@ var AIRTIME = (function(AIRTIME){
             userType = localStorage.getItem('user-type'),
             canCancel = false,
             $button = $(".sb-cancel");
-
+        
         if ($current.length !== 0 && $current.hasClass("sb-allowed")) {
         	canCancel = true;
         }
@@ -229,7 +229,7 @@ var AIRTIME = (function(AIRTIME){
     	//don't bother checking to update schedule while action is being performed.
     	clearTimeout(builderCheckTimeout);
 
-        $lib.block({
+        $lib.block({ 
             message: "",
             theme: true,
             applyPlatformOpacityRules: false
@@ -246,21 +246,21 @@ var AIRTIME = (function(AIRTIME){
 
         $lib.unblock();
         $sbContent.unblock();
-
+        
         builderCheckTimeout = setTimeout(checkScheduleUpdates, 5000);
     };
-
+    
     mod.fnRedrawSchedule = function(json) {
-
+        
         oSchedTable.fnDraw();
         mod.enableUI();
     };
-
+    
     mod.fnAdd = function(aMediaIds, aSchedIds) {
         mod.disableUI();
-
-        $.post(baseUrl+"showbuilder/schedule-add",
-            {"format": "json", "mediaIds": aMediaIds, "schedIds": aSchedIds},
+        
+        $.post(baseUrl+"showbuilder/schedule-add", 
+            {"format": "json", "mediaIds": aMediaIds, "schedIds": aSchedIds}, 
             mod.fnRedrawSchedule
         );
     };
@@ -268,9 +268,9 @@ var AIRTIME = (function(AIRTIME){
     mod.fnMove = function(aSelect, aAfter) {
 
         mod.disableUI();
-
-        $.post(baseUrl+"showbuilder/schedule-move",
-            {"format": "json", "selectedItem": aSelect, "afterItem": aAfter},
+        
+        $.post(baseUrl+"showbuilder/schedule-move", 
+            {"format": "json", "selectedItem": aSelect, "afterItem": aAfter},  
             mod.fnRedrawSchedule
         );
     };
@@ -305,11 +305,11 @@ var AIRTIME = (function(AIRTIME){
     };
 
     mod.fnServerData = function fnBuilderServerData( sSource, aoData, fnCallback ) {
-
+    	
     	clearTimeout(mod.timeout);
 
     	console.log("getting builder feed.");
-
+       
         aoData.push( { name: "timestamp", value: getTimestamp()} );
         aoData.push( { name: "instances", value: getShowInstances()} );
         aoData.push( { name: "format", value: "json"} );
@@ -339,16 +339,16 @@ var AIRTIME = (function(AIRTIME){
             		fnCallback(json);
             		setTimestamp(json.timestamp);
                     setShowInstances(json.instances);
-
+                    
                     if (!hasGottenFirstAjax) {
-
+                    	
                     	hasGottenFirstAjax = true;
-
+                    	
                     	//start this timeout
                     	//check if the timeline view needs updating.
                     	builderCheckTimeout = setTimeout(checkScheduleUpdates, 5000);
                     }
-            	}
+            	}   
             }
         });
     };
@@ -363,37 +363,53 @@ var AIRTIME = (function(AIRTIME){
 
         $scroll.scrollTop(currentTop - scrollingTop + scrolled);
     };
-
+    
     function stackTrace() {
         var err = new Error();
         console.log(err.stack);
     }
-
+    
     function builderNeedSave(oData) {
     	var settings = currentDatatablesSettings;
-
+    	
     	//This will happen when we have nothing saved in cc_pref for this table.
     	if (settings["abVisCols"] === undefined || settings["ColReorder"] === undefined) {
-
+    		
     		settings["abVisCols"] = oData.abVisCols;
     		settings["ColReorder"] = oData.ColReorder;
-
+    		
     		return true;
     	}
-
+    	
     	if (settings["abVisCols"].join() === oData.abVisCols.join()
     			&& settings["ColReorder"].join() === oData.ColReorder.join()) {
     		return false;
     	}
-
+    	
     	return true;
+    }
+    
+    function placeCursor($tr) {
+    	
+    	var $marker = $("<div/>", {
+        	"class": "marker"
+        });
+    	
+    	$sbTable.find("."+CURSOR_SELECTED_CLASS)
+    		.removeClass(CURSOR_SELECTED_CLASS)
+    		.find(".marker")
+    			.remove();
+    	
+		$tr.addClass(CURSOR_SELECTED_CLASS)
+			.find(".innerWrapper")
+				.append($marker);
     }
 
     mod.builderDataTable = function() {
         $sbContent = $('#show_builder');
         $lib = $("#library_content"),
         $sbTable = $sbContent.find('table');
-
+        
         oSchedTable = $sbTable.dataTable( {
             "aoColumns": [
             /* checkbox */ {"mDataProp": "allowed", "sTitle": "", "sWidth": "15px", "sClass": "sb-checkbox"},
@@ -424,35 +440,35 @@ var AIRTIME = (function(AIRTIME){
                 //remove oData components we don't want to save.
                 delete oData.oSearch;
                 delete oData.aoSearchCols;
-
+                
             },
             "fnStateSave": function fnStateSave(oSettings, oData) {
-
+            	
             	if (builderNeedSave(oData)) {
             		console.log("saving timeline");
-
+            		
             		localStorage.setItem('datatables-timeline', JSON.stringify(oData));
-
+                    
                     $.ajax({
                         url: baseUrl+"usersettings/set-timeline-datatable",
                         type: "POST",
                         data: {settings : oData, format: "json"},
                         dataType: "json"
                     });
-            	}
+            	}  
             },
             "fnStateLoad": function fnBuilderStateLoad(oSettings) {
                 var settings = localStorage.getItem('datatables-timeline');
-
+                
                 try {
                     return JSON.parse(settings);
                 }
                 catch (e) {
                     return null;
-                }
+                }   
             },
             "fnStateLoadParams": function (oSettings, oData) {
-
+            	
             	console.log("loading timeline");
                 var i,
                     length,
@@ -465,24 +481,23 @@ var AIRTIME = (function(AIRTIME){
                         a[i] = (a[i] === "true") ? true : false;
                     }
                 }
-
+                
                 currentDatatablesSettings["abVisCols"] = a.slice(0);
-
+                
                 a = oData.ColReorder;
                 for (i = 0, length = a.length; i < length; i++) {
                     if (typeof(a[i]) === "string") {
                         a[i] = parseInt(a[i], 10);
                     }
                 }
-
+                
                 currentDatatablesSettings["ColReorder"] = a.slice(0);
-
+               
                 oData.iCreate = parseInt(oData.iCreate, 10);
             },
 
             "fnServerData": mod.fnServerData,
             "fnRowCallback": function fnRowCallback( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
-            	//console.time("datatablessinglerowrender");
             	var i, length,
                     sSeparatorHTML,
                     fnPrepareSeparatorRow,
@@ -496,16 +511,12 @@ var AIRTIME = (function(AIRTIME){
                     headerIcon,
                     $wrapper,
                     $marker;
-
+                
                 //http://stackoverflow.com/a/6119684
                 $wrapper = $("<div/>", {
                 	"class": "innerWrapper"
                 });
-
-                $marker = $("<div/>", {
-                	"class": "marker"
-                });
-
+                
                 $node = $(nRow.children[0]);
                 $node.html($wrapper);
 
@@ -585,14 +596,7 @@ var AIRTIME = (function(AIRTIME){
                 else if (aData.empty === true) {
                     //remove the column classes from all tds.
                     $nRow.find('td').removeClass();
-
-                    //putting the cursor on the screen
-                	if (aData.allowed && $lib.length > 0 && $lib.filter(":visible").length > 0) {
-                		//using this input just for cursor positioning purposes.
-                		$wrapper.append('<input type="checkbox" style="visibility:hidden" disabled="disabled"></input>');
-                		$wrapper.append($marker);
-                	}
-
+                    
                     sSeparatorHTML = '<span>'+$.i18n._("Show Empty")+'</span>';
                     cl = cl + " sb-empty odd";
 
@@ -601,7 +605,7 @@ var AIRTIME = (function(AIRTIME){
                 else if (aData.record === true) {
                     //remove the column classes from all tds.
                     $nRow.find('td').removeClass();
-
+                    
                     sSeparatorHTML = '<span>'+$.i18n._("Recording From Line In")+'</span>';
                     cl = cl + " sb-record odd";
 
@@ -613,14 +617,14 @@ var AIRTIME = (function(AIRTIME){
                     //check if the file exists.
                     if (aData.image === true) {
                     	//$image.html('<img title="'+$.i18n._("Track preview")+'" src="'+baseUrl+'css/images/icon_audioclip.png"></img>');
-
+                    	
                         if (!AIRTIME.playerPreview.isAudioSupported(aData.mime)) {
                             $image.html('<span class="ui-icon ui-icon-locked"></span>');
-                        }
+                        } 
                         else {
                             $image.html('<img title="'+$.i18n._("Track preview")+'" src="'+baseUrl+'css/images/icon_audioclip.png"></img>');
                         }
-
+						
                     }
                     else {
                         $image.html('<span class="ui-icon ui-icon-alert"></span>');
@@ -635,14 +639,9 @@ var AIRTIME = (function(AIRTIME){
                             hide: 'mouseout'
                         });
                     }
-
+                    
                     if (aData.allowed === true && aData.scheduled >= 1) {
-                    	$wrapper.append('<input type="checkbox" name="'+aData.id+'"></input>');
-
-                        //putting the cursor on the screen
-                    	if ($lib.length > 0 && $lib.filter(":visible").length > 0) {
-                    		$wrapper.append($marker);
-                    	}
+                    	$wrapper.append('<input type="checkbox" name="'+aData.id+'"></input>');                      	
                     }
                 }
 
@@ -676,7 +675,7 @@ var AIRTIME = (function(AIRTIME){
                 else {
                     $nRow.addClass("sb-future");
                 }
-
+                
                 if (aData.allowed !== true) {
                     $nRow.addClass("sb-not-allowed");
                 }
@@ -695,16 +694,12 @@ var AIRTIME = (function(AIRTIME){
                 if (aData.currentShow === true) {
                     $nRow.addClass("sb-current-show");
                 }
-
+                
                 //save some info for reordering purposes.
                 $nRow.data({"aData": aData});
-
-                //console.timeEnd("datatablessinglerowrender");
             },
             //remove any selected nodes before the draw.
             "fnPreDrawCallback": function( oSettings ) {
-
-            	console.time("datatablesrender");
 
                 //make sure any dragging helpers are removed or else they'll be stranded on the screen.
                 $("#draggingContainer").remove();
@@ -712,26 +707,25 @@ var AIRTIME = (function(AIRTIME){
                 console.time("datatablesrowrender");
             },
             "fnDrawCallback": function fnBuilderDrawCallback(oSettings, json) {
-            	console.timeEnd("datatablesrowrender");
-
 				var aData,
 	                elements,
 	                i, length, temp,
-	                $cursorRows;
+	                $cursorRow;
 
                 if ($(this).find("."+NOW_PLAYING_CLASS).length > 0) {
                     mod.jumpToCurrentTrack();
-                }
+                }                
 
-                //only create the cursor arrows if the library is on the page.
-                if ($lib.length > 0 && $lib.filter(":visible").length > 0) {
+                //only create the cursor arrow if the library is on the page.
+                //default it to be just before the first editable show footer
+                if ($lib.length > 0 && $lib.filter(":visible").length > 0) {  	
 
-                	$cursorRows = $sbTable.find("div.marker").parents("tr");
-
-                    //if there is only 1 cursor on the page highlight it by default.
-                    if ($cursorRows.length === 1) {
-                        $cursorRows.addClass("cursor-selected-row");
-                    }
+                	$cursorRow = $sbTable.find("tbody")
+                		.find("tr.sb-future.sb-footer.sb-allowed")
+                		.filter(":first")
+                		.prev();
+                	
+                	placeCursor($cursorRow);
                 }
 
                 //order of importance of elements for setting the next timeout.
@@ -770,7 +764,7 @@ var AIRTIME = (function(AIRTIME){
                 "aiExclude": [ 0, 1 ],
                 "buttonText": $.i18n._("Show / hide columns"),
                 "fnStateChange": function ( iColumn, bVisible ) {
-                	//row callback doesn't seem to be called anymore,
+                	//row callback doesn't seem to be called anymore, 
                 	//make sure headers and footers don't looks weird.
                 	$(".sb-header, .sb-footer").find("td:gt(1)").hide();
                 }
@@ -826,15 +820,11 @@ var AIRTIME = (function(AIRTIME){
                 draggingContainer;
 
             fnAdd = function() {
-                var aMediaIds = [],
-                    aSchedIds = [];
+                var aSchedIds = [];
 
-                for(i = 0; i < aItemData.length; i++) {
-                    aMediaIds.push({"id": aItemData[i].id, "type": aItemData[i].ftype});
-                }
                 aSchedIds.push({"id": oPrevData.id, "instance": oPrevData.instance, "timestamp": oPrevData.timestamp});
-
-                mod.fnAdd(aMediaIds, aSchedIds);
+                
+                mod.fnAdd(aItemData, aSchedIds);
             };
 
             fnMove = function() {
@@ -852,14 +842,10 @@ var AIRTIME = (function(AIRTIME){
 
             fnReceive = function(event, ui) {
                 var aItems = [];
-
-                AIRTIME.library.addToChosen(ui.item);
-
-                aItems = AIRTIME.library.getSelectedData();
-                origTrs = aItems;
+                var $draggedTr = $(ui.item.context);
+                
+                origTrs = AIRTIME.library.getDraggedMedia($draggedTr);
                 html = ui.helper.html();
-
-                AIRTIME.library.removeFromChosen(ui.item);
             };
 
             fnUpdate = function(event, ui) {
@@ -949,18 +935,11 @@ var AIRTIME = (function(AIRTIME){
                 receive: fnReceive,
                 update: fnUpdate,
                 start: function(event, ui) {
-                    /*
-                    var elements = $sbTable.find('tr input:checked').parents('tr')
-                        .not(ui.item)
-                        .not("."+NOW_PLAYING_CLASS);
-
-                    //remove all other items from the screen,
-                    //don't remove ui.item or else we can not get position information when the user drops later.
-                    elements.remove();
-                    */
-
-                    var elements = $sbTable.find('tr input:checked').parents('tr').not("."+NOW_PLAYING_CLASS);
-
+                    var elements = $sbTable
+                    	.find('tr input:checked')
+                    	.parents('tr')
+                    	.not("."+NOW_PLAYING_CLASS);
+                    
                     elements.hide();
                 }
             };
@@ -996,25 +975,25 @@ var AIRTIME = (function(AIRTIME){
                     "<i class='icon-white icon-ban-circle'></i></button></div>");
 
         $toolbar.append($menu);
-
+       
         $('#timeline-sa').click(mod.selectAll);
         $('#timeline-sn').click(mod.selectNone);
-
+        
         //cancel current show
         $toolbar.find('.sb-cancel').click(function() {
             var $tr,
                 data,
                 msg = $.i18n._('Cancel Current Show?');
-
+            
             $tr = $sbTable.find('tr.sb-future:first');
-
+            
             if ($tr.hasClass('sb-current-show')) {
                 data = $tr.data("aData");
-
+                
                 if (data.record === true) {
                     msg = $.i18n._('Stop recording current show?');
                 }
-
+                
                 if (confirm(msg)) {
                     var url = baseUrl+"Schedule/cancel-current-show";
                     $.ajax({
@@ -1026,173 +1005,50 @@ var AIRTIME = (function(AIRTIME){
                         }
                     });
                 }
-            }
+            }   
         });
-
+        
         //jump to current
         $toolbar.find('.sb-current').click(function() {
             mod.jumpToCurrentTrack();
         });
-
+        
         //delete overbooked tracks.
         $toolbar.find('.sb-overbooked').click(function() {
             var temp,
                 aItems = [],
                 $trs = $sbTable.find(".sb-over.sb-future.sb-allowed");
-
+    
             $trs.each(function(){
                 temp = $(this).data("aData");
-                aItems.push({"id": temp.id, "instance": temp.instance, "timestamp": temp.timestamp});
+                aItems.push({"id": temp.id, "instance": temp.instance, "timestamp": temp.timestamp});   
             });
-
+            
             mod.fnRemove(aItems);
         });
-
+        
         //delete selected tracks
         $toolbar.find('.sb-trash').click(function() {
             mod.fnRemoveSelectedItems();
-        });
-
-        //add events to cursors.
-        $sbTable.on("click", "div.marker", function(event) {
-            var $tr = $(this).parents("tr"),
-                $trs;
-
-            if ($tr.hasClass(CURSOR_SELECTED_CLASS)) {
-                mod.removeCursor($tr);
-            }
-            else {
-                mod.selectCursor($tr);
-            }
-
-            if (event.ctrlKey === false) {
-                $trs = $sbTable.find('.'+CURSOR_SELECTED_CLASS).not($tr);
-                mod.removeCursor($trs);
-            }
-
-            return false;
-        });
-
-        //call the context menu so we can prevent the event from propagating.
-        $sbTable.on("mousedown", "td:gt(1)", function(e) {
-    		//only trigger context menu on right click.
-    		if (e.which === 3) {
-    			e.preventDefault();
-        		e.stopPropagation();
-
-    			var $el = $(this);
-
-    			$el.contextMenu({x: e.pageX, y: e.pageY});
-    		}
         });
 
         //preview the media item with jPlayer.
         $sbTable.on("click", "td.sb-image img", function(event) {
         	var $tr = $(this).parents("tr"),
         		aData = $tr.data("aData");
-
+        	
         	AIRTIME.playerPreview.previewMedia(aData.mediaId);
             return false;
         });
-
-        //begin context menu initialization.
-        $.contextMenu({
-            selector: '.sb-content table tbody tr:not(.sb-empty, .sb-footer, .sb-header, .sb-record) td:not(.sb-checkbox, .sb-image)',
-            trigger: "none",
-            ignoreRightClick: false,
-
-            build: function($el, e) {
-                var items,
-                    $tr = $el.parent(),
-                    data = $tr.data("aData"),
-                    cursorClass = "cursor-selected-row",
-                    callback;
-
-                function processMenuItems(oItems) {
-
-                    //define a preview callback.
-                    if (oItems.preview !== undefined) {
-
-                        callback = function() {
-                        	AIRTIME.playerPreview.previewMedia(data.mediaId);
-                        };
-
-                        oItems.preview.callback = callback;
-                    }
-
-                    //define a select cursor callback.
-                    if (oItems.selCurs !== undefined) {
-
-                        callback = function() {
-                            var $tr = $(this).parents('tr');
-
-                            mod.selectCursor($tr);
-                        };
-
-                        oItems.selCurs.callback = callback;
-                    }
-
-                   //define a remove cursor callback.
-                    if (oItems.delCurs !== undefined) {
-
-                        callback = function() {
-                            var $tr = $(this).parents('tr');
-
-                            mod.removeCursor($tr);
-                        };
-
-                        oItems.delCurs.callback = callback;
-                    }
-
-                    //define a delete callback.
-                    if (oItems.del !== undefined) {
-
-                        callback = function() {
-                            AIRTIME.showbuilder.fnRemove([{
-                                id: data.id,
-                                timestamp: data.timestamp,
-                                instance: data.instance
-                            }]);
-                        };
-
-                        oItems.del.callback = callback;
-                    }
-
-                    //only show the cursor selecting options if the library is visible on the page.
-                    if ($tr.find('div.marker').length === 0) {
-                        delete oItems.selCurs;
-                        delete oItems.delCurs;
-                    }
-                    //check to include either select or remove cursor.
-                    else {
-                        if ($tr.hasClass(cursorClass)) {
-                            delete oItems.selCurs;
-                        }
-                        else {
-                            delete oItems.delCurs;
-                        }
-                    }
-
-                    items = oItems;
-                }
-
-                request = $.ajax({
-                  url: baseUrl+"showbuilder/context-menu",
-                  type: "GET",
-                  data: {id : data.id, format: "json"},
-                  dataType: "json",
-                  async: false,
-                  success: function(json){
-                      processMenuItems(json.items);
-                  }
-                });
-
-                return {
-                    items: items
-                };
-
-            }
+        
+        //double click row to move cursor
+        $sbTable.on("dblclick", "tr.sb-future.sb-allowed:not(sb-footer), tr.sb-now-playing.sb-allowed", function(event) {
+        	placeCursor($(this));
         });
+    };
+    
+    mod.destroy = function() {
+    	clearTimeout(builderCheckTimeout);
     };
 
     return AIRTIME;

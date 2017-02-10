@@ -26,7 +26,6 @@ use Airtime\MediaItem\AudioFileQuery;
  *
  * @method AudioFileQuery orderByDirectory($order = Criteria::ASC) Order by the directory column
  * @method AudioFileQuery orderByFilepath($order = Criteria::ASC) Order by the filepath column
- * @method AudioFileQuery orderByMd5($order = Criteria::ASC) Order by the md5 column
  * @method AudioFileQuery orderByTrackTitle($order = Criteria::ASC) Order by the track_title column
  * @method AudioFileQuery orderByArtistName($order = Criteria::ASC) Order by the artist_name column
  * @method AudioFileQuery orderByBitRate($order = Criteria::ASC) Order by the bit_rate column
@@ -53,6 +52,7 @@ use Airtime\MediaItem\AudioFileQuery;
  * @method AudioFileQuery orderByIsSilanChecked($order = Criteria::ASC) Order by the silan_check column
  * @method AudioFileQuery orderByFileExists($order = Criteria::ASC) Order by the file_exists column
  * @method AudioFileQuery orderByFileHidden($order = Criteria::ASC) Order by the hidden column
+ * @method AudioFileQuery orderByImportStatus($order = Criteria::ASC) Order by the import_status column
  * @method AudioFileQuery orderById($order = Criteria::ASC) Order by the id column
  * @method AudioFileQuery orderByName($order = Criteria::ASC) Order by the name column
  * @method AudioFileQuery orderByCreator($order = Criteria::ASC) Order by the creator column
@@ -68,7 +68,6 @@ use Airtime\MediaItem\AudioFileQuery;
  *
  * @method AudioFileQuery groupByDirectory() Group by the directory column
  * @method AudioFileQuery groupByFilepath() Group by the filepath column
- * @method AudioFileQuery groupByMd5() Group by the md5 column
  * @method AudioFileQuery groupByTrackTitle() Group by the track_title column
  * @method AudioFileQuery groupByArtistName() Group by the artist_name column
  * @method AudioFileQuery groupByBitRate() Group by the bit_rate column
@@ -95,6 +94,7 @@ use Airtime\MediaItem\AudioFileQuery;
  * @method AudioFileQuery groupByIsSilanChecked() Group by the silan_check column
  * @method AudioFileQuery groupByFileExists() Group by the file_exists column
  * @method AudioFileQuery groupByFileHidden() Group by the hidden column
+ * @method AudioFileQuery groupByImportStatus() Group by the import_status column
  * @method AudioFileQuery groupById() Group by the id column
  * @method AudioFileQuery groupByName() Group by the name column
  * @method AudioFileQuery groupByCreator() Group by the creator column
@@ -129,7 +129,6 @@ use Airtime\MediaItem\AudioFileQuery;
  *
  * @method AudioFile findOneByDirectory(int $directory) Return the first AudioFile filtered by the directory column
  * @method AudioFile findOneByFilepath(string $filepath) Return the first AudioFile filtered by the filepath column
- * @method AudioFile findOneByMd5(string $md5) Return the first AudioFile filtered by the md5 column
  * @method AudioFile findOneByTrackTitle(string $track_title) Return the first AudioFile filtered by the track_title column
  * @method AudioFile findOneByArtistName(string $artist_name) Return the first AudioFile filtered by the artist_name column
  * @method AudioFile findOneByBitRate(int $bit_rate) Return the first AudioFile filtered by the bit_rate column
@@ -156,6 +155,7 @@ use Airtime\MediaItem\AudioFileQuery;
  * @method AudioFile findOneByIsSilanChecked(boolean $silan_check) Return the first AudioFile filtered by the silan_check column
  * @method AudioFile findOneByFileExists(boolean $file_exists) Return the first AudioFile filtered by the file_exists column
  * @method AudioFile findOneByFileHidden(boolean $hidden) Return the first AudioFile filtered by the hidden column
+ * @method AudioFile findOneByImportStatus(int $import_status) Return the first AudioFile filtered by the import_status column
  * @method AudioFile findOneByName(string $name) Return the first AudioFile filtered by the name column
  * @method AudioFile findOneByCreator(string $creator) Return the first AudioFile filtered by the creator column
  * @method AudioFile findOneBySource(string $source) Return the first AudioFile filtered by the source column
@@ -170,7 +170,6 @@ use Airtime\MediaItem\AudioFileQuery;
  *
  * @method array findByDirectory(int $directory) Return AudioFile objects filtered by the directory column
  * @method array findByFilepath(string $filepath) Return AudioFile objects filtered by the filepath column
- * @method array findByMd5(string $md5) Return AudioFile objects filtered by the md5 column
  * @method array findByTrackTitle(string $track_title) Return AudioFile objects filtered by the track_title column
  * @method array findByArtistName(string $artist_name) Return AudioFile objects filtered by the artist_name column
  * @method array findByBitRate(int $bit_rate) Return AudioFile objects filtered by the bit_rate column
@@ -197,6 +196,7 @@ use Airtime\MediaItem\AudioFileQuery;
  * @method array findByIsSilanChecked(boolean $silan_check) Return AudioFile objects filtered by the silan_check column
  * @method array findByFileExists(boolean $file_exists) Return AudioFile objects filtered by the file_exists column
  * @method array findByFileHidden(boolean $hidden) Return AudioFile objects filtered by the hidden column
+ * @method array findByImportStatus(int $import_status) Return AudioFile objects filtered by the import_status column
  * @method array findById(int $id) Return AudioFile objects filtered by the id column
  * @method array findByName(string $name) Return AudioFile objects filtered by the name column
  * @method array findByCreator(string $creator) Return AudioFile objects filtered by the creator column
@@ -316,7 +316,7 @@ abstract class BaseAudioFileQuery extends MediaItemQuery
      */
     protected function findPkSimple($key, $con)
     {
-        $sql = 'SELECT "directory", "filepath", "md5", "track_title", "artist_name", "bit_rate", "sample_rate", "album_title", "genre", "comments", "year", "track_number", "channels", "bpm", "encoded_by", "mood", "label", "composer", "copyright", "conductor", "isrc_number", "info_url", "language", "replay_gain", "cuein", "cueout", "silan_check", "file_exists", "hidden", "id", "name", "creator", "source", "owner_id", "description", "last_played", "play_count", "length", "mime", "created_at", "updated_at" FROM "media_audiofile" WHERE "id" = :p0';
+        $sql = 'SELECT "directory", "filepath", "track_title", "artist_name", "bit_rate", "sample_rate", "album_title", "genre", "comments", "year", "track_number", "channels", "bpm", "encoded_by", "mood", "label", "composer", "copyright", "conductor", "isrc_number", "info_url", "language", "replay_gain", "cuein", "cueout", "silan_check", "file_exists", "hidden", "import_status", "id", "name", "creator", "source", "owner_id", "description", "last_played", "play_count", "length", "mime", "created_at", "updated_at" FROM "media_audiofile" WHERE "id" = :p0';
         try {
             $stmt = $con->prepare($sql);
             $stmt->bindValue(':p0', $key, PDO::PARAM_INT);
@@ -476,35 +476,6 @@ abstract class BaseAudioFileQuery extends MediaItemQuery
         }
 
         return $this->addUsingAlias(AudioFilePeer::FILEPATH, $filepath, $comparison);
-    }
-
-    /**
-     * Filter the query on the md5 column
-     *
-     * Example usage:
-     * <code>
-     * $query->filterByMd5('fooValue');   // WHERE md5 = 'fooValue'
-     * $query->filterByMd5('%fooValue%'); // WHERE md5 LIKE '%fooValue%'
-     * </code>
-     *
-     * @param     string $md5 The value to use as filter.
-     *              Accepts wildcards (* and % trigger a LIKE)
-     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
-     *
-     * @return AudioFileQuery The current query, for fluid interface
-     */
-    public function filterByMd5($md5 = null, $comparison = null)
-    {
-        if (null === $comparison) {
-            if (is_array($md5)) {
-                $comparison = Criteria::IN;
-            } elseif (preg_match('/[\%\*]/', $md5)) {
-                $md5 = str_replace('*', '%', $md5);
-                $comparison = Criteria::LIKE;
-            }
-        }
-
-        return $this->addUsingAlias(AudioFilePeer::MD5, $md5, $comparison);
     }
 
     /**
@@ -1344,6 +1315,48 @@ abstract class BaseAudioFileQuery extends MediaItemQuery
         }
 
         return $this->addUsingAlias(AudioFilePeer::HIDDEN, $fileHidden, $comparison);
+    }
+
+    /**
+     * Filter the query on the import_status column
+     *
+     * Example usage:
+     * <code>
+     * $query->filterByImportStatus(1234); // WHERE import_status = 1234
+     * $query->filterByImportStatus(array(12, 34)); // WHERE import_status IN (12, 34)
+     * $query->filterByImportStatus(array('min' => 12)); // WHERE import_status >= 12
+     * $query->filterByImportStatus(array('max' => 12)); // WHERE import_status <= 12
+     * </code>
+     *
+     * @param     mixed $importStatus The value to use as filter.
+     *              Use scalar values for equality.
+     *              Use array values for in_array() equivalent.
+     *              Use associative array('min' => $minValue, 'max' => $maxValue) for intervals.
+     * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return AudioFileQuery The current query, for fluid interface
+     */
+    public function filterByImportStatus($importStatus = null, $comparison = null)
+    {
+        if (is_array($importStatus)) {
+            $useMinMax = false;
+            if (isset($importStatus['min'])) {
+                $this->addUsingAlias(AudioFilePeer::IMPORT_STATUS, $importStatus['min'], Criteria::GREATER_EQUAL);
+                $useMinMax = true;
+            }
+            if (isset($importStatus['max'])) {
+                $this->addUsingAlias(AudioFilePeer::IMPORT_STATUS, $importStatus['max'], Criteria::LESS_EQUAL);
+                $useMinMax = true;
+            }
+            if ($useMinMax) {
+                return $this;
+            }
+            if (null === $comparison) {
+                $comparison = Criteria::IN;
+            }
+        }
+
+        return $this->addUsingAlias(AudioFilePeer::IMPORT_STATUS, $importStatus, $comparison);
     }
 
     /**

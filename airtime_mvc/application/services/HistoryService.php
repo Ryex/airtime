@@ -399,7 +399,7 @@ class Application_Service_HistoryService
 					$media->save($this->con);
 					$scheduledItem->save($this->con);
 					
-					$type = $mediaItem->getType();
+					$type = $media->getType();
 					$strategy = "Strategy_{$type}HistoryItem";
 					
 					$insertStrategy = new $strategy();
@@ -416,6 +416,11 @@ class Application_Service_HistoryService
 
 	/* id is an id in cc_playout_history */
 	public function makeHistoryItemForm($id, $populate=false) {
+		
+		$fieldMap = array(
+			HISTORY_ITEM_STARTS => "DbStarts", 
+			HISTORY_ITEM_ENDS => "DbEnds"
+		);
 
 		$fieldMap = array(
 			HISTORY_ITEM_STARTS => "DbStarts",
@@ -546,12 +551,12 @@ class Application_Service_HistoryService
 				$key = substr($index, $prefix_len);
 				$md[$key] = $value;
 			}
-
+			
 			Logging::info($md);
 
 			$file->setMetadata($md);
 			$file->save($this->con);
-
+			
 			$this->con->commit();
 		}
 		catch (Exception $e) {

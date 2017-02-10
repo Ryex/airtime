@@ -1,3 +1,7 @@
+#history_template {
+	max-width: 480px;
+}
+
 #history_template h4, #configure_item_template h4 { font-size: 14px; margin-top: 0px; }
 
 #history_template ul, #configure_item_template ul { list-style: none; padding-left: 0px; }
@@ -146,8 +150,7 @@
 }
 
 #configure_item_template {
-	width: 100%;
-	max-width: 620px;
+	max-width: 630px;
 }
 
 .add_more {
@@ -198,3 +201,4 @@
 div.his-timerange input.error {
     background-color: rgba(255,0,0,0.2);
 }
+

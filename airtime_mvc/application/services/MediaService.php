@@ -29,10 +29,10 @@ class Application_Service_MediaService
 		$obj_sess = new Zend_Session_Namespace(UI_PLAYLISTCONTROLLER_OBJ_SESSNAME);
 		//some type of media is in the session
 		if (isset($obj_sess->id)) {
-			$obj = MediaItemQuery::create()->findPk($obj_sess->id);
+			$obj = PlaylistQuery::create()->findPk($obj_sess->id);
 			
-			if (isset($obj) && $obj->getType() === "Playlist") {
-				return $obj->getChildObject();
+			if (isset($obj) && substr($obj->getType(), 0, 8) == "Playlist") {
+				return $obj;
 			}
 			else {
 				$obj_sess->id = null;
@@ -90,6 +90,14 @@ class Application_Service_MediaService
         else {
         	$script .= "localStorage.setItem( 'datatables-playlist', null ); ";
         }
+        
+        $tabId = Application_Model_Preference::GetActiveLibraryTab();
+        if (!is_null($tabId)) {
+        	$script .= "localStorage.setItem( 'library-active-tab', '$tabId' ); ";
+        }
+        else {
+        	$script .= "localStorage.setItem( 'library-active-tab', null ); ";
+        }
 
 		return $script;
 	}
@@ -121,8 +129,10 @@ class Application_Service_MediaService
 	public function getJPlayerPreviewPlaylist($mediaId) {
 
 		$mediaItem = MediaItemQuery::create()->findPK($mediaId);
-
-		$type = $mediaItem->getType();
+		
+		$class = $mediaItem->getDescendantClass();
+		$class = explode("\\", $class);
+		$type = array_pop($class);
 
 		$class = "Presentation_JPlayerItem{$type}";
 

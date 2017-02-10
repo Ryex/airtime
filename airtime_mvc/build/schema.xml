@@ -49,6 +49,7 @@
      instances can be regenerated if we edit the show, which is unwanted behaviour. This column serves
      to ensure that we don't regenerate the instance. -->
     <column name="modified_instance" phpName="DbModifiedInstance" type="BOOLEAN" required="true" defaultValue="false" />
+    <column name="unrolled" phpName="DbUnrolled" type="BOOLEAN" required="true" defaultValue="false" />
 	<foreign-key foreignTable="cc_show" name="cc_show_fkey" onDelete="CASCADE">
       <reference local="show_id" foreign="id"/>
     </foreign-key>
@@ -157,7 +158,7 @@
          broadcasted = 1)
     -->
     <column name="position" phpName="DbPosition" type="INTEGER" required="true" default="0" />
-
+    
     <foreign-key foreignTable="cc_show_instances" name="cc_show_inst_fkey" onDelete="CASCADE">
       <reference local="instance_id" foreign="id"/>
     </foreign-key>
@@ -307,7 +308,7 @@
       <index-column name="template_id"/>
     </index>
   </table>
-
+  
   <table name="media_item" phpName="MediaItem">
     <behavior name="timestampable" />
     <column name="id" phpName="Id" primaryKey="true" type="INTEGER" autoIncrement="true" required="true" />
@@ -324,15 +325,13 @@
       <reference local="owner_id" foreign="id"/>
     </foreign-key>
   </table>
-
+  
   <table name="media_audiofile" phpName="AudioFile" namespace="MediaItem">
     <behavior name="concrete_inheritance">
       <parameter name="extends" value="media_item" />
-    </behavior>
-    <column name="mime" phpName="Mime" type="VARCHAR" />
+    </behavior> 
     <column name="directory" phpName="Directory" type="INTEGER" required="false"/>
     <column name="filepath" phpName="Filepath" type="LONGVARCHAR" required="false" defaultValue=""/>
-    <column name="md5" phpName="Md5" type="CHAR" size="32" required="false"/>
     <column name="track_title" phpName="TrackTitle" type="VARCHAR" size="512" required="false"/>
     <column name="artist_name" phpName="ArtistName" type="VARCHAR" size="512" required="false"/>
     <column name="bit_rate" phpName="BitRate" type="INTEGER" required="false"/>
@@ -359,6 +358,7 @@
     <column name="silan_check" phpName="IsSilanChecked" type="BOOLEAN" defaultValue="false"/>
     <column name="file_exists" phpName="FileExists" type="BOOLEAN" required="false" defaultValue="true"/>
     <column name="hidden" phpName="FileHidden" type="BOOLEAN" defaultValue="false"/>
+    <column name="import_status" phpName="ImportStatus" type="INTEGER" required="true" defaultValue="1"/>
     
     <foreign-key foreignTable="cc_music_dirs" name="audio_file_music_dir_fkey">
       <reference local="directory" foreign="id"/>
@@ -370,14 +370,14 @@
       <index-column name="filepath"/>
     </index>
   </table>
-
+  
   <table name="media_webstream" phpName="Webstream" namespace="MediaItem">
     <behavior name="concrete_inheritance">
       <parameter name="extends" value="media_item" />
     </behavior>
     <column name="url" phpName="Url" type="VARCHAR" size="512" required="true" />
   </table>
-
+  
   <table name="media_playlist" phpName="Playlist" namespace="MediaItem" abstract="true">
     <behavior name="concrete_inheritance">
       <parameter name="extends" value="media_item" />
@@ -413,5 +413,5 @@
       <index-column name="media_id"/>
     </index>
   </table>
-
+  
 </database>

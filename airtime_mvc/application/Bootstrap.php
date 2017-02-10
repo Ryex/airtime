@@ -1,5 +1,8 @@
 <?php
-require_once CONFIG_PATH . "conf.php";
+//only to avoid complaints for now, we should never rely on the default timezone in Airtime.
+date_default_timezone_set("UTC");
+
+require_once __DIR__."/configs/conf.php";
 $CC_CONFIG = Config::getConfig();
 
 require_once CONFIG_PATH . "ACL.php";
@@ -23,7 +26,7 @@ require_once "Auth.php";
 require_once __DIR__.'/forms/helpers/ValidationTypes.php';
 require_once __DIR__.'/forms/helpers/CustomDecorators.php';
 require_once __DIR__.'/controllers/plugins/RabbitMqPlugin.php';
-require_once __DIR__.'/upgrade/Upgrades.php';
+require_once __DIR__.'/controllers/plugins/Maintenance.php';
 
 require_once (APPLICATION_PATH . "/logging/Logging.php");
 Logging::setLogPath('/var/log/airtime/zendphp.log');
@@ -119,13 +122,6 @@ class Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         $offset = $now->format("Z") * -1;
         $view->headScript()->appendScript("var serverTimezoneOffset = {$offset}; //in seconds");
 
-        if (class_exists("Zend_Auth", false) && Zend_Auth::getInstance()->hasIdentity()) {
-            $userTimeZone = new DateTimeZone(Application_Model_Preference::GetUserTimezone());
-            $now = new DateTime("now", $userTimeZone);
-            $offset = $now->format("Z") * -1;
-            $view->headScript()->appendScript("var userTimezoneOffset = {$offset}; //in seconds");
-        }
-
         //scripts for now playing bar
         $view->headScript()->appendFile($baseUrl.'js/airtime/airtime_bootstrap.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
         $view->headScript()->appendFile($baseUrl.'js/airtime/dashboard/helperfunctions.js?'.$CC_CONFIG['airtime_version'],'text/javascript');
@@ -213,6 +209,29 @@ class Bootstrap extends Zend_Application_Bootstrap_Bootstrap
                 'action' => 'password-change',
             )));
     }
+
+    protected function _initAutoload () {
+
+    	// configure new autoloader
+    	$autoloader = new Zend_Application_Module_Autoloader (array ('namespace' => '', 'basePath' => APPLICATION_PATH));
+
+    	// autoload form validators & filters definition
+    	$autoloader->addResourceType ('Filter', 'forms/filters', 'Filter_');
+    	$autoloader->addResourceType ('Validator', 'forms/validators', 'Validate_');
+
+    	$autoloader->addResourceType ('Interface', 'models/interfaces', 'Interface_');
+    	$autoloader->addResourceType ('Presentation', 'models/presentation', 'Presentation_');
+    	$autoloader->addResourceType ('Format', 'models/formatters', 'Format_');
+    	$autoloader->addResourceType ('Strategy', 'models/strategy', 'Strategy_');
+
+    }
+    
+    public function _initPlugins()
+    {
+        $front = Zend_Controller_Front::getInstance();
+        $front->registerPlugin(new Zend_Controller_Plugin_Maintenance());
+    }
+}
 
     protected function _initAutoload () {
 

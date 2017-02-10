@@ -1025,7 +1025,7 @@ SQL;
             $event["rebroadcast"]   = intval($show["rebroadcast"]);
             //$event["soundcloud_id"] = is_null($show["soundcloud_id"])
              //   ? -1 : $show["soundcloud_id"];
-
+            
             //for putting the now playing icon on the show.
             if ($now > $startsDT && $now < $endsDT) {
                 $event["nowPlaying"] = true;

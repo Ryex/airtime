@@ -285,6 +285,38 @@ class AirtimeInstall
         $command = "rm -rf \"$p_path\"";
         exec($command);
     }
+
+    public static function CreateSymlinksToUtils()
+    {
+        echo "* Creating /usr/bin symlinks".PHP_EOL;
+        AirtimeInstall::RemoveSymlinks();
+
+        echo "* Installing airtime-import".PHP_EOL;
+        $dir = AirtimeInstall::CONF_DIR_BINARIES."/utils/airtime-import/airtime-import";
+        exec("ln -s $dir /usr/bin/airtime-import");
+
+        echo "* Installing airtime-check-system".PHP_EOL;
+        $dir = AirtimeInstall::CONF_DIR_BINARIES."/utils/airtime-check-system";
+        exec("ln -s $dir /usr/bin/airtime-check-system");
+
+        echo "* Installing airtime-user".PHP_EOL;
+        $dir = AirtimeInstall::CONF_DIR_BINARIES."/utils/airtime-user";
+        exec("ln -s $dir /usr/bin/airtime-user");
+
+        echo "* Installing airtime-log".PHP_EOL;
+        $dir = AirtimeInstall::CONF_DIR_BINARIES."/utils/airtime-log";
+        exec("ln -s $dir /usr/bin/airtime-log");
+    }
+
+    public static function RemoveSymlinks()
+    {
+        exec("rm -f /usr/bin/airtime-import");
+        exec("rm -f /usr/bin/airtime-check-system");
+        exec("rm -f /usr/bin/airtime-user");
+        exec("rm -f /usr/bin/airtime-log");
+        exec("rm -f /usr/bin/airtime-clean-storage");
+    }
+
     public static function InstallPhpCode()
     {
         $CC_CONFIG = Config::getConfig();

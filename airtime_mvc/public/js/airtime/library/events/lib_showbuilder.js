@@ -7,6 +7,81 @@ var AIRTIME = (function(AIRTIME) {
 
     mod = AIRTIME.library;
     
+    var datatablesSettings = {
+		"lib_audio": {
+			draggable: true
+		},
+		"lib_webstream": {
+			draggable: true
+		},
+		"lib_playlist": {
+			draggable: true
+		}
+	};
+    
+    mod.datatablesEventSettings = function() {
+    	return datatablesSettings;
+    };
+    
+    mod.createDraggable = function($table) {
+    	var $sortable = $("#show_builder_table"),
+			$table = mod.getActiveTable();
+		
+		//don't create draggable if there's nothing to drag to on the page.
+		if ($sortable.length === 0) {
+			return;
+		}
+		
+		$table.find("tbody tr").draggable({
+			appendTo: $table.parents(".wrapper"),
+            cancel: "td.dataTables_empty, input",
+            handle: "td",
+            helper: function() {
+                var $el = $(this),
+                	selected = mod.getVisibleChosen().length,
+	                container,
+	                thead = $("#show_builder_table thead"),
+	                colspan = thead.find("th").length,
+	                width = thead.find("tr:first").width(),
+	                message;
+
+                // dragging an element that has an unselected
+                // checkbox.
+                if (mod.isChosenItem($el) === false) {
+                    selected++;
+                }
+
+                if (selected === 1) {
+                    message = $.i18n._("Adding 1 Item");
+                }
+                else {
+                    message = sprintf($.i18n._("Adding %s Items"), selected);
+                }
+
+                container = $('<div/>')
+	                .attr('id', 'draggingContainer')
+	                .append('<tr/>')
+	                .find("tr")
+		                .append('<td/>')
+		                .find("td")
+			                .attr("colspan", colspan)
+			                .width(width)
+			                .addClass("ui-state-highlight")
+			                .append(message)
+			                .end()
+	                .end();
+
+                return container;
+            },
+            cursor: 'pointer',
+            cursorAt: {
+                top: 30,
+                left: 100
+            },
+            connectToSortable : '#show_builder_table'
+		});
+    };
+    
     mod.setupToolbar = function(tabId) {
         var $toolbar = $("#"+tabId+" .fg-toolbar:first"),
         	$menu = mod.createToolbarButtons();
@@ -70,6 +145,10 @@ var AIRTIME = (function(AIRTIME) {
     
     mod.addButtonClick = function() {
     	scheduleMedia(mod.getVisibleChosen());
+    };
+    
+    mod.initCustomEvents = function() {
+
     };
     
     return AIRTIME;

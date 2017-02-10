@@ -82,6 +82,7 @@ class PlaylistStatic extends Playlist {
 	    	->joinWith('MediaItem', Criteria::LEFT_JOIN)
 	    	->joinWith("MediaItem.AudioFile", Criteria::LEFT_JOIN)
 	    	->joinWith("MediaItem.Webstream", Criteria::LEFT_JOIN)
+	    	->joinWith("MediaItem.Playlist", Criteria::LEFT_JOIN)
 	    	->find($con);
     }
     
@@ -203,12 +204,37 @@ class PlaylistStatic extends Playlist {
    /*
     * @param $ids list of media ids to add to the end of the playlist.
     */
-    public function addMedia(PropelPDO $con, $ids) {
+    public function addMedia(PropelPDO $con, $ids, $afterId = null) {
 
     	$con->beginTransaction();
+    	
+    	Logging::info("Adding to playlist after id ".$afterId);
 
     	try {
-    		$position = $this->countMediaContents(null, false, $con);
+    		
+    		if (is_null($afterId)) {
+    			$position = 0;
+    		}
+    		else {
+    			$afterItem = MediaContentQuery::create()->findPk($afterId, $con);
+    			$position = $afterItem->getPosition() + 1;
+    		}
+    		
+    		Logging::info("Adding to position: ".$position);
+    		
+    		$numInserts = count($ids);
+    		
+    		//create the gap in positions for the new items.
+    		
+    		$table = MediaContentPeer::TABLE_NAME;
+    		$positionCol = "position";
+    		$playlistIdCol = "playlist_id";
+    		
+    		$stmt = $con->prepare("UPDATE {$table} SET {$positionCol} = {$positionCol} + {$numInserts}
+    			WHERE {$playlistIdCol} = :p1 AND {$positionCol} >= {$position}");
+    		$stmt->bindValue(':p1', $this->getId());
+    		$stmt->execute();
+    		
     		//run this just for the single query.
     		$mediaToAdd = MediaItemQuery::create()->findPks($ids, $con);
     		
@@ -242,7 +268,7 @@ class PlaylistStatic extends Playlist {
     	Logging::disablePropelLogging();
     }
     
-    public function savePlaylistContent(PropelPDO $con, $content, $replace=false)
+    public function savePlaylistContent(PropelPDO $con, $content)
     {
     	$con->beginTransaction();
     
@@ -250,14 +276,8 @@ class PlaylistStatic extends Playlist {
     			
     		$m = array();
     		$currentContent = $this->getMediaContents(null, $con);
-    			
-    		if ($replace) {
-    			$currentContent->delete($con);
-    			$position = 0;
-    		}
-    		else {
-    			$position = count($currentContent);
-    		}
+    		$currentContent->delete($con);
+    		$position = 0;
     			
     		foreach ($content as $item) {
     
@@ -303,14 +323,23 @@ class PlaylistStatic extends Playlist {
     	$scheduled = array();
     	
     	foreach ($contents as $content) {
-    		$scheduled[] = array (
-				"id" => $content->getMediaId(),
-				"cliplength" => $content->getCliplength(),
-				"cuein" => $content->getCuein(),
-				"cueout" => $content->getCueout(),
-				"fadein" => $content->getFadein(),
-				"fadeout" => $content->getFadeout(),
-			);
+    		
+    		$media = $content->getMediaItem()->getChildObject();
+    		
+    		if (substr($media->getType(), 0, 8) == "Playlist") {
+    			
+    			$scheduled = array_merge($scheduled, $media->getScheduledContent($con));
+    		}
+    		else {
+    			$scheduled[] = array (
+    				"id" => $content->getMediaId(),
+    				"cliplength" => $content->getCliplength(),
+    				"cuein" => $content->getCuein(),
+    				"cueout" => $content->getCueout(),
+    				"fadein" => $content->getFadein(),
+    				"fadeout" => $content->getFadeout(),
+    			);
+    		}	
     	}
     	
     	return $scheduled;

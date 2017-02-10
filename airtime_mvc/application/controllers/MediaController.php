@@ -1,5 +1,7 @@
 <?php
 
+use Airtime\MediaItemQuery;
+
 class MediaController extends Zend_Controller_Action
 {
 
@@ -58,12 +60,17 @@ class MediaController extends Zend_Controller_Action
     {
     	$ids = $this->_getParam('ids');
     	
-    	try {
-	    	$mediaService = new Application_Service_MediaService();
-	    	$r = $mediaService->delete($ids);
-    	}
-    	catch (Exception $e) {
-    		$this->view->error = $e->getMessage();
+    	$service = new Application_Service_UserService();
+    	$user = $service->getCurrentUser();
+
+    	$mediaItems = MediaItemQuery::create()->findPks($ids);
+    	
+    	foreach ($mediaItems as $mediaItem) {
+    		
+    		if ($user->isAdmin() || $user->getId() === $mediaItem->getOwnerId()) {
+    			$media = $mediaItem->getChildObject();
+    			$media->delete();
+    		}
     	}
     }
 }

@@ -69,7 +69,10 @@ class LoginController extends Zend_Controller_Action
 
                         Application_Model_LoginAttempts::resetAttempts($_SERVER['REMOTE_ADDR']);
                         Application_Model_Subjects::resetLoginAttempts($username);
-
+                        
+                        $tempSess = new Zend_Session_Namespace("referrer");
+                        $tempSess->referrer = 'login';
+                        
                         //set the user locale in case user changed it in when logging in
                         Application_Model_Preference::SetUserLocale($locale);
 

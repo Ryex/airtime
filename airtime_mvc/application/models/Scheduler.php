@@ -207,8 +207,8 @@ class Application_Model_Scheduler
 
     /*
      * @param $id
-     *
-     * id will be the media id of the item.
+     * 
+     * id will be the media id of the item. 
      * Each item should provide a way to produce itself in a schedulable format that this function can then use.
      *
      * @return $files
@@ -217,15 +217,20 @@ class Application_Model_Scheduler
     {
     	$schedulerInfo = array();
     	$media = MediaItemQuery::create()->findPK($id, $this->con);
-
-    	//content could be an unrolled playlist or a single file/webstream.
-    	$content = $media->getScheduledContent($this->con);
-
+    	
+    	//TODO use this instead when starting to schedule playlists instead of unrolling the content right away.
+    	//content could be an dynamic/static playlist or a single file/webstream.
+    	//$content = $media->getSchedulingInfo();
+    	
     	//merge in any defaults or extra things needed by the scheduler.
-    	for ($i = 0, $len = count($content); $i < $len; $i++) {
-    		$schedulerInfo[] = array_merge($this->mediaInfo, $content[$i]);
+    	//$schedulerInfo[] = array_merge($this->mediaInfo, $content);
+    	
+    	$contents = $media->getScheduledContent($this->con);
+    	
+    	foreach ($contents as $content) {
+    		$schedulerInfo[] = array_merge($this->mediaInfo, $content);
     	}
-
+    		
         return $schedulerInfo;
     }
 
@@ -645,9 +650,6 @@ class Application_Model_Scheduler
                             $doInsert = true;
                         }
 
-                        // default fades are in seconds
-                        $file['fadein'] = $file['fadein'];
-                        $file['fadeout'] = $file['fadeout'];
 
                         if ($this->applyCrossfades) {
                             $nextStartDT = $this->findTimeDifference($nextStartDT,
@@ -709,6 +711,7 @@ class Application_Model_Scheduler
                         };
                     }
 
+                    
                     //TODO update is Scheduled to work with media
                     // update is_scheduled flag for each cc_file
                     /*
@@ -716,6 +719,7 @@ class Application_Model_Scheduler
                     foreach ($filesToInsert as &$file) {
                         $fileIds[] = $file["id"];
                     }
+
                     $selectCriteria = new Criteria();
                     $selectCriteria->add(CcFilesPeer::ID, $fileIds, Criteria::IN);
                     $selectCriteria->addAnd(CcFilesPeer::IS_SCHEDULED, false);
